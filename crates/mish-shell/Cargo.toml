@@ -1,0 +1,11 @@
+[package]
+name = "mish-shell"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+
+[[bin]]
+name = "mish"
+path = "src/main.rs"
+

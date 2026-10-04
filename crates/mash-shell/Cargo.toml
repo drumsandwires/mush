@@ -1,0 +1,11 @@
+[package]
+name = "mash-shell"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+
+[[bin]]
+name = "mash"
+path = "src/main.rs"
+

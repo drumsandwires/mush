@@ -1,0 +1,19 @@
+[workspace]
+resolver="3"
+members = [
+    "crates/mash-core",
+    "crates/mish-core",
+    "crates/mash-shell",
+    "crates/mish-shell", 
+]
+
+# Root + Workspace project pattern, like nushell. Maybe later
+#
+# [package]
+# name="mush"
+# version="0.0.0"
+# edition="2024"
+#
+# [[bin]]
+# name="mush"
+# path="src/main.rs"
