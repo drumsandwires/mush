@@ -1,6 +1,8 @@
+# mush/crates/mish-core/Cargo.toml
 [package]
 name = "mish-core"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
+# MIDI crates e.g. midir, midly go here

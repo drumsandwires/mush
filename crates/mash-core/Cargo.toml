@@ -1,6 +1,8 @@
+# mush/crates/mash-core/Cargo.toml
 [package]
 name = "mash-core"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
+# Audio crates e.g. cpal, rodio go here

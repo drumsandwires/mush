@@ -1,0 +1,17 @@
+# mush/crates/mush-shell/Cargo.toml
+[package]
+name = "mush-shell"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+mush-core.workspace = true
+mish-core.workspace = true
+mash-core.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name="mush"
+path="src/main.rs"

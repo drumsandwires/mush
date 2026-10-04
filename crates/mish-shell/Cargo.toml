@@ -1,11 +1,16 @@
+# mush/crates/mish-shell/Cargo.toml
 [package]
 name = "mish-shell"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
+mush-core.workspace = true
+mish-core.workspace = true
+
+[lib]
+path = "src/lib.rs"
 
 [[bin]]
-name = "mish"
-path = "src/main.rs"
-
+name="mish"
+path="src/main.rs"

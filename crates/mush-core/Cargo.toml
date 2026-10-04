@@ -1,0 +1,7 @@
+[package]
+name = "mush-core"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+reedline.workspace = true
