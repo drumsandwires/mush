@@ -1,7 +1,7 @@
 // mush/crates/mush-shell/src/main.rs
-use mash_core::{AudioEngine, AudioResponse};
-use mish_core::{MidiEngine, MidiResponse};
-use mush_core::{run, Response, Shell};
+use mash_audio_core::{AudioEngine, AudioResponse};
+use mish_midi_core::{MidiEngine, MidiResponse};
+use mush_core::{Response, Shell, run};
 
 struct MushShell {
     midi: MidiEngine,
@@ -10,7 +10,7 @@ struct MushShell {
 
 impl Shell for MushShell {
     fn prompt(&self) -> &str {
-        "mush> "
+        "mush"
     }
 
     fn evaluate(&self, input: &str) -> Response {

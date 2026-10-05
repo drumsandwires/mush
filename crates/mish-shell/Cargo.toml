@@ -6,7 +6,7 @@ edition.workspace = true
 
 [dependencies]
 mush-core.workspace = true
-mish-core.workspace = true
+mish-midi-core.workspace = true
 
 [lib]
 path = "src/lib.rs"

@@ -1,4 +1,4 @@
-// mush/crates/mish-core/src/lib.rs
+// mush/crates/mish-midi-core/src/lib.rs
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —
@@ -27,10 +27,10 @@ impl MidiEngine {
         match input.trim() {
             "" => MidiResponse::Empty,
             "help" => MidiResponse::Output(
-                "MIDI commands: help, version, list-ports, play, stop".to_string(),
+                "MIDI commands: help, version, ports, play, stop".to_string(),
             ),
-            "version" => MidiResponse::Output("mish-core v0.1.0".to_string()),
-            "list-ports" => MidiResponse::Output("ports: [none connected]".to_string()),
+            "version" => MidiResponse::Output("mish-midi-core v0.1.0".to_string()),
+            "ports" => MidiResponse::Output("ports: [none connected]".to_string()),
             "play" => MidiResponse::Output("Playing...".to_string()),
             "stop" => MidiResponse::Output("Stopped.".to_string()),
             _ => MidiResponse::Unknown,

@@ -1,6 +1,6 @@
-# mush/crates/mish-core/Cargo.toml
+# mush/crates/mish-midi-core/Cargo.toml
 [package]
-name = "mish-core"
+name = "mish-midi-core"
 version.workspace = true
 edition.workspace = true
 

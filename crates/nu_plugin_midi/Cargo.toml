@@ -7,4 +7,4 @@ edition.workspace = true
 [dependencies]
 nu-plugin.workspace = true
 nu-protocol.workspace = true
-mish-core.workspace = true
+mish-midi-core.workspace = true

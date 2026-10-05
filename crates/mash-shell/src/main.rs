@@ -1,12 +1,12 @@
 // mush/crates/mash-shell/src/main.rs
-use mash_core::{AudioEngine, AudioResponse};
-use mush_core::{run, Response, Shell};
+use mash_audio_core::{AudioEngine, AudioResponse};
+use mush_core::{Response, Shell, run};
 
 struct MashShell(AudioEngine);
 
 impl Shell for MashShell {
     fn prompt(&self) -> &str {
-        "mash> "
+        "mash"
     }
 
     fn evaluate(&self, input: &str) -> Response {

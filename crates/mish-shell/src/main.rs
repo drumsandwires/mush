@@ -1,12 +1,12 @@
 // mush/crates/mish-shell/src/main.rs
-use mish_core::{MidiEngine, MidiResponse};
-use mush_core::{run, Response, Shell};
+use mish_midi_core::{MidiEngine, MidiResponse};
+use mush_core::{Response, Shell, run};
 
 struct MishShell(MidiEngine);
 
 impl Shell for MishShell {
     fn prompt(&self) -> &str {
-        "mish> "
+        "mish"
     }
 
     fn evaluate(&self, input: &str) -> Response {

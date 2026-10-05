@@ -6,7 +6,7 @@ edition.workspace = true
 
 [dependencies]
 mush-core.workspace = true
-mash-core.workspace = true
+mash-audio-core.workspace = true
 
 [lib]
 path = "src/lib.rs"

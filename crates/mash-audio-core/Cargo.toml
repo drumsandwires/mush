@@ -1,6 +1,6 @@
-# mush/crates/mash-core/Cargo.toml
+# mush/crates/mash-audio-core/Cargo.toml
 [package]
-name = "mash-core"
+name = "mash-audio-core"
 version.workspace = true
 edition.workspace = true
 

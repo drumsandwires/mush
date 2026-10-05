@@ -1,4 +1,4 @@
-// mush/crates/mash-core/src/lib.rs
+// mush/crates/mash-audio-core/src/lib.rs
 
 /// The result of evaluating an Audio command.
 #[derive(Debug, PartialEq)]
@@ -25,10 +25,10 @@ impl AudioEngine {
         match input.trim() {
             "" => AudioResponse::Empty,
             "help" => AudioResponse::Output(
-                "Audio commands: help, version, list-devices, record, playback".to_string(),
+                "Audio commands: help, version, devices, record, playback".to_string(),
             ),
-            "version" => AudioResponse::Output("mash-core v0.1.0".to_string()),
-            "list-devices" => AudioResponse::Output("devices: [default]".to_string()),
+            "version" => AudioResponse::Output("mash-audio-core v0.1.0".to_string()),
+            "devices" => AudioResponse::Output("devices: [default]".to_string()),
             "record" => AudioResponse::Output("Recording...".to_string()),
             "playback" => AudioResponse::Output("Playing back...".to_string()),
             _ => AudioResponse::Unknown,

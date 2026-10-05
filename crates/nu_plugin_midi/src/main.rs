@@ -1,12 +1,12 @@
 // mush/crates/nu-plugin-midi/src/main.rs
-use mish_core::{MidiEngine, MidiResponse};
+use mish_midi_core::{MidiEngine, MidiResponse};
 use nu_plugin::{
-    serve_plugin,
     EngineInterface,
     EvaluatedCall,
     MsgPackSerializer, // MediumInterface removed
     Plugin,
     PluginCommand,
+    serve_plugin,
 };
 use nu_protocol::{Category, LabeledError, PipelineData, Signature, SyntaxShape, Value};
 
@@ -62,7 +62,7 @@ impl PluginCommand for MidiCmd {
     }
 }
 
-// --- midi list-ports ---
+// --- midi ports ---
 
 struct MidiListPorts;
 
@@ -70,7 +70,7 @@ impl PluginCommand for MidiListPorts {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "midi list-ports"
+        "midi ports"
     }
 
     fn description(&self) -> &str {
@@ -78,7 +78,7 @@ impl PluginCommand for MidiListPorts {
     }
 
     fn signature(&self) -> Signature {
-        Signature::build("midi list-ports").category(Category::Custom("midi".to_string()))
+        Signature::build("midi ports").category(Category::Custom("midi".to_string()))
     }
 
     fn run(
@@ -88,7 +88,7 @@ impl PluginCommand for MidiListPorts {
         call: &EvaluatedCall,
         _input: PipelineData,
     ) -> Result<PipelineData, LabeledError> {
-        to_pipeline(plugin.engine.evaluate("list-ports"), call)
+        to_pipeline(plugin.engine.evaluate("ports"), call)
     }
 }
 
