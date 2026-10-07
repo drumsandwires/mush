@@ -24,6 +24,8 @@ impl Plugin for MidiPlugin {
             Box::new(MidiCmd),
             Box::new(MidiListPorts),
             Box::new(MidiPlay),
+            Box::new(MidiListen),
+            Box::new(MidiRecord),
             Box::new(MidiStop),
         ]
     }
@@ -119,6 +121,65 @@ impl PluginCommand for MidiPlay {
         _input: PipelineData,
     ) -> Result<PipelineData, LabeledError> {
         to_pipeline(plugin.engine.evaluate("play"), call)
+    }
+}
+
+// --- midi listen ---
+
+struct MidiListen;
+
+impl PluginCommand for MidiListen {
+    type Plugin = MidiPlugin;
+    fn name(&self) -> &str {
+        "midi listen"
+    }
+
+    fn description(&self) -> &str {
+        "Start MIDI monitoring"
+    }
+
+    fn signature(&self) -> Signature {
+        Signature::build("midi listen").category(Category::Custom("midi".to_string()))
+    }
+
+    fn run(
+        &self,
+        plugin: &MidiPlugin,
+        _engine: &EngineInterface,
+        call: &EvaluatedCall,
+        _input: PipelineData,
+    ) -> Result<PipelineData, LabeledError> {
+        to_pipeline(plugin.engine.evaluate("listen"), call)
+    }
+}
+
+// --- midi record ---
+
+struct MidiRecord;
+
+impl PluginCommand for MidiRecord {
+    type Plugin = MidiPlugin;
+
+    fn name(&self) -> &str {
+        "midi record"
+    }
+
+    fn description(&self) -> &str {
+        "Start MIDI recording"
+    }
+
+    fn signature(&self) -> Signature {
+        Signature::build("midi record").category(Category::Custom("midi".to_string()))
+    }
+
+    fn run(
+        &self,
+        plugin: &MidiPlugin,
+        _engine: &EngineInterface,
+        call: &EvaluatedCall,
+        _input: PipelineData,
+    ) -> Result<PipelineData, LabeledError> {
+        to_pipeline(plugin.engine.evaluate("record"), call)
     }
 }
 

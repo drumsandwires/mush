@@ -1,4 +1,11 @@
-// mush/crates/mish-midi-core/src/lib.rs
+mod midi {
+    pub mod display;
+    pub mod enumerate;
+    pub mod types;
+}
+
+use midi::display::list_enumerated_ports;
+use midi::enumerate::enumerate_ports;
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —
@@ -26,11 +33,20 @@ impl MidiEngine {
     pub fn evaluate(&self, input: &str) -> MidiResponse {
         match input.trim() {
             "" => MidiResponse::Empty,
-            "help" => MidiResponse::Output(
-                "MIDI commands: help, version, ports, play, stop".to_string(),
-            ),
+            "help" => {
+                MidiResponse::Output("MIDI commands: help, version, ports, play, stop".to_string())
+            }
             "version" => MidiResponse::Output("mish-midi-core v0.1.0".to_string()),
-            "ports" => MidiResponse::Output("ports: [none connected]".to_string()),
+            "ports" => {
+                // MidiError is an internal detail; surface it as a user-facing string.
+                match enumerate_ports() {
+                    Err(e) => MidiResponse::Output(format!("error enumerating ports: {e}")),
+                    Ok(ports) => match list_enumerated_ports(&ports) {
+                        Some(listing) => MidiResponse::Output(listing),
+                        None => MidiResponse::Output("no MIDI ports found".to_string()),
+                    },
+                }
+            }
             "play" => MidiResponse::Output("Playing...".to_string()),
             "stop" => MidiResponse::Output("Stopped.".to_string()),
             _ => MidiResponse::Unknown,
@@ -64,5 +80,15 @@ mod tests {
     #[test]
     fn test_empty() {
         assert_eq!(MidiEngine::new().evaluate(""), MidiResponse::Empty);
+    }
+
+    #[test]
+    fn test_ports_returns_output() {
+        // We can't assert on the content (hardware-dependent),
+        // but we can assert the shape of the response.
+        assert!(matches!(
+            MidiEngine::new().evaluate("ports"),
+            MidiResponse::Output(_)
+        ));
     }
 }

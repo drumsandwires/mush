@@ -8,7 +8,7 @@ members = [
     "crates/mash-shell",
     "crates/mush-shell",
     "crates/nu_plugin_midi",
-    # "crates/nu_plugin_audio" — reserved, not yet implemented
+    "crates/nu_plugin_live_audio",
     # TODO(#2): add for integration tests: "tests",
 ]
 resolver = "3"
@@ -22,6 +22,7 @@ version = "0.1.0"
 reedline    = "0.52"
 nu-plugin   = "0.116"
 nu-protocol = "0.116"
+thiserror = "2"
 # TODO(#3): add for integration tests: expectrl = "0.9"
 
 # internal

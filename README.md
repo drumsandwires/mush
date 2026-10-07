@@ -4,35 +4,33 @@ A collection of command-line tools and shells for working with MIDI and audio da
 
 ## Structure
 
-A MIDI and Audio shell workspace — standalone reedline REPLs, a unified shell, and a nushell plugin, all sharing common domain cores.
+A MIDI and Audio shell workspace — standalone reedline MIDI and audio REPLs, a unified shell, and a nushell plugin, all sharing common domain cores.
 
-mush/
-├── crates/
-│   ├── mush-core/        # REPL engine + Shell trait (reedline)
-│   ├── mish-midi-core/   # MIDI domain logic (no REPL dependency)
-│   ├── mash-audio-core/  # Audio domain logic (no REPL dependency)
-│   ├── mish-shell/       # Standalone MIDI reedline REPL  → binary: mish
-│   ├── mash-shell/       # Standalone Audio reedline REPL → binary: mash
-│   ├── mush-shell/       # Unified MIDI + Audio REPL      → binary: mush
-│   └── nu_plugin_midi/   # Nushell MIDI plugin            → binary: nu_plugin_midi
-│    # nu_plugin_audio: reserved, not yet implemented
-└── tests/                # Workspace-level PTY integration tests (expectrl)
-
-
+- 📁`mush/`
+  - 📁`crates/`
+    - 📁`mush-core/` - REPL engine + Shell trait (reedline)
+    - 📁`mish-midi-core/` - MIDI domain logic (no REPL dependency)
+    - 📁`mash-audio-core/` - Audio domain logic (no REPL dependency)
+    - 📁`mish-shell/`  - Standalone MIDI reedline REPL  → binary: mish
+    - 📁`mash-shell/` - Standalone Audio reedline REPL → binary: mash
+    - 📁`mush-shell/` - Unified MIDI + Audio REPL      → binary: mush
+    - 📁`nu_plugin_midi/` - Nushell MIDI plugin            → binary: nu_plugin_midi
+    - `~~nu_plugin_audio~~`: reserved, not yet implemented
+  - 📁`tests/`  - Workspace-level PTY integration tests (expectrl)
 
 ## Dependencies
 
-
-
-reedline          nu-plugin / nu-protocol
-    ↑                       ↑
-mush-core             nu_plugin_midi
-    ↑    ↑                  ↑
-    |  mish-shell ── mish-midi-core
-    |  mash-shell ── mash-audio-core
-    |  mush-shell ── mish-midi-core
-    |             └─ mash-audio-core
-tests ── mish-shell, mash-shell, mush-shell
+| Crate                   | Depends On                                       | Purpose                                |
+| ----------------------- | ------------------------------------------------ | -------------------------------------- |
+| `mush-core`             | `reedline`                                       | Wraps reedline for use by shell crates |
+| `mish-midi-core`        | (`midir`)                                        | Core MIDI data logic                   |
+| `mash-audio-core`       | (`cpal`)                                         | Core live audio data logic             |
+| `mish-shell`            | `mush-core`, `mish-midi-core`                    | MIDI interactive shell                 |
+| `mash-shell`            | `mush-core`, `mash-audio-core`                   | Live audio interactive shell           |
+| `mush-shell`            | `mush-core`, `mish-midi-core`, `mash-audio-core` | Combined interactive shell             |
+| `nu_plugin_midi`        | `mish-midi-core`, `nu-plugin`, `nu-protocol`     | Exposes MIDI as nushell commands       |
+| `nu_plugin_live_audio`  | `mash-audio-core`, `nu-plugin`, `nu-protocol`    | Exposes live audio as nushell commands |
+| `tests` *(integration)* | `mish-shell`, `mash-shell`, `mush-shell`         | Integration test harness               |
 
 ## Prerequisites
 
@@ -44,6 +42,21 @@ Install task runner and test runner:
 
 - `cargo install mask`
 - `cargo install cargo-nextest`
+
+
+
+### Plan
+
+| Milestone | Goals                           |
+| --------- | ------------------------------- |
+| 1         | Workspace & Core Scaffold       |
+| 2         | File Commands in Both Frontends |
+| 3         | Live Device I/O: `midi listen`  |
+| 4         | `midi send` + SysEx             |
+| 5         | Full test, rework               |
+| 6         | Publish                         |
+
+
 
 ## Usage
 
@@ -81,7 +94,7 @@ cargo build --workspace
 
 ## run (shell)
 
-> Run a shell binary — usage: mask run <mish|mash|mush>
+> Run a shell binary — usage: mask run [mish|mash|mush]
 
 ```sh
 cargo run --bin $shell
@@ -185,12 +198,12 @@ cargo fmt --all
 cargo fmt --all -- --check
 ```
 
-## plugin-add
+## plugin-add (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
 ```sh
 set -e
-cargo build --package nu_plugin_midi --release
-nu -c "plugin add target/release/nu_plugin_midi; plugin list | where name == midi"
+cargo build --package nu_plugin_${plugin} --release
+nu -c "plugin rm ${plugin}; plugin add target/release/nu_plugin_${plugin}; plugin list | where name == ${plugin}"
 ```
