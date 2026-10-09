@@ -1,21 +1,23 @@
-/// The result of evaluating an Audio command.
-use enum_iterator::{Sequence, all};
-use std::fmt;
-use std::sync::OnceLock;
-
+// crates/mash-audio-core/src/audio/engine.rs  (REPLACE)
 use crate::audio::display::list_hosts_and_devices;
 use crate::audio::enumerate::enumerate_hosts_and_devices;
 use crate::audio::types::{AudioDeviceError, AudioSystemInfo};
+use enum_iterator::{Sequence, all};
+use std::fmt;
+use std::path::Path;
+use std::sync::RwLock;
 
+/// The result of evaluating an Audio command.
+/// Deliberately decoupled from any REPL or plugin response type —
+/// each frontend maps this into its own output representation.
 #[derive(Debug, PartialEq)]
 pub enum AudioResponse {
     Output(String),
     Empty,
     Exit(String),
-    /// Command not recognised by this domain.
-    Unknown,
 }
 
+/// Canonical list of audio tasks — drives help output in any frontend.
 #[derive(Debug, PartialEq, Sequence)]
 pub enum AudioTasks {
     Help,
@@ -35,50 +37,96 @@ impl fmt::Display for AudioTasks {
 }
 
 /// Audio command evaluator.
-/// Holds domain state (active device, recording session, etc.)
+/// Pure domain logic — no string parsing, no clap, no shlex, no REPL types.
+/// Each frontend (REPL, nushell plugin, GUI) calls methods directly.
 pub struct AudioEngine {
-    /// Populated on the first `devices` command via OnceCell interior
-    /// mutability — allows evaluate() to take &self instead of &mut self.
-    devices_cache: OnceLock<AudioSystemInfo>,
+    /// Refreshable cache of enumerated audio devices.
+    /// None = unpopulated or invalidated; Some = ready to serve.
+    devices_cache: RwLock<Option<AudioSystemInfo>>,
 }
 
 impl AudioEngine {
     pub fn new() -> Self {
         Self {
-            devices_cache: OnceLock::new(),
+            devices_cache: RwLock::new(None),
         }
     }
 
-    pub fn evaluate(&self, input: &str) -> AudioResponse {
-        match input.trim() {
-            "" => AudioResponse::Empty,
-            "help" => AudioResponse::Output(format!(
-                "Audio commands: {}",
-                all::<AudioTasks>()
-                    .map(|d| d.to_string().to_lowercase())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )),
-            "version" => AudioResponse::Output("mash-audio-core v0.1.0".to_string()),
-            "devices" => AudioResponse::Output(self.devices_listing()),
-            "load" => AudioResponse::Output("Loading...".to_string()),
-            "save" => AudioResponse::Output("Saving...".to_string()),
-            "record" => AudioResponse::Output("Recording...".to_string()),
-            "play" => AudioResponse::Output("Playing back...".to_string()),
-            "stop" => AudioResponse::Output("Stopping...".to_string()),
-            _ => AudioResponse::Unknown,
-        }
+    /// Invalidates the devices cache so the next call to `devices()`
+    /// re-enumerates from the OS. Call this before any command that
+    /// may change the device topology (e.g. connect, disconnect).
+    pub fn invalidate_devices_cache(&self) {
+        *self.devices_cache.write().unwrap() = None;
     }
 
-    /// Returns the formatted device listing, populating the cache on first call.
-    fn devices_listing(&self) -> String {
-        let info = self.devices_cache.get_or_init(|| {
-            enumerate_hosts_and_devices().unwrap_or_else(|e: AudioDeviceError| {
-                eprintln!("mash-audio-core: device enumeration failed: {e}");
-                AudioSystemInfo { hosts: vec![] }
-            })
+    /// Returns a formatted list of all available audio tasks.
+    /// Frontends can call this for their own `help` command.
+    pub fn help(&self) -> AudioResponse {
+        AudioResponse::Output(format!(
+            "Audio commands: {}",
+            all::<AudioTasks>()
+                .map(|t| t.to_string().to_lowercase())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    }
+
+    pub fn version(&self) -> AudioResponse {
+        AudioResponse::Output("mash-audio-core v0.1.0".to_string())
+    }
+
+    /// Lists available audio devices.
+    /// Serves from cache when populated; enumerates from OS on cache miss.
+    /// Refresh with `invalidate_devices_cache()` before calling if needed.
+    pub fn devices(&self) -> AudioResponse {
+        // --- fast path: cache hit ---
+        {
+            let read = self.devices_cache.read().unwrap();
+            if let Some(ref info) = *read {
+                return AudioResponse::Output(list_hosts_and_devices(info));
+            }
+        } // read lock dropped here before write below
+
+        // --- slow path: cache miss — enumerate and populate ---
+        let info = enumerate_hosts_and_devices().unwrap_or_else(|e: AudioDeviceError| {
+            eprintln!("mash-audio-core: device enumeration failed: {e}");
+            AudioSystemInfo { hosts: vec![] }
         });
-        list_hosts_and_devices(info)
+        let response = AudioResponse::Output(list_hosts_and_devices(&info));
+        *self.devices_cache.write().unwrap() = Some(info);
+        response
+    }
+
+    /// Refreshes the devices cache unconditionally, then returns the listing.
+    /// Use this when you know the device topology may have changed.
+    pub fn devices_refresh(&self) -> AudioResponse {
+        self.invalidate_devices_cache();
+        self.devices()
+    }
+
+    pub fn load(&self, path: &Path) -> AudioResponse {
+        // TODO: load audio file
+        AudioResponse::Output(format!("Loading '{}'...", path.display()))
+    }
+
+    pub fn save(&self, path: &Path) -> AudioResponse {
+        // TODO: save session
+        AudioResponse::Output(format!("Saving to '{}'...", path.display()))
+    }
+
+    pub fn play(&self) -> AudioResponse {
+        // TODO: real playback
+        AudioResponse::Output("Playing back...".to_string())
+    }
+
+    pub fn record(&self) -> AudioResponse {
+        // TODO: start recording
+        AudioResponse::Output("Recording...".to_string())
+    }
+
+    pub fn stop(&self) -> AudioResponse {
+        // TODO: stop playback/recording
+        AudioResponse::Output("Stopping...".to_string())
     }
 }
 
@@ -95,18 +143,63 @@ mod tests {
     #[test]
     fn test_help() {
         assert!(matches!(
-            AudioEngine::new().evaluate("help"),
+            AudioEngine::new().help(),
             AudioResponse::Output(_)
         ));
     }
 
     #[test]
-    fn test_unknown() {
-        assert_eq!(AudioEngine::new().evaluate("bogus"), AudioResponse::Unknown);
+    fn test_version() {
+        assert!(matches!(
+            AudioEngine::new().version(),
+            AudioResponse::Output(_)
+        ));
     }
 
     #[test]
-    fn test_empty() {
-        assert_eq!(AudioEngine::new().evaluate(""), AudioResponse::Empty);
+    fn test_devices_returns_output() {
+        assert!(matches!(
+            AudioEngine::new().devices(),
+            AudioResponse::Output(_)
+        ));
+    }
+
+    #[test]
+    fn test_devices_refresh() {
+        let engine = AudioEngine::new();
+        let _ = engine.devices();
+        assert!(matches!(engine.devices_refresh(), AudioResponse::Output(_)));
+    }
+
+    #[test]
+    fn test_invalidate_then_devices() {
+        let engine = AudioEngine::new();
+        let _ = engine.devices();
+        engine.invalidate_devices_cache();
+        assert!(matches!(engine.devices(), AudioResponse::Output(_)));
+    }
+
+    #[test]
+    fn test_play() {
+        assert!(matches!(
+            AudioEngine::new().play(),
+            AudioResponse::Output(_)
+        ));
+    }
+
+    #[test]
+    fn test_stop() {
+        assert!(matches!(
+            AudioEngine::new().stop(),
+            AudioResponse::Output(_)
+        ));
+    }
+
+    #[test]
+    fn test_load() {
+        assert!(matches!(
+            AudioEngine::new().load(Path::new("test.wav")),
+            AudioResponse::Output(_)
+        ));
     }
 }
