@@ -7,6 +7,8 @@ edition.workspace = true
 [dependencies]
 mush-core.workspace = true
 mish-midi-core.workspace = true
+clap           = { workspace = true }
+shlex          = { workspace = true }
 
 [[bin]]
 name="mish"

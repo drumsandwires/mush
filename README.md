@@ -15,7 +15,7 @@ A MIDI and Audio shell workspace — standalone reedline MIDI and audio REPLs, a
     - 📁`mash-shell/` - Standalone Audio reedline REPL → binary: mash
     - 📁`mush-shell/` - Unified MIDI + Audio REPL      → binary: mush
     - 📁`nu_plugin_midi/` - Nushell MIDI plugin            → binary: nu_plugin_midi
-    - `~~nu_plugin_audio~~`: reserved, not yet implemented
+    - 📁nu_plugin_audio/`: - Nushell audio plugin → binary: nu_plugin_live_audio
   - 📁`tests/`  - Workspace-level PTY integration tests (expectrl)
 
 ## Dependencies
@@ -45,14 +45,14 @@ Install task runner and test runner:
 
 ### Plan
 
-| Milestone | Goals                           |
-| --------- | ------------------------------- |
-| 1         | Workspace & Core Scaffold       |
-| 2         | File Commands in Both Frontends |
-| 3         | Live Device I/O: `midi listen`  |
-| 4         | `midi send` + SysEx             |
-| 5         | Full test, rework               |
-| 6         | Publish                         |
+| Milestone | Goals                                        |
+| --------- | -------------------------------------------- |
+| 1         | Workspace & Core Scaffold, Enumerate devices |
+| 2         | File Commands in Both Frontends              |
+| 3         | Live Device I/O: `midi listen`               |
+| 4         | `midi send` + SysEx                          |
+| 5         | Full test, rework                            |
+| 6         | Publish                                      |
 
 ## Usage
 
