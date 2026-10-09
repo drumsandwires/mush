@@ -1430,6 +1430,7 @@ dependencies = [
 name = "mish-midi-core"
 version = "0.1.0"
 dependencies = [
+ "enum-iterator",
  "midir",
  "thiserror 2.0.21",
 ]

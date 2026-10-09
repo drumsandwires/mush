@@ -1,5 +1,8 @@
 use crate::midi::display::list_enumerated_ports;
 use crate::midi::enumerate::enumerate_ports;
+use enum_iterator::{Sequence, all};
+use std::fmt;
+use std::sync::OnceLock;
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —
@@ -11,6 +14,24 @@ pub enum MidiResponse {
     Exit(String),
     /// Command not recognised by this domain.
     Unknown,
+}
+
+#[derive(Debug, PartialEq, Sequence)]
+pub enum MidiTasks {
+    Help,
+    Version,
+    Devices,
+    Load,
+    Save,
+    Play,
+    Record,
+    Stop,
+}
+
+impl fmt::Display for MidiTasks {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 /// MIDI command evaluator.
@@ -27,9 +48,13 @@ impl MidiEngine {
     pub fn evaluate(&self, input: &str) -> MidiResponse {
         match input.trim() {
             "" => MidiResponse::Empty,
-            "help" => {
-                MidiResponse::Output("MIDI commands: help, version, ports, play, stop".to_string())
-            }
+            "help" => MidiResponse::Output(format!(
+                "Midi commands: {}",
+                all::<MidiTasks>()
+                    .map(|d| d.to_string().to_lowercase())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
             "version" => MidiResponse::Output("mish-midi-core v0.1.0".to_string()),
             "ports" => {
                 // MidiError is an internal detail; surface it as a user-facing string.
