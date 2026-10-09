@@ -5,7 +5,7 @@ use mush_core::Response;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(no_binary_name = true)]
+#[command(no_binary_name = true, name = "mush")]
 struct Cli {
     #[command(subcommand)]
     domain: Domain,
@@ -118,6 +118,6 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
                 MidiCommand::Stop => midi_to_response(midi.stop()),
             },
         },
-        Err(e) => Response::Output(format!("mush: {e}")),
+        Err(e) => Response::Output(e.render().to_string()),
     }
 }

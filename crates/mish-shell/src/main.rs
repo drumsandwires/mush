@@ -7,7 +7,7 @@ struct MishShell(MidiEngine);
 
 impl Shell for MishShell {
     fn prompt(&self) -> &str {
-        "mish> "
+        "mish"
     }
 
     fn evaluate(&self, input: &str) -> Response {

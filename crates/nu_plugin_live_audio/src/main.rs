@@ -1,4 +1,3 @@
-// crates/nu_plugin_live_audio/src/main.rs  (REPLACE)
 mod commands;
 
 use mash_audio_core::audio::engine::AudioEngine;

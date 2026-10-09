@@ -10,7 +10,7 @@ impl SimplePluginCommand for Devices {
     type Plugin = AudioPlugin;
 
     fn name(&self) -> &str {
-        "mash devices"
+        "audio devices"
     }
 
     fn description(&self) -> &str {

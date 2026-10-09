@@ -4,7 +4,7 @@ use mush_core::Response;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(no_binary_name = true)]
+#[command(no_binary_name = true, name = "mish")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -63,6 +63,6 @@ pub fn evaluate(engine: &MidiEngine, input: &str) -> Response {
             Command::Record => to_response(engine.record()),
             Command::Stop => to_response(engine.stop()),
         },
-        Err(e) => Response::Output(format!("mish: {e}")),
+        Err(e) => Response::Output(e.render().to_string()),
     }
 }

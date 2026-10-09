@@ -9,7 +9,7 @@ impl SimplePluginCommand for Play {
     type Plugin = AudioPlugin;
 
     fn name(&self) -> &str {
-        "mash play"
+        "audio play"
     }
 
     fn description(&self) -> &str {

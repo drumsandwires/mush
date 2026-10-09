@@ -10,7 +10,7 @@ impl SimplePluginCommand for DevicesRefresh {
     type Plugin = AudioPlugin;
 
     fn name(&self) -> &str {
-        "mash devices-refresh"
+        "audio devices-refresh"
     }
 
     fn description(&self) -> &str {

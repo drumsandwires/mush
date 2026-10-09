@@ -9,7 +9,7 @@ impl SimplePluginCommand for Stop {
     type Plugin = AudioPlugin;
 
     fn name(&self) -> &str {
-        "mash stop"
+        "audio stop"
     }
 
     fn description(&self) -> &str {

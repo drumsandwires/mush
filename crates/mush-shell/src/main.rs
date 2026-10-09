@@ -12,7 +12,7 @@ struct MushShell {
 
 impl Shell for MushShell {
     fn prompt(&self) -> &str {
-        "mush> "
+        "mush"
     }
 
     fn evaluate(&self, input: &str) -> Response {

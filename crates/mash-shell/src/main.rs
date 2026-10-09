@@ -8,7 +8,7 @@ struct MashShell(AudioEngine);
 
 impl Shell for MashShell {
     fn prompt(&self) -> &str {
-        "mash> "
+        "mash"
     }
 
     fn evaluate(&self, input: &str) -> Response {
