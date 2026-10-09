@@ -9,6 +9,7 @@ members = [
     "crates/mush-shell",
     "crates/nu_plugin_midi",
     "crates/nu_plugin_live_audio",
+    "crates/mush-commands",
     # TODO(#2): add for integration tests: "tests",
 ]
 resolver = "3"
@@ -30,8 +31,10 @@ cpal = "0.18"
 # TODO(#3): add for integration tests: expectrl = "0.9"
 # internal
 mush-core   = { path = "crates/mush-core" }
+mush-commands = { path = "crates/mush-commands" }
 mish-midi-core   = { path = "crates/mish-midi-core" }
 mash-audio-core   = { path = "crates/mash-audio-core" }
+
 
 # Root + Workspace project pattern, like nushell. Maybe later
 #

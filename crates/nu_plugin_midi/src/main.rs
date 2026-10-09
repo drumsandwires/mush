@@ -14,8 +14,8 @@ impl Plugin for MidiPlugin {
 
     fn commands(&self) -> Vec<Box<dyn PluginCommand<Plugin = Self>>> {
         vec![
-            Box::new(commands::Ports),
-            Box::new(commands::PortsRefresh),
+            Box::new(commands::Devices),
+            Box::new(commands::DevicesRefresh),
             Box::new(commands::Play),
             Box::new(commands::Stop),
             Box::new(commands::Record),

@@ -1354,6 +1354,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "mash-audio-core",
+ "mush-commands",
  "mush-core",
  "shlex 2.0.1",
 ]
@@ -1456,8 +1457,16 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "mish-midi-core",
+ "mush-commands",
  "mush-core",
  "shlex 2.0.1",
+]
+
+[[package]]
+name = "mush-commands"
+version = "0.1.0"
+dependencies = [
+ "clap",
 ]
 
 [[package]]
@@ -1474,6 +1483,7 @@ dependencies = [
  "clap",
  "mash-audio-core",
  "mish-midi-core",
+ "mush-commands",
  "mush-core",
  "shlex 2.0.1",
 ]

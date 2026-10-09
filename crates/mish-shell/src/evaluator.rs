@@ -1,33 +1,14 @@
-use clap::{Parser, Subcommand};
+// crates/mish-shell/src/evaluator.rs  (REPLACE)
+use clap::Parser;
 use mish_midi_core::midi::engine::{MidiEngine, MidiResponse};
+use mush_commands::MidiCommand;
 use mush_core::Response;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(no_binary_name = true, name = "mish")]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Subcommand, Debug)]
-enum Command {
-    /// Show mish-midi-core version
-    Version,
-    /// List available MIDI ports
-    Ports,
-    /// Refresh and list available MIDI ports
-    PortsRefresh,
-    /// Load a MIDI file
-    Load { path: PathBuf },
-    /// Save current session
-    Save { path: PathBuf },
-    /// Start MIDI playback
-    Play,
-    /// Start MIDI recording
-    Record,
-    /// Stop playback or recording
-    Stop,
+    command: MidiCommand,
 }
 
 fn to_response(r: MidiResponse) -> Response {
@@ -54,14 +35,14 @@ pub fn evaluate(engine: &MidiEngine, input: &str) -> Response {
 
     match Cli::try_parse_from(tokens) {
         Ok(cli) => match cli.command {
-            Command::Version => to_response(engine.version()),
-            Command::Ports => to_response(engine.ports()),
-            Command::PortsRefresh => to_response(engine.ports_refresh()),
-            Command::Load { path } => to_response(engine.load(&path)),
-            Command::Save { path } => to_response(engine.save(&path)),
-            Command::Play => to_response(engine.play()),
-            Command::Record => to_response(engine.record()),
-            Command::Stop => to_response(engine.stop()),
+            MidiCommand::Version => to_response(engine.version()),
+            MidiCommand::Devices => to_response(engine.devices()),
+            MidiCommand::DevicesRefresh => to_response(engine.devices_refresh()),
+            MidiCommand::Load { path } => to_response(engine.load(&path)),
+            MidiCommand::Save { path } => to_response(engine.save(&path)),
+            MidiCommand::Play => to_response(engine.play()),
+            MidiCommand::Record => to_response(engine.record()),
+            MidiCommand::Stop => to_response(engine.stop()),
         },
         Err(e) => Response::Output(e.render().to_string()),
     }

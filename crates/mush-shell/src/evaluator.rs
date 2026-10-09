@@ -1,8 +1,9 @@
+// crates/mush-shell/src/evaluator.rs  (REPLACE)
 use clap::{Parser, Subcommand};
 use mash_audio_core::audio::engine::{AudioEngine, AudioResponse};
 use mish_midi_core::midi::engine::{MidiEngine, MidiResponse};
+use mush_commands::{AudioCommand, MidiCommand};
 use mush_core::Response;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(no_binary_name = true, name = "mush")]
@@ -23,46 +24,6 @@ enum Domain {
         #[command(subcommand)]
         command: MidiCommand,
     },
-}
-
-#[derive(Subcommand, Debug)]
-enum AudioCommand {
-    /// Show mash-audio-core version
-    Version,
-    /// List audio hosts and devices
-    Devices,
-    /// Refresh and list audio hosts and devices
-    DevicesRefresh,
-    /// Load an audio file
-    Load { path: PathBuf },
-    /// Save current session
-    Save { path: PathBuf },
-    /// Play back loaded audio
-    Play,
-    /// Start recording
-    Record,
-    /// Stop playback or recording
-    Stop,
-}
-
-#[derive(Subcommand, Debug)]
-enum MidiCommand {
-    /// Show mish-midi-core version
-    Version,
-    /// List available MIDI ports
-    Ports,
-    /// Refresh and list available MIDI ports
-    PortsRefresh,
-    /// Load a MIDI file
-    Load { path: PathBuf },
-    /// Save current session
-    Save { path: PathBuf },
-    /// Start MIDI playback
-    Play,
-    /// Start MIDI recording
-    Record,
-    /// Stop playback or recording
-    Stop,
 }
 
 fn audio_to_response(r: AudioResponse) -> Response {
@@ -109,8 +70,8 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
             },
             Domain::Midi { command } => match command {
                 MidiCommand::Version => midi_to_response(midi.version()),
-                MidiCommand::Ports => midi_to_response(midi.ports()),
-                MidiCommand::PortsRefresh => midi_to_response(midi.ports_refresh()),
+                MidiCommand::Devices => midi_to_response(midi.devices()),
+                MidiCommand::DevicesRefresh => midi_to_response(midi.devices_refresh()),
                 MidiCommand::Load { path } => midi_to_response(midi.load(&path)),
                 MidiCommand::Save { path } => midi_to_response(midi.save(&path)),
                 MidiCommand::Play => midi_to_response(midi.play()),

@@ -1,6 +1,6 @@
 // crates/mish-midi-core/src/midi/engine.rs  (REPLACE)
-use crate::midi::display::list_enumerated_ports;
-use crate::midi::enumerate::enumerate_ports;
+use crate::midi::display::list_enumerated_devices;
+use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
 use enum_iterator::{Sequence, all};
 use std::fmt;
@@ -22,7 +22,7 @@ pub enum MidiResponse {
 pub enum MidiTasks {
     Help,
     Version,
-    Ports,
+    Devices,
     Load,
     Save,
     Play,
@@ -40,7 +40,7 @@ impl fmt::Display for MidiTasks {
 /// Pure domain logic — no string parsing, no clap, no shlex, no REPL types.
 /// Each frontend (REPL, nushell plugin, GUI) calls methods directly.
 pub struct MidiEngine {
-    /// Refreshable cache of enumerated MIDI ports.
+    /// Refreshable cache of enumerated MIDI devices.
     /// None = unpopulated or invalidated; Some = ready to serve.
     devices_cache: RwLock<Option<Result<Vec<MidiPortInfo>, String>>>,
 }
@@ -52,7 +52,7 @@ impl MidiEngine {
         }
     }
 
-    /// Invalidates the devices cache so the next call to `ports()`
+    /// Invalidates the devices cache so the next call to `devices()`
     /// re-enumerates from the OS. Call this before any command that
     /// may change the port topology (e.g. connect, disconnect).
     pub fn invalidate_devices_cache(&self) {
@@ -75,30 +75,30 @@ impl MidiEngine {
         MidiResponse::Output("mish-midi-core v0.1.0".to_string())
     }
 
-    /// Lists available MIDI ports.
+    /// Lists available MIDI devices.
     /// Serves from cache when populated; enumerates from OS on cache miss.
     /// Refresh with `invalidate_devices_cache()` before calling if needed.
-    pub fn ports(&self) -> MidiResponse {
+    pub fn devices(&self) -> MidiResponse {
         // --- fast path: cache hit ---
         {
             let read = self.devices_cache.read().unwrap();
             if let Some(ref cached) = *read {
-                return Self::format_ports(cached);
+                return Self::format_devices(cached);
             }
         } // read lock dropped here before write below
 
         // --- slow path: cache miss — enumerate and populate ---
-        let result = enumerate_ports().map_err(|e| e.to_string());
-        let response = Self::format_ports(&result);
+        let result = enumerate_devices().map_err(|e| e.to_string());
+        let response = Self::format_devices(&result);
         *self.devices_cache.write().unwrap() = Some(result);
         response
     }
 
     /// Refreshes the devices cache unconditionally, then returns the listing.
     /// Use this when you know the port topology may have changed.
-    pub fn ports_refresh(&self) -> MidiResponse {
+    pub fn devices_refresh(&self) -> MidiResponse {
         self.invalidate_devices_cache();
-        self.ports()
+        self.devices()
     }
 
     pub fn play(&self) -> MidiResponse {
@@ -126,12 +126,12 @@ impl MidiEngine {
         MidiResponse::Output("Recording...".to_string())
     }
 
-    fn format_ports(result: &Result<Vec<MidiPortInfo>, String>) -> MidiResponse {
+    fn format_devices(result: &Result<Vec<MidiPortInfo>, String>) -> MidiResponse {
         match result {
-            Err(e) => MidiResponse::Output(format!("error enumerating ports: {e}")),
-            Ok(ports) => match list_enumerated_ports(ports) {
+            Err(e) => MidiResponse::Output(format!("error enumerating devices: {e}")),
+            Ok(devices) => match list_enumerated_devices(devices) {
                 Some(listing) => MidiResponse::Output(listing),
-                None => MidiResponse::Output("no MIDI ports found".to_string()),
+                None => MidiResponse::Output("no MIDI devices found".to_string()),
             },
         }
     }
@@ -161,24 +161,24 @@ mod tests {
     }
 
     #[test]
-    fn test_ports_returns_output() {
+    fn test_devices_returns_output() {
         // Content is hardware-dependent; assert only on shape.
-        assert!(matches!(MidiEngine::new().ports(), MidiResponse::Output(_)));
+        assert!(matches!(MidiEngine::new().devices(), MidiResponse::Output(_)));
     }
 
     #[test]
-    fn test_ports_refresh() {
+    fn test_devices_refresh() {
         let engine = MidiEngine::new();
-        let _ = engine.ports();
-        assert!(matches!(engine.ports_refresh(), MidiResponse::Output(_)));
+        let _ = engine.devices();
+        assert!(matches!(engine.devices_refresh(), MidiResponse::Output(_)));
     }
 
     #[test]
-    fn test_invalidate_then_ports() {
+    fn test_invalidate_then_devices() {
         let engine = MidiEngine::new();
-        let _ = engine.ports();
+        let _ = engine.devices();
         engine.invalidate_devices_cache();
-        assert!(matches!(engine.ports(), MidiResponse::Output(_)));
+        assert!(matches!(engine.devices(), MidiResponse::Output(_)));
     }
 
     #[test]

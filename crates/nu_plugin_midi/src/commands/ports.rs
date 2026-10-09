@@ -3,17 +3,17 @@ use mish_midi_core::midi::engine::MidiResponse;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, Type, Value};
 
-pub struct Ports;
+pub struct Devices;
 
-impl SimplePluginCommand for Ports {
+impl SimplePluginCommand for Devices {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "mish ports"
+        "mish devices"
     }
 
     fn description(&self) -> &str {
-        "List available MIDI ports"
+        "List available MIDI devices"
     }
 
     fn signature(&self) -> Signature {
@@ -27,7 +27,7 @@ impl SimplePluginCommand for Ports {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match plugin.engine.ports() {
+        Ok(match plugin.engine.devices() {
             MidiResponse::Output(s) => Value::string(s, Span::unknown()),
             _ => Value::nothing(Span::unknown()),
         })

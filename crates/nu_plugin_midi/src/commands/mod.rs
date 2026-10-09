@@ -5,7 +5,7 @@ mod record;
 mod stop;
 
 pub use play::Play;
-pub use ports::Ports;
-pub use ports_refresh::PortsRefresh;
+pub use ports::Devices;
+pub use ports_refresh::DevicesRefresh;
 pub use record::Record;
 pub use stop::Stop;

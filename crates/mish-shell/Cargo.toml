@@ -5,8 +5,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-mush-core.workspace = true
-mish-midi-core.workspace = true
+mush-core = { workspace = true }
+mish-midi-core = { workspace = true }
+mush-commands  = { workspace = true }
 clap           = { workspace = true }
 shlex          = { workspace = true }
 

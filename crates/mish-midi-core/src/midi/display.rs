@@ -2,13 +2,13 @@ use super::types::{MidiPortDirection, MidiPortInfo};
 
 /// Formats a MIDI port list for console display.
 /// Returns `None` if the slice is empty.
-pub fn list_enumerated_ports(ports: &[MidiPortInfo]) -> Option<String> {
-    if ports.is_empty() {
+pub fn list_enumerated_devices(devices: &[MidiPortInfo]) -> Option<String> {
+    if devices.is_empty() {
         return None;
     }
 
     Some(
-        ports
+        devices
             .iter()
             .map(|p| {
                 let dir = match p.direction {

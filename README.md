@@ -72,7 +72,7 @@ Register in nushell with: `plugin add target/release/nu_plugin_midi`
 
 Once registered, commands are available in nushell:
 
-- `midi ports`
+- `midi devices`
 - `midi play`
 - `midi stop`
 

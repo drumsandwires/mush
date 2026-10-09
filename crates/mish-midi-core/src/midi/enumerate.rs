@@ -1,8 +1,8 @@
 use super::types::{MidiError, MidiPortDirection, MidiPortInfo};
 use midir::{Ignore, MidiInput, MidiOutput};
 
-/// Returns all available MIDI input and output ports as structured data.
-pub fn enumerate_ports() -> Result<Vec<MidiPortInfo>, MidiError> {
+/// Returns all available MIDI input and output devices as structured data.
+pub fn enumerate_devices() -> Result<Vec<MidiPortInfo>, MidiError> {
     let mut midi_in = MidiInput::new("mish-midi-core").map_err(MidiError::InputInit)?;
     midi_in.ignore(Ignore::None);
 

@@ -79,7 +79,7 @@ plugin add target/release/nu_plugin_midi
 Once registered, commands are available in nushell:
 
 ```sh
-midi ports
+midi devices
 midi play
 midi stop
 ```

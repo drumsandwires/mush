@@ -7,8 +7,8 @@ use common::spawn_repl;
 #[test]
 fn mush_midi_namespaced() {
     let mut repl = spawn_repl("mush", "mush> ").expect("failed to spawn mush-shell");
-    let out = String::from_utf8_lossy(&repl.execute("midi ports").unwrap()).into_owned();
-    assert!(out.contains("ports"), "got: {out}");
+    let out = String::from_utf8_lossy(&repl.execute("midi devices").unwrap()).into_owned();
+    assert!(out.contains("devices"), "got: {out}");
     repl.exit().ok();
 }
 

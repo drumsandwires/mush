@@ -1,33 +1,13 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use mash_audio_core::audio::engine::{AudioEngine, AudioResponse};
+use mush_commands::AudioCommand;
 use mush_core::Response;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(no_binary_name = true, name = "mash")]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Subcommand, Debug)]
-enum Command {
-    /// Show mash-audio-core version
-    Version,
-    /// List audio hosts and devices
-    Devices,
-    /// Refresh and list audio hosts and devices
-    DevicesRefresh,
-    /// Load an audio file
-    Load { path: PathBuf },
-    /// Save current session
-    Save { path: PathBuf },
-    /// Play back loaded audio
-    Play,
-    /// Start recording
-    Record,
-    /// Stop playback or recording
-    Stop,
+    command: AudioCommand,
 }
 
 fn to_response(r: AudioResponse) -> Response {
@@ -54,14 +34,14 @@ pub fn evaluate(engine: &AudioEngine, input: &str) -> Response {
 
     match Cli::try_parse_from(tokens) {
         Ok(cli) => match cli.command {
-            Command::Version => to_response(engine.version()),
-            Command::Devices => to_response(engine.devices()),
-            Command::DevicesRefresh => to_response(engine.devices_refresh()),
-            Command::Load { path } => to_response(engine.load(&path)),
-            Command::Save { path } => to_response(engine.save(&path)),
-            Command::Play => to_response(engine.play()),
-            Command::Record => to_response(engine.record()),
-            Command::Stop => to_response(engine.stop()),
+            AudioCommand::Version => to_response(engine.version()),
+            AudioCommand::Devices => to_response(engine.devices()),
+            AudioCommand::DevicesRefresh => to_response(engine.devices_refresh()),
+            AudioCommand::Load { path } => to_response(engine.load(&path)),
+            AudioCommand::Save { path } => to_response(engine.save(&path)),
+            AudioCommand::Play => to_response(engine.play()),
+            AudioCommand::Record => to_response(engine.record()),
+            AudioCommand::Stop => to_response(engine.stop()),
         },
         Err(e) => Response::Output(e.render().to_string()),
     }
