@@ -5,6 +5,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+clap            = { workspace = true }
+shlex           = { workspace = true }
 mush-core.workspace = true
 mash-audio-core.workspace = true
 

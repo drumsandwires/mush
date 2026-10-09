@@ -1352,8 +1352,10 @@ dependencies = [
 name = "mash-shell"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "mash-audio-core",
  "mush-core",
+ "shlex 2.0.1",
 ]
 
 [[package]]
