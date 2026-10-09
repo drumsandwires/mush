@@ -12,8 +12,6 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Show available audio commands
-    Help,
     /// Show mash-audio-core version
     Version,
     /// List audio hosts and devices
@@ -56,7 +54,6 @@ pub fn evaluate(engine: &AudioEngine, input: &str) -> Response {
 
     match Cli::try_parse_from(tokens) {
         Ok(cli) => match cli.command {
-            Command::Help => to_response(engine.help()),
             Command::Version => to_response(engine.version()),
             Command::Devices => to_response(engine.devices()),
             Command::DevicesRefresh => to_response(engine.devices_refresh()),

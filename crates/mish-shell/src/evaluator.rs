@@ -12,8 +12,6 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Show available MIDI commands
-    Help,
     /// Show mish-midi-core version
     Version,
     /// List available MIDI ports
@@ -56,7 +54,6 @@ pub fn evaluate(engine: &MidiEngine, input: &str) -> Response {
 
     match Cli::try_parse_from(tokens) {
         Ok(cli) => match cli.command {
-            Command::Help => to_response(engine.help()),
             Command::Version => to_response(engine.version()),
             Command::Ports => to_response(engine.ports()),
             Command::PortsRefresh => to_response(engine.ports_refresh()),

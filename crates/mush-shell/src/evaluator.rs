@@ -27,8 +27,6 @@ enum Domain {
 
 #[derive(Subcommand, Debug)]
 enum AudioCommand {
-    /// Show available audio commands
-    Help,
     /// Show mash-audio-core version
     Version,
     /// List audio hosts and devices
@@ -49,8 +47,6 @@ enum AudioCommand {
 
 #[derive(Subcommand, Debug)]
 enum MidiCommand {
-    /// Show available MIDI commands
-    Help,
     /// Show mish-midi-core version
     Version,
     /// List available MIDI ports
@@ -102,7 +98,6 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
     match Cli::try_parse_from(tokens) {
         Ok(cli) => match cli.domain {
             Domain::Audio { command } => match command {
-                AudioCommand::Help => audio_to_response(audio.help()),
                 AudioCommand::Version => audio_to_response(audio.version()),
                 AudioCommand::Devices => audio_to_response(audio.devices()),
                 AudioCommand::DevicesRefresh => audio_to_response(audio.devices_refresh()),
@@ -113,7 +108,6 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
                 AudioCommand::Stop => audio_to_response(audio.stop()),
             },
             Domain::Midi { command } => match command {
-                MidiCommand::Help => midi_to_response(midi.help()),
                 MidiCommand::Version => midi_to_response(midi.version()),
                 MidiCommand::Ports => midi_to_response(midi.ports()),
                 MidiCommand::PortsRefresh => midi_to_response(midi.ports_refresh()),
