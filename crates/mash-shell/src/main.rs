@@ -11,7 +11,7 @@ impl Shell for MashShell {
         "mash"
     }
 
-    fn evaluate(&mut self, input: &str) -> Response {
+    fn evaluate(&self, input: &str) -> Response {
         match self.0.evaluate(input) {
             AudioResponse::Output(s) => Response::Output(s),
             AudioResponse::Empty => Response::Empty,

@@ -11,7 +11,7 @@ impl Shell for MishShell {
         "mish"
     }
 
-    fn evaluate(&mut self, input: &str) -> Response {
+    fn evaluate(&self, input: &str) -> Response {
         match self.0.evaluate(input) {
             MidiResponse::Output(s) => Response::Output(s),
             MidiResponse::Empty => Response::Empty,

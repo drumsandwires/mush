@@ -2,7 +2,6 @@ use crate::midi::display::list_enumerated_ports;
 use crate::midi::enumerate::enumerate_ports;
 use enum_iterator::{Sequence, all};
 use std::fmt;
-use std::sync::OnceLock;
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —
