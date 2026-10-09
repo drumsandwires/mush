@@ -1,73 +1,33 @@
-// mush/crates/mush-shell/src/main.rs
+// crates/mush-shell/src/main.rs  (MODIFY)
+mod evaluator;
 
-use mash::audio::engine::{AudioEngine, AudioResponse};
-use mash_audio_core as mash;
-
-use mish::midi::engine::{MidiEngine, MidiResponse};
-use mish_midi_core as mish;
-
+use mash_audio_core::audio::engine::AudioEngine;
+use mish_midi_core::midi::engine::MidiEngine;
 use mush_core::{Response, Shell, run};
 
 struct MushShell {
-    midi: MidiEngine,
     audio: AudioEngine,
+    midi: MidiEngine,
 }
 
 impl Shell for MushShell {
     fn prompt(&self) -> &str {
-        "mush"
+        "mush> "
     }
 
     fn evaluate(&self, input: &str) -> Response {
-        // Namespaced: "midi <cmd>" or "audio <cmd>"
-        if let Some(cmd) = input.strip_prefix("midi ") {
-            return from_midi(self.midi.evaluate(cmd), cmd);
-        }
-        if let Some(cmd) = input.strip_prefix("audio ") {
-            return from_audio(self.audio.evaluate(cmd), cmd);
-        }
-
-        // Unprefixed: try midi then audio
-        match self.midi.evaluate(input) {
-            MidiResponse::Unknown => {}
-            r => return from_midi(r, input),
-        }
-        match self.audio.evaluate(input) {
-            AudioResponse::Unknown => {}
-            r => return from_audio(r, input),
-        }
-
-        Response::Output(format!("mush: unknown command: {input}"))
+        evaluator::evaluate(&self.audio, &self.midi, input)
     }
 
     fn on_start(&self) {
-        println!("Welcome to mush — MIDI + Audio shell.");
-        println!("Prefix commands with 'midi' or 'audio', or use them unprefixed.");
-        println!("Type 'help' for commands, 'quit' to exit.");
-    }
-}
-
-fn from_midi(r: MidiResponse, cmd: &str) -> Response {
-    match r {
-        MidiResponse::Output(s) => Response::Output(s),
-        MidiResponse::Empty => Response::Empty,
-        MidiResponse::Exit(s) => Response::Exit(s),
-        MidiResponse::Unknown => Response::Output(format!("mush/midi: unknown command: {cmd}")),
-    }
-}
-
-fn from_audio(r: AudioResponse, cmd: &str) -> Response {
-    match r {
-        AudioResponse::Output(s) => Response::Output(s),
-        AudioResponse::Empty => Response::Empty,
-        AudioResponse::Exit(s) => Response::Exit(s),
-        AudioResponse::Unknown => Response::Output(format!("mush/audio: unknown command: {cmd}")),
+        println!("Welcome to mush — Music shell. Type 'help' for commands.");
+        println!("Domains: audio, midi");
     }
 }
 
 fn main() {
     run(MushShell {
-        midi: MidiEngine::new(),
         audio: AudioEngine::new(),
+        midi: MidiEngine::new(),
     });
 }

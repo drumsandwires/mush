@@ -8,6 +8,8 @@ edition.workspace = true
 mush-core.workspace = true
 mish-midi-core.workspace = true
 mash-audio-core.workspace = true
+clap            = { workspace = true }
+shlex           = { workspace = true }
 
 [[bin]]
 name="mush"
