@@ -1,6 +1,11 @@
 // mush/crates/mush-shell/src/main.rs
-use mash_audio_core::{AudioEngine, AudioResponse};
-use mish_midi_core::{MidiEngine, MidiResponse};
+
+use mash::audio::engine::{AudioEngine, AudioResponse};
+use mash_audio_core as mash;
+
+use mish::midi::engine::{MidiEngine, MidiResponse};
+use mish_midi_core as mish;
+
 use mush_core::{Response, Shell, run};
 
 struct MushShell {

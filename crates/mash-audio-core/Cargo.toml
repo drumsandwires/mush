@@ -6,3 +6,6 @@ edition.workspace = true
 
 [dependencies]
 # Audio crates e.g. cpal, rodio go here
+enum-iterator = { workspace = true }
+cpal = { workspace = true }
+thiserror = { workspace = true }

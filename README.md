@@ -43,8 +43,6 @@ Install task runner and test runner:
 - `cargo install mask`
 - `cargo install cargo-nextest`
 
-
-
 ### Plan
 
 | Milestone | Goals                           |
@@ -55,8 +53,6 @@ Install task runner and test runner:
 | 4         | `midi send` + SysEx             |
 | 5         | Full test, rework               |
 | 6         | Publish                         |
-
-
 
 ## Usage
 
@@ -198,12 +194,12 @@ cargo fmt --all
 cargo fmt --all -- --check
 ```
 
-## plugin-add (plugin)
+## plugin-test (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
 ```sh
 set -e
 cargo build --package nu_plugin_${plugin} --release
-nu -c "plugin rm ${plugin}; plugin add target/release/nu_plugin_${plugin}; plugin list | where name == ${plugin}"
+nu -c "plugin rm ${plugin}; plugin add target/release/nu_plugin_${plugin}; plugin list | where name == ${plugin}; plugin use live_audio; audio devices e> /dev/null"
 ```

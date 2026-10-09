@@ -1,5 +1,7 @@
 // mush/crates/mash-shell/src/main.rs
-use mash_audio_core::{AudioEngine, AudioResponse};
+use mash::audio::engine::{AudioEngine, AudioResponse};
+use mash_audio_core as mash;
+
 use mush_core::{Response, Shell, run};
 
 struct MashShell(AudioEngine);
@@ -9,7 +11,7 @@ impl Shell for MashShell {
         "mash"
     }
 
-    fn evaluate(&self, input: &str) -> Response {
+    fn evaluate(&mut self, input: &str) -> Response {
         match self.0.evaluate(input) {
             AudioResponse::Output(s) => Response::Output(s),
             AudioResponse::Empty => Response::Empty,

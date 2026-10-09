@@ -17,7 +17,7 @@ pub trait Shell {
 
     /// Evaluate one line of user input and return a [`Response`].
     /// The engine handles `quit`/`exit` before calling this.
-    fn evaluate(&self, input: &str) -> Response;
+    fn evaluate(&mut self, input: &str) -> Response;
 
     /// Called once before the REPL loop starts.
     fn on_start(&self) {}
@@ -27,7 +27,7 @@ pub trait Shell {
 }
 
 /// Runs the REPL loop for any type that implements [`Shell`].
-pub fn run<S: Shell>(shell: S) {
+pub fn run<S: Shell>(mut shell: S) {
     shell.on_start();
 
     let mut editor = Reedline::create();

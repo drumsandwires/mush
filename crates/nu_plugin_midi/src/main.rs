@@ -1,5 +1,7 @@
 // mush/crates/nu-plugin-midi/src/main.rs
-use mish_midi_core::{MidiEngine, MidiResponse};
+use mish_midi_core as mish;
+use mish::midi::engine::{MidiEngine, MidiResponse};
+
 use nu_plugin::{
     EngineInterface,
     EvaluatedCall,

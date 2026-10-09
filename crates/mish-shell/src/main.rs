@@ -1,5 +1,7 @@
 // mush/crates/mish-shell/src/main.rs
-use mish_midi_core::{MidiEngine, MidiResponse};
+use mish::midi::engine::{MidiEngine, MidiResponse};
+use mish_midi_core as mish;
+
 use mush_core::{Response, Shell, run};
 
 struct MishShell(MidiEngine);
@@ -9,7 +11,7 @@ impl Shell for MishShell {
         "mish"
     }
 
-    fn evaluate(&self, input: &str) -> Response {
+    fn evaluate(&mut self, input: &str) -> Response {
         match self.0.evaluate(input) {
             MidiResponse::Output(s) => Response::Output(s),
             MidiResponse::Empty => Response::Empty,

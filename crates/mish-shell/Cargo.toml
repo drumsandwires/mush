@@ -8,9 +8,6 @@ edition.workspace = true
 mush-core.workspace = true
 mish-midi-core.workspace = true
 
-[lib]
-path = "src/lib.rs"
-
 [[bin]]
 name="mish"
 path="src/main.rs"

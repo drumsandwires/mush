@@ -23,6 +23,8 @@ reedline    = "0.52"
 nu-plugin   = "0.116"
 nu-protocol = "0.116"
 thiserror = "2"
+enum-iterator = "2"
+cpal = "0.18"
 # TODO(#3): add for integration tests: expectrl = "0.9"
 
 # internal

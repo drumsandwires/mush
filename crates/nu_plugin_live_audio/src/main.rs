@@ -1,5 +1,7 @@
 // mush/crates/nu-plugin-audio/src/main.rs
-use mash_audio_core::{AudioEngine, AudioResponse};
+use mash::audio::engine::{AudioEngine, AudioResponse};
+use mash_audio_core as mash;
+
 use nu_plugin::{
     EngineInterface,
     EvaluatedCall,
