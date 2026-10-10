@@ -1,19 +1,35 @@
 [workspace]
-resolver="3"
 members = [
-    "crates/mash-core",
-    "crates/mish-core",
+    "crates/mush-core",
+    "crates/mish-midi-core",
+    "crates/mash-audio-core",
+    "crates/mish-shell",
     "crates/mash-shell",
-    "crates/mish-shell", 
+    "crates/mush-shell",
+    "crates/nu_plugin_midi",
+    "crates/nu_plugin_live_audio",
+    "crates/mush-commands",
+    # TODO(#2): add for integration tests: "tests",
 ]
+resolver = "3"
 
-# Root + Workspace project pattern, like nushell. Maybe later
-#
-# [package]
-# name="mush"
-# version="0.0.0"
-# edition="2024"
-#
-# [[bin]]
-# name="mush"
-# path="src/main.rs"
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[workspace.dependencies]
+# external
+clap = { version = "4", features = [ "derive" ]} 
+shlex = "2"
+reedline    = "0.52"
+nu-plugin   = "0.116"
+nu-protocol = "0.116"
+thiserror = "2"
+enum-iterator = "2"
+cpal = "0.18"
+# TODO(#3): add for integration tests: expectrl = "0.9"
+# internal
+mush-core   = { path = "crates/mush-core" }
+mush-commands = { path = "crates/mush-commands" }
+mish-midi-core   = { path = "crates/mish-midi-core" }
+mash-audio-core   = { path = "crates/mash-audio-core" }

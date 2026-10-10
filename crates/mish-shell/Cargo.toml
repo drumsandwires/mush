@@ -1,11 +1,15 @@
 [package]
 name = "mish-shell"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
+mush-core = { workspace = true }
+mish-midi-core = { workspace = true }
+mush-commands  = { workspace = true }
+clap           = { workspace = true }
+shlex          = { workspace = true }
 
 [[bin]]
-name = "mish"
-path = "src/main.rs"
-
+name="mish"
+path="src/main.rs"

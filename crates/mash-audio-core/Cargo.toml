@@ -1,0 +1,9 @@
+[package]
+name = "mash-audio-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+enum-iterator = { workspace = true }
+cpal = { workspace = true }
+thiserror = { workspace = true }

@@ -1,0 +1,10 @@
+[package]
+name = "mish-midi-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+midir = "0.11.0"
+thiserror = { workspace = true }
+enum-iterator = { workspace = true }
+
