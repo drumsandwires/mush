@@ -1,21 +1,51 @@
 # mush
 
-A collection of command-line tools and shells for working with MIDI and audio data. Currently intended as a diagnostic and debugging tool for use in other projects but with ambitions to become a command-line based digital audio workstation (DAW) one day, when it grows up.
+A collection of command-line tools and shells for working with MIDI and audio data. Developed as part of the [Let's Get Rusty](letsgetrusty.com) Rust Accelerator program. 
+
+Currently intended as a diagnostic and debugging tool for use in other projects but with ambitions to become a command-line based digital audio workstation (DAW) one day, when it grows up.
+
+There are three [`reedline`](github.com/nushell/reedline) based shells: `mish`, `mash` and `mush` . These cover MIDI, audio and unified MIDI/Audio respectively. The same functionality is exposed as a pair  `nushell` plugins: `nu_plugin_midi` and `nu_plugin_live_audio`. 
+
+Note that current development is focussed on implementing MIDI functionality.
+
+## Functionality
+
+The shells and plugins provide commands to: 
+
+- enumerate available `devices`.
+
+- `load` file data.
+
+- `play` loaded or recorded data.
+
+- `record` live data.
+
+- `save` recorded data.
+
+- `stop` playback or recording.
+
+- `monitor` live data.
+
+- `send` MIDI data.
+
+- `receive` MIDI data including SysEx.
+
+For both MIDI and audio data.
 
 ## Structure
 
-A MIDI and Audio shell workspace — standalone reedline MIDI and audio REPLs, a unified shell, and a nushell plugin, all sharing common domain cores.
+Developed as a workspace, the project is decomposed into core domain logic crates for MIDI, Audio and shell functionality. The crates are used by the shell and plugin crates to expose the domain functionality.
 
 - 📁`mush/`
   - 📁`crates/`
-    - 📁`mush-core/` - REPL engine + Shell trait (reedline)
-    - 📁`mish-midi-core/` - MIDI domain logic (no REPL dependency)
-    - 📁`mash-audio-core/` - Audio domain logic (no REPL dependency)
-    - 📁`mish-shell/`  - Standalone MIDI reedline REPL  → binary: mish
-    - 📁`mash-shell/` - Standalone Audio reedline REPL → binary: mash
-    - 📁`mush-shell/` - Unified MIDI + Audio REPL      → binary: mush
-    - 📁`nu_plugin_midi/` - Nushell MIDI plugin            → binary: nu_plugin_midi
-    - 📁nu_plugin_audio/`: - Nushell audio plugin → binary: nu_plugin_live_audio
+    - 📁`mush-core/` - REPL engine + Shell trait (`reedline`)
+    - 📁`mish-midi-core/` - MIDI domain logic (`midir`)
+    - 📁`mash-audio-core/` - Audio domain logic (`cpal`)
+    - 📁`mish-shell/`  - Standalone MIDI reedline REPL  → `mish`
+    - 📁`mash-shell/` - Standalone Audio reedline REPL → `mash`
+    - 📁`mush-shell/` - Unified MIDI + Audio REPL → `mush`
+    - 📁`nu_plugin_midi/` - Nushell MIDI plugin  → `nu_plugin_midi`
+    - 📁`nu_plugin_live_audio/` - Nushell audio plugin → `nu_plugin_live_audio`
   - 📁`tests/`  - Workspace-level PTY integration tests (expectrl)
 
 ## Dependencies
@@ -23,8 +53,8 @@ A MIDI and Audio shell workspace — standalone reedline MIDI and audio REPLs, a
 | Crate                   | Depends On                                       | Purpose                                |
 | ----------------------- | ------------------------------------------------ | -------------------------------------- |
 | `mush-core`             | `reedline`                                       | Wraps reedline for use by shell crates |
-| `mish-midi-core`        | (`midir`)                                        | Core MIDI data logic                   |
-| `mash-audio-core`       | (`cpal`)                                         | Core live audio data logic             |
+| `mish-midi-core`        | `midir`                                          | Core MIDI data logic                   |
+| `mash-audio-core`       | `cpal`                                           | Core live audio data logic             |
 | `mish-shell`            | `mush-core`, `mish-midi-core`                    | MIDI interactive shell                 |
 | `mash-shell`            | `mush-core`, `mash-audio-core`                   | Live audio interactive shell           |
 | `mush-shell`            | `mush-core`, `mish-midi-core`, `mash-audio-core` | Combined interactive shell             |
@@ -36,20 +66,22 @@ A MIDI and Audio shell workspace — standalone reedline MIDI and audio REPLs, a
 
 - [Rust](https://rustup.rs/) stable toolchain
 - [cargo-nextest](https://nexte.st/) for running tests
-- [mask](https://github.com/jacobdeichert/mask) for task running
+- [mask](https://github.com/jacobdeichert/mask) for task running development tasks
 
-Install task runner and test runner:
+Install Rust, task runner and test runner:
 
 - `cargo install mask`
 - `cargo install cargo-nextest`
 
 ### Plan
 
+Development is currently focussed on MIDI functionality with the goal of publishing a usable MIDI shell and plugin.
+
 | Milestone | Goals                                        |
 | --------- | -------------------------------------------- |
 | 1         | Workspace & Core Scaffold, Enumerate devices |
 | 2         | File Commands in Both Frontends              |
-| 3         | Live Device I/O: `midi listen`               |
+| 3         | Live MIDI Device I/O: `midi listen`          |
 | 4         | `midi send` + SysEx                          |
 | 5         | Full test, rework                            |
 | 6         | Publish                                      |
@@ -64,21 +96,23 @@ Run the standalone Audio shell; `cargo run --bin mash`
 
 Run the unified MIDI + Audio shell: `cargo run --bin mush`
 
+The `help` command in each shell list the available commands.
+
 ### Nushell Plugin
 
 Build the MIDI plugin with nushell: `cargo build --package nu_plugin_midi --release`
 
 Register in nushell with: `plugin add target/release/nu_plugin_midi`
 
-Once registered, commands are available in nushell:
+Activate the plugin with `plugin use nu_plugin_midi` 
 
-- `midi devices`
-- `midi play`
-- `midi stop`
+The `plugin list` command displays the status of the plugin and available sub-commands. 
+
+For each command adding `--help` displays the help for that command.
 
 ## Development Tasks
 
-The following are executable tasks using [`mask --maskfile README.md`]() . 
+The following are executable tasks using `mask --maskfile README.md <task>` . 
 
 ## build
 
@@ -103,7 +137,7 @@ cargo run --bin $shell
 ```sh
 cargo nextest run --package mish-midi-core --profile unit
 cargo nextest run --package mash-audio-core --profile unit
-echo TODO(#4): cargo nextest run --package mush-tests --profile ci
+echo ">> TODO(#4): cargo nextest run --package mush-tests --profile ci"
 ```
 
 ### test unit
@@ -201,5 +235,5 @@ cargo fmt --all -- --check
 ```sh
 set -e
 cargo build --package nu_plugin_${plugin} --release
-nu -c "plugin rm ${plugin}; plugin add target/release/nu_plugin_${plugin}; plugin list | where name == ${plugin}; plugin use live_audio; audio devices e> /dev/null"
+nu -c "do -i {plugin rm $plugin}; plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
 ```

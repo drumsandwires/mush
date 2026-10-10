@@ -1,4 +1,3 @@
-// crates/nu_plugin_live_audio/src/commands/devices.rs  (CREATE)
 use crate::AudioPlugin;
 use mash_audio_core::audio::engine::AudioResponse;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};

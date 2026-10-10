@@ -9,7 +9,7 @@ impl SimplePluginCommand for DevicesRefresh {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "mish devices-refresh"
+        "midi devices-refresh"
     }
 
     fn description(&self) -> &str {

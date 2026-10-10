@@ -41,7 +41,7 @@ impl fmt::Display for AudioTasks {
 /// Each frontend (REPL, nushell plugin, GUI) calls methods directly.
 pub struct AudioEngine {
     /// Refreshable cache of enumerated audio devices.
-    /// None = unpopulated or invalidated; Some = ready to serve.
+    /// None = unpopulated or invalidated; Some = ready.
     devices_cache: RwLock<Option<AudioSystemInfo>>,
 }
 
@@ -71,15 +71,15 @@ impl AudioEngine {
         ))
     }
 
+    // TODO(#9): Use naming and version from the workspace
     pub fn version(&self) -> AudioResponse {
         AudioResponse::Output("mash-audio-core v0.1.0".to_string())
     }
 
     /// Lists available audio devices.
-    /// Serves from cache when populated; enumerates from OS on cache miss.
-    /// Refresh with `invalidate_devices_cache()` before calling if needed.
+    /// Uses the cache when populated; enumerates from OS on cache miss.
     pub fn devices(&self) -> AudioResponse {
-        // --- fast path: cache hit ---
+        // fast path: cache hit
         {
             let read = self.devices_cache.read().unwrap();
             if let Some(ref info) = *read {
@@ -87,13 +87,16 @@ impl AudioEngine {
             }
         } // read lock dropped here before write below
 
-        // --- slow path: cache miss — enumerate and populate ---
+        // slow path: cache miss — enumerate and populate
         let info = enumerate_hosts_and_devices().unwrap_or_else(|e: AudioDeviceError| {
             eprintln!("mash-audio-core: device enumeration failed: {e}");
             AudioSystemInfo { hosts: vec![] }
         });
         let response = AudioResponse::Output(list_hosts_and_devices(&info));
-        *self.devices_cache.write().unwrap() = Some(info);
+        match self.devices_cache.write() {
+            Ok(mut guard) => *guard = Some(info),
+            Err(poisoned) => *poisoned.into_inner() = Some(info),
+        }
         response
     }
 
@@ -105,28 +108,28 @@ impl AudioEngine {
     }
 
     pub fn load(&self, path: &Path) -> AudioResponse {
-        // TODO: load audio file
-        AudioResponse::Output(format!("Loading '{}'...", path.display()))
+        // TODO(#10): Load an audio file.
+        AudioResponse::Output(format!("TBD: Loading '{}'...", path.display()))
     }
 
     pub fn save(&self, path: &Path) -> AudioResponse {
-        // TODO: save session
-        AudioResponse::Output(format!("Saving to '{}'...", path.display()))
+        // TODO(#11): Save an audio session to a file.
+        AudioResponse::Output(format!("TBD: Saving to '{}'...", path.display()))
     }
 
     pub fn play(&self) -> AudioResponse {
-        // TODO: real playback
-        AudioResponse::Output("Playing back...".to_string())
+        // TODO(#12): Playback an audio session or file.
+        AudioResponse::Output("TBD: Playing back...".to_string())
     }
 
     pub fn record(&self) -> AudioResponse {
-        // TODO: start recording
-        AudioResponse::Output("Recording...".to_string())
+        // TODO(#13): Start recording an audio session.
+        AudioResponse::Output("TBD: Recording...".to_string())
     }
 
     pub fn stop(&self) -> AudioResponse {
-        // TODO: stop playback/recording
-        AudioResponse::Output("Stopping...".to_string())
+        // TODO(#14): Stop playback/recording.
+        AudioResponse::Output("TBD: Stopping...".to_string())
     }
 }
 

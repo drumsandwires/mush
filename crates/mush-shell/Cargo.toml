@@ -1,4 +1,3 @@
-# mush/crates/mush-shell/Cargo.toml
 [package]
 name = "mush-shell"
 version.workspace = true

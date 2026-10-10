@@ -9,7 +9,7 @@ impl SimplePluginCommand for Devices {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "mish devices"
+        "midi devices"
     }
 
     fn description(&self) -> &str {

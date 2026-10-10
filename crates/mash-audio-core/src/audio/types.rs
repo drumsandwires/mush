@@ -1,5 +1,3 @@
-// mush/crates/mash-audio-core/src/audio/types.rs
-
 use thiserror::Error;
 
 // ── Errors ───────────────────────────────────────────────────────────────────

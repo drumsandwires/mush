@@ -1,4 +1,3 @@
-# mush/Cargo.toml
 [workspace]
 members = [
     "crates/mush-core",
@@ -34,15 +33,3 @@ mush-core   = { path = "crates/mush-core" }
 mush-commands = { path = "crates/mush-commands" }
 mish-midi-core   = { path = "crates/mish-midi-core" }
 mash-audio-core   = { path = "crates/mash-audio-core" }
-
-
-# Root + Workspace project pattern, like nushell. Maybe later
-#
-# [package]
-# name="mush"
-# version="0.0.0"
-# edition="2024"
-#
-# [[bin]]
-# name="mush"
-# path="src/main.rs"

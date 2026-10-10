@@ -1,4 +1,3 @@
-// crates/mish-shell/src/evaluator.rs  (REPLACE)
 use clap::Parser;
 use mish_midi_core::midi::engine::{MidiEngine, MidiResponse};
 use mush_commands::MidiCommand;

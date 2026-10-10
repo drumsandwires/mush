@@ -1,5 +1,3 @@
-// mush/crates/mash-audio-core/src/audio/enumerate.rs
-
 use std::collections::HashMap;
 
 use cpal::traits::{DeviceTrait, HostTrait};

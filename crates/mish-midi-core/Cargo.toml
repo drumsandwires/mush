@@ -1,4 +1,3 @@
-# mush/crates/mish-midi-core/Cargo.toml
 [package]
 name = "mish-midi-core"
 version.workspace = true

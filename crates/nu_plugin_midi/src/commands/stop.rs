@@ -9,7 +9,7 @@ impl SimplePluginCommand for Stop {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "mish stop"
+        "midi stop"
     }
 
     fn description(&self) -> &str {

@@ -1,4 +1,3 @@
-// mush/crates/mush-core/src/lib.rs
 use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
 
 /// The response returned by a [`Shell`] implementation after
@@ -10,7 +9,6 @@ pub enum Response {
     Exit(String),
 }
 
-/// Implement this trait to create a shell that runs inside the mush REPL engine.
 pub trait Shell {
     /// The prompt string shown to the user, e.g. `"mish> "`.
     fn prompt(&self) -> &str;
@@ -26,7 +24,6 @@ pub trait Shell {
     fn on_exit(&self) {}
 }
 
-/// Runs the REPL loop for any type that implements [`Shell`].
 pub fn run<S: Shell>(shell: S) {
     shell.on_start();
 

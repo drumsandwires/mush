@@ -1,4 +1,3 @@
-// crates/mush-shell/src/evaluator.rs  (REPLACE)
 use clap::{Parser, Subcommand};
 use mash_audio_core::audio::engine::{AudioEngine, AudioResponse};
 use mish_midi_core::midi::engine::{MidiEngine, MidiResponse};

@@ -9,7 +9,7 @@ impl SimplePluginCommand for Record {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str {
-        "mish record"
+        "midi record"
     }
 
     fn description(&self) -> &str {

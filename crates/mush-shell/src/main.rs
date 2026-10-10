@@ -1,4 +1,3 @@
-// crates/mush-shell/src/main.rs  (MODIFY)
 mod evaluator;
 
 use mash_audio_core::audio::engine::AudioEngine;
