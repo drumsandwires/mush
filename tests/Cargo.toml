@@ -1,31 +1,47 @@
-# mush/tests/Cargo.toml
-[package]
-name = "mush-tests"
-version.workspace = true
-edition.workspace = true
+# [package]
+# name = "mush-tests"
+# version.workspace = true
+# edition.workspace = true
+#
+# [dependencies]
+# expectrl.workspace = true
+# strip-ansi-escapes = "0.2"
+# regex = "1"
+# trycmd = "1.2.1"
+#
+# [dev-dependencies]
+# mish-shell = { path = "../crates/mish-shell" }
+# mash-shell = { path = "../crates/mash-shell" }
+# mush-shell = { path = "../crates/mush-shell" }
+#
+# [[test]]
+# name = "mish_tests"
+# path = "src/mish_tests.rs"
+#
+# [[test]]
+# name = "mash_tests"
+# path = "src/mash_tests.rs"
+#
+# [[test]]
+# name = "mush_tests"
+# path = "src/mush_tests.rs"
+#
+# [[test]]
+# name = "nu_plugin_midi_tests"
+# path = "src/nu_plugin_midi_tests.rs"
+#
+# [[test]]
+# name = "repl_test"
+# path = "src/repl_test.rs"
+#
 
-[dependencies]
-expectrl.workspace = true
-strip-ansi-escapes = "0.2"
-regex = "1"
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2024"
 
 [dev-dependencies]
-mish-shell = { path = "../crates/mish-shell" }
-mash-shell = { path = "../crates/mash-shell" }
-mush-shell = { path = "../crates/mush-shell" }
+trycmd = "1.2.1"
 
-[[test]]
-name = "mish_tests"
-path = "src/mish_tests.rs"
-
-[[test]]
-name = "mash_tests"
-path = "src/mash_tests.rs"
-
-[[test]]
-name = "mush_tests"
-path = "src/mush_tests.rs"
-
-[[test]]
-name = "nu_plugin_midi_tests"
-path = "src/nu_plugin_midi_tests.rs"
+[dev-dependencies.mash-shell]
+path = "../crates/mash-shell"
