@@ -42,6 +42,8 @@ edition = "2024"
 
 [dev-dependencies]
 trycmd = "1.2.1"
+assert_cmd = "2"
+predicates = "3"
 
 [dev-dependencies.mash-shell]
 path = "../crates/mash-shell"

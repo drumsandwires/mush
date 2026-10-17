@@ -3,17 +3,22 @@
 //     trycmd::TestCases::new().case("tests/cmd/*.toml");
 // }
 
+// use assert_cmd::Command;
+// use predicates::str::contains;
+// use predicates::prelude::*;
+
 #[test]
-fn cli_tests() {
-    // Print the current working directory so we know where globs resolve from
-    // let cwd = std::env::current_dir().unwrap();
-    // eprintln!("cwd: {}", cwd.display());
-    //
-    // // Check if the file exists relative to cwd
-    // eprintln!(
-    //     "exists: {}",
-    //     std::path::Path::new("cmd/hello.toml").exists()
-    // )
-    //
-    trycmd::TestCases::new().case("cmd/*.toml");
+fn test_banner() {
+    trycmd::TestCases::new().case("cmd/mash-banner.toml");
+}
+
+#[test]
+fn test_cmd_devices() {
+    assert_cmd::Command::new("../target/debug/mash")
+        .write_stdin("devices\nquit\n")
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("ALSA lib"))
+        .stdout(predicates::str::contains("Host:"))
+        .stdout(predicates::str::contains("Bye!"));
 }

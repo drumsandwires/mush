@@ -112,7 +112,7 @@ For each command adding `--help` displays the help for that command.
 
 ## Development Tasks
 
-The following are executable tasks using `mask --maskfile README.md <task>` . 
+The following are executable tasks using `mask --maskfile README.md <task>` (aliased as `miso` - "make it so"). 
 
 ## build
 
@@ -137,7 +137,8 @@ cargo run --bin $shell
 ```sh
 cargo nextest run --package mish-midi-core --profile unit
 cargo nextest run --package mash-audio-core --profile unit
-echo ">> TODO(#4): cargo nextest run --package mush-tests --profile ci"
+# echo >> TODO(#4): 
+cargo nextest run --package tests --profile ci
 ```
 
 ### test unit
@@ -155,7 +156,8 @@ cargo nextest run --package mash-audio-core --profile unit
 
 ```sh
 cargo build --workspace
-echo TODO(#5): cargo nextest run --package mush-tests --profile ci
+# echo TODO(#5): 
+cargo nextest run --package tests --profile ci
 ```
 
 ### test shell (shell)
@@ -164,7 +166,8 @@ echo TODO(#5): cargo nextest run --package mush-tests --profile ci
 
 ```sh
 cargo build --bin $shell
-echo TODO(#6): cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
+# echo TODO(#6): 
+cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
 ```
 
 ### test plugin
@@ -173,7 +176,8 @@ echo TODO(#6): cargo nextest run --package $shell-tests --test ${shell}-tests --
 
 ```sh
 cargo build --package nu_plugin_midi
-echo TODO(#7): cargo nextest run --package mush-tests --test nu_plugin_midi_tests --profile ci
+# echo TODO(#7): 
+cargo nextest run --package mush-tests --test nu_plugin_midi_tests --profile ci
 ```
 
 ## ci
@@ -185,7 +189,8 @@ set -e
 cargo build --workspace
 cargo nextest run --package mish-midi-core --profile unit
 cargo nextest run --package mash-audio-core --profile unit
-echo TODO(#8): cargo nextest run --package mush-tests --profile ci
+# echo TODO(#8): 
+cargo nextest run --package tests --profile ci
 ```
 
 ## clean
