@@ -3058,6 +3058,8 @@ version = "0.1.0"
 dependencies = [
  "assert_cmd",
  "mash-shell",
+ "mish-shell",
+ "mush-shell",
  "nu-plugin-test-support",
  "nu-protocol",
  "nu_plugin_midi",

@@ -8,12 +8,22 @@
 // use predicates::prelude::*;
 
 #[test]
-fn test_banner() {
+fn test_mash_banner() {
     trycmd::TestCases::new().case("cmd/mash-banner.toml");
 }
 
 #[test]
-fn test_cmd_devices() {
+fn test_mish_banner() {
+    trycmd::TestCases::new().case("cmd/mish-banner.toml");
+}
+
+#[test]
+fn test_mush_banner() {
+    trycmd::TestCases::new().case("cmd/mush-banner.toml");
+}
+
+#[test]
+fn test_mash_cmd_devices() {
     assert_cmd::Command::new("../target/debug/mash")
         .write_stdin("devices\nquit\n")
         .assert()

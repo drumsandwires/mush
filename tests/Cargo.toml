@@ -50,5 +50,11 @@ nu-protocol = "0.116"
 [dev-dependencies.mash-shell]
 path = "../crates/mash-shell"
 
+[dev-dependencies.mish-shell]
+path = "../crates/mish-shell"
+
+[dev-dependencies.mush-shell]
+path = "../crates/mush-shell"
+
 [dev-dependencies.nu_plugin_midi]
 path = "../crates/nu_plugin_midi" 
