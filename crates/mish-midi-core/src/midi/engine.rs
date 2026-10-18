@@ -38,6 +38,7 @@ impl fmt::Display for MidiTasks {
 /// MIDI command evaluator.
 /// Pure domain logic — no string parsing, no clap, no shlex, no REPL types.
 /// Each frontend (REPL, nushell plugin, GUI) calls methods directly.
+#[derive(Default)]
 pub struct MidiEngine {
     /// Refreshable cache of enumerated MIDI devices.
     /// None = unpopulated or invalidated; Some = ready to serve.
@@ -46,9 +47,7 @@ pub struct MidiEngine {
 
 impl MidiEngine {
     pub fn new() -> Self {
-        Self {
-            devices_cache: RwLock::new(None),
-        }
+        Self::default()
     }
 
     /// Invalidates the devices cache so the next call to `devices()`
@@ -134,12 +133,6 @@ impl MidiEngine {
                 None => MidiResponse::Output("no MIDI devices found".to_string()),
             },
         }
-    }
-}
-
-impl Default for MidiEngine {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

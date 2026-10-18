@@ -28,7 +28,7 @@
 #
 # [[test]]
 # name = "nu_plugin_midi_tests"
-# path = "src/nu_plugin_midi_tests.rs"
+# path = "src/nu_plugin_midi_tests.rus"
 #
 # [[test]]
 # name = "repl_test"
@@ -44,6 +44,11 @@ edition = "2024"
 trycmd = "1.2.1"
 assert_cmd = "2"
 predicates = "3"
+nu-plugin-test-support = "0.116"  # match your nu-plugin version exactly
+nu-protocol = "0.116" 
 
 [dev-dependencies.mash-shell]
 path = "../crates/mash-shell"
+
+[dev-dependencies.nu_plugin_midi]
+path = "../crates/nu_plugin_midi" 
