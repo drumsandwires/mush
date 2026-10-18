@@ -1,0 +1,9 @@
+[package]
+name = "nu_plugin_midi"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+nu-plugin = { workspace = true }
+nu-protocol = { workspace = true }
+mish-midi-core = { workspace = true }

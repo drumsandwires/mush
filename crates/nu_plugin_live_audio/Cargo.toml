@@ -1,0 +1,9 @@
+[package]
+name = "nu_plugin_live_audio"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+nu-plugin = { workspace = true }
+nu-protocol = { workspace = true }
+mash-audio-core = { workspace = true }

@@ -1,0 +1,12 @@
+# mush/.config/nextest.toml
+[profile.default]
+test-threads = 1
+retries = 1
+
+[profile.ci]
+test-threads = 1
+fail-fast = true
+retries = 1
+
+[profile.unit]
+test-threads = "num-cpus"

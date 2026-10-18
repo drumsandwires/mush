@@ -1,11 +1,15 @@
 [package]
 name = "mash-shell"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
+clap            = { workspace = true }
+shlex           = { workspace = true }
+mush-core = { workspace = true }
+mash-audio-core = { workspace = true }
+mush-commands  = { workspace = true }
 
 [[bin]]
-name = "mash"
-path = "src/main.rs"
-
+name="mash"
+path="src/main.rs"

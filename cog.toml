@@ -1,0 +1,7 @@
+# Config file for cocogitto conventional commits.
+
+[commit_types]
+hotfix = { changelog_title = "Hotfixes", order = 0 }
+release = { changelog_title = "Releases", order = 1 }
+wip = { changelog_title = "WIP", order = 2 }
+
