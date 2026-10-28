@@ -1,9 +1,6 @@
-// crates/mash-audio-core/src/audio/engine.rs  (REPLACE)
 use crate::audio::display::list_hosts_and_devices;
 use crate::audio::enumerate::enumerate_hosts_and_devices;
 use crate::audio::types::{AudioDeviceError, AudioSystemInfo};
-use enum_iterator::{Sequence, all};
-use std::fmt;
 use std::path::Path;
 use std::sync::RwLock;
 
@@ -15,25 +12,6 @@ pub enum AudioResponse {
     Output(String),
     Empty,
     Exit(String),
-}
-
-/// Canonical list of audio tasks — drives help output in any frontend.
-#[derive(Debug, PartialEq, Sequence)]
-pub enum AudioTasks {
-    Help,
-    Version,
-    Devices,
-    Load,
-    Save,
-    Play,
-    Record,
-    Stop,
-}
-
-impl fmt::Display for AudioTasks {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 /// Audio command evaluator.
@@ -62,13 +40,7 @@ impl AudioEngine {
     /// Returns a formatted list of all available audio tasks.
     /// Frontends can call this for their own `help` command.
     pub fn help(&self) -> AudioResponse {
-        AudioResponse::Output(format!(
-            "Audio commands: {}",
-            all::<AudioTasks>()
-                .map(|t| t.to_string().to_lowercase())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
+        AudioResponse::Output(format!("Audio commands: {}", "TBD"))
     }
 
     // TODO(#9): Use naming and version from the workspace
@@ -125,6 +97,11 @@ impl AudioEngine {
     pub fn record(&self) -> AudioResponse {
         // TODO(#13): Start recording an audio session.
         AudioResponse::Output("TBD: Recording...".to_string())
+    }
+
+    pub fn monitor(&self) -> AudioResponse {
+        // TODO: Start monitoring an audio session.
+        AudioResponse::Output("TBD: Monitoring...".to_string())
     }
 
     pub fn stop(&self) -> AudioResponse {

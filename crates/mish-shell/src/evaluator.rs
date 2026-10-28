@@ -41,6 +41,7 @@ pub fn evaluate(engine: &MidiEngine, input: &str) -> Response {
             MidiCommand::Save { path } => to_response(engine.save(&path)),
             MidiCommand::Play => to_response(engine.play()),
             MidiCommand::Record => to_response(engine.record()),
+            MidiCommand::Monitor => to_response(engine.monitor()),
             MidiCommand::Stop => to_response(engine.stop()),
         },
         Err(e) => Response::Output(e.render().to_string()),

@@ -65,6 +65,7 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
                 AudioCommand::Save { path } => audio_to_response(audio.save(&path)),
                 AudioCommand::Play => audio_to_response(audio.play()),
                 AudioCommand::Record => audio_to_response(audio.record()),
+                AudioCommand::Monitor => audio_to_response(audio.monitor()),
                 AudioCommand::Stop => audio_to_response(audio.stop()),
             },
             Domain::Midi { command } => match command {
@@ -75,6 +76,7 @@ pub fn evaluate(audio: &AudioEngine, midi: &MidiEngine, input: &str) -> Response
                 MidiCommand::Save { path } => midi_to_response(midi.save(&path)),
                 MidiCommand::Play => midi_to_response(midi.play()),
                 MidiCommand::Record => midi_to_response(midi.record()),
+                MidiCommand::Monitor => midi_to_response(midi.monitor()),
                 MidiCommand::Stop => midi_to_response(midi.stop()),
             },
         },

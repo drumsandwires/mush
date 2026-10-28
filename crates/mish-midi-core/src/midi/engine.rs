@@ -1,8 +1,6 @@
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
-use enum_iterator::{Sequence, all};
-use std::fmt;
 use std::path::Path;
 use std::sync::RwLock;
 
@@ -14,25 +12,6 @@ pub enum MidiResponse {
     Output(String),
     Empty,
     Exit(String),
-}
-
-/// Canonical list of MIDI tasks — drives help output in any frontend.
-#[derive(Debug, PartialEq, Sequence)]
-pub enum MidiTasks {
-    Help,
-    Version,
-    Devices,
-    Load,
-    Save,
-    Play,
-    Record,
-    Stop,
-}
-
-impl fmt::Display for MidiTasks {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 /// MIDI command evaluator.
@@ -60,13 +39,7 @@ impl MidiEngine {
     /// Returns a formatted list of all available MIDI tasks.
     /// Frontends can call this for their own `help` command.
     pub fn help(&self) -> MidiResponse {
-        MidiResponse::Output(format!(
-            "MIDI commands: {}",
-            all::<MidiTasks>()
-                .map(|t| t.to_string().to_lowercase())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
+        MidiResponse::Output(format!("MIDI commands: {}", "TBD"))
     }
 
     pub fn version(&self) -> MidiResponse {
@@ -123,6 +96,11 @@ impl MidiEngine {
     pub fn record(&self) -> MidiResponse {
         // TODO(#22): Record MIDI data.
         MidiResponse::Output("TBD: Recording...".to_string())
+    }
+
+    pub fn monitor(&self) -> MidiResponse {
+        // TODO(#22): Monitor MIDI data.
+        MidiResponse::Output("TBD: Monitoring...".to_string())
     }
 
     fn format_devices(result: &Result<Vec<MidiPortInfo>, String>) -> MidiResponse {
