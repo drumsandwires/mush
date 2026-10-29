@@ -11,8 +11,6 @@ members = [
     "crates/mush-commands",
     # TODO(#2): add for integration tests: 
     "tests",
-    # PoCs and prototypes. 
-    ".shed",  
 ]
 resolver = "3"
 

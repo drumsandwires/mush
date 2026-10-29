@@ -242,3 +242,15 @@ set -e
 cargo build --package nu_plugin_${plugin} --release
 nu -c "do -i {plugin rm $plugin}; plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
 ```
+
+## pr-check
+
+```sh
+echo Tests..
+cargo nextest run --workspace
+echo Clippy...
+cargo clippy --workspace
+echo Fmt...
+cargo fmt --check
+```
+
