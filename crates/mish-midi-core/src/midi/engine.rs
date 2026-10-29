@@ -42,6 +42,7 @@ impl MidiEngine {
     /// Invalidates the devices cache so the next call to `devices()`
     /// re-enumerates from the OS. Call this before any command that
     /// may change the port topology (e.g. connect, disconnect).
+    #[deprecated(note = "use list_midi_ports() directly — cache is being removed")]
     pub fn invalidate_devices_cache(&self) {
         *self.devices_cache.write().unwrap() = None;
     }
@@ -78,7 +79,9 @@ impl MidiEngine {
 
     /// Refreshes the devices cache unconditionally, then returns the listing.
     /// Use this when you know the port topology may have changed.
+    #[deprecated(note = "use list_midi_ports() directly — cache is being removed")]
     pub fn devices_refresh(&self) -> MidiResponse {
+        #[allow(deprecated)]
         self.invalidate_devices_cache();
         self.devices()
     }
@@ -248,6 +251,7 @@ impl MidiEngineRt {
 
 #[cfg(test)]
 mod tests {
+    #![allow(deprecated)]
     use super::*;
 
     #[test]

@@ -1696,6 +1696,7 @@ dependencies = [
  "midir",
  "midly",
  "mush-core",
+ "serde",
  "thiserror 2.0.21",
 ]
 

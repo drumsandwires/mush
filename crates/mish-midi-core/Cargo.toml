@@ -17,4 +17,5 @@ thiserror = { workspace = true }
 enum-iterator = { workspace = true }
 crossbeam = { workspace = true }
 cpal = { workspace = true }
+serde = { workspace = true }
 mush-core = { path = "../mush-core" }
