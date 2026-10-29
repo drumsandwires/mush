@@ -1,12 +1,14 @@
 use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
 use std::io::{self, BufRead, IsTerminal, Write};
 
+pub mod midi_output;
+pub mod rt_priority;
 pub mod sink;
 pub mod transport;
 pub mod update;
 
 /// The response returned by a [`Shell`] implementation after
-/// evaluating one line of user input.
+/// evaluating one ar
 #[derive(Debug, PartialEq)]
 pub enum Response {
     Output(String),
