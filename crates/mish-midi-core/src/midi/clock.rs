@@ -21,16 +21,29 @@ const BUFFER_SIZE: u64 = 512;
 /// 4410 samples ≈ 100ms at 44.1kHz — avoids flooding the channel.
 const REPORT_INTERVAL: u64 = 4_410;
 
+/// Arguments shared between `Clock::start`, `try_cpal`,
+/// and `start_software`. Groups the transport state handles
+/// to keep function signatures below the argument limit.
+pub struct ClockArgs {
+    pub playhead: Arc<AtomicU64>,
+    pub is_playing: Arc<AtomicBool>,
+    pub next_event_idx: Arc<AtomicUsize>,
+    pub timeline: Arc<RwLock<Vec<TimelineEvent>>>,
+    pub midi_queue: Arc<ArrayQueue<[u8; 3]>>,
+    pub status_tx: std::sync::mpsc::Sender<AudioUpdate>,
+    pub sample_rate: u32,
+}
+
 /// The master clock. Drives MIDI dispatch and playhead advancement.
 ///
 /// Must be kept alive for the duration of playback.
 /// Dropping this value stops the clock.
 ///
 /// # Variants
-/// - `Cpal`     — OS audio subsystem drives the callback cadence.
-///                Sample-accurate. Preferred.
+/// - `Cpal` — OS audio subsystem drives the callback cadence.
+///   Sample-accurate. Preferred.
 /// - `Software` — `thread::sleep` drives the tick cadence.
-///                Less accurate. Used in CI and headless environments.
+///   Less accurate. Used in CI and headless environments.
 pub enum Clock {
     Cpal(cpal::Stream),
     Software {
@@ -44,24 +57,16 @@ impl Clock {
     ///
     /// Tries to open a cpal output stream first.
     /// Falls back to a software clock if no audio device is available.
-    pub fn start(
-        playhead: Arc<AtomicU64>,
-        is_playing: Arc<AtomicBool>,
-        next_event_idx: Arc<AtomicUsize>,
-        timeline: Arc<RwLock<Vec<TimelineEvent>>>,
-        midi_queue: Arc<ArrayQueue<[u8; 3]>>,
-        status_tx: std::sync::mpsc::Sender<AudioUpdate>,
-        sample_rate: u32,
-    ) -> Self {
-        match Self::try_cpal(
-            Arc::clone(&playhead),
-            Arc::clone(&is_playing),
-            Arc::clone(&next_event_idx),
-            Arc::clone(&timeline),
-            Arc::clone(&midi_queue),
-            status_tx.clone(),
-            sample_rate,
-        ) {
+    pub fn start(args: ClockArgs) -> Self {
+        match Self::try_cpal(ClockArgs {
+            playhead: Arc::clone(&args.playhead),
+            is_playing: Arc::clone(&args.is_playing),
+            next_event_idx: Arc::clone(&args.next_event_idx),
+            timeline: Arc::clone(&args.timeline),
+            midi_queue: Arc::clone(&args.midi_queue),
+            status_tx: args.status_tx.clone(),
+            sample_rate: args.sample_rate,
+        }) {
             Ok(stream) => {
                 eprintln!("clock: cpal audio callback (sample-accurate)");
                 Clock::Cpal(stream)
@@ -69,30 +74,22 @@ impl Clock {
             Err(e) => {
                 eprintln!("clock: cpal unavailable ({e}), using software fallback");
                 let running = Arc::new(AtomicBool::new(true));
-                let handle = Self::start_software(
-                    playhead,
-                    is_playing,
-                    next_event_idx,
-                    timeline,
-                    midi_queue,
-                    status_tx,
-                    Arc::clone(&running),
-                    sample_rate,
-                );
+                let handle = Self::start_software(args, Arc::clone(&running));
                 Clock::Software { running, handle }
             }
         }
     }
 
-    fn try_cpal(
-        playhead: Arc<AtomicU64>,
-        is_playing: Arc<AtomicBool>,
-        next_event_idx: Arc<AtomicUsize>,
-        timeline: Arc<RwLock<Vec<TimelineEvent>>>,
-        midi_queue: Arc<ArrayQueue<[u8; 3]>>,
-        status_tx: std::sync::mpsc::Sender<AudioUpdate>,
-        _sample_rate: u32,
-    ) -> Result<cpal::Stream, Box<dyn std::error::Error>> {
+    fn try_cpal(args: ClockArgs) -> Result<cpal::Stream, Box<dyn std::error::Error>> {
+        let ClockArgs {
+            playhead,
+            is_playing,
+            next_event_idx,
+            timeline,
+            midi_queue,
+            status_tx,
+            ..
+        } = args;
         let host = cpal::default_host();
         let device = host
             .default_output_device()
@@ -167,16 +164,16 @@ impl Clock {
         Ok(stream)
     }
 
-    fn start_software(
-        playhead: Arc<AtomicU64>,
-        is_playing: Arc<AtomicBool>,
-        next_event_idx: Arc<AtomicUsize>,
-        timeline: Arc<RwLock<Vec<TimelineEvent>>>,
-        midi_queue: Arc<ArrayQueue<[u8; 3]>>,
-        status_tx: std::sync::mpsc::Sender<AudioUpdate>,
-        running: Arc<AtomicBool>,
-        sample_rate: u32,
-    ) -> thread::JoinHandle<()> {
+    fn start_software(args: ClockArgs, running: Arc<AtomicBool>) -> thread::JoinHandle<()> {
+        let ClockArgs {
+            playhead,
+            is_playing,
+            next_event_idx,
+            timeline,
+            midi_queue,
+            status_tx,
+            sample_rate,
+        } = args;
         let tick_duration = Duration::from_secs_f64(BUFFER_SIZE as f64 / sample_rate as f64);
 
         thread::Builder::new()
