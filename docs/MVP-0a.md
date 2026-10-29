@@ -427,7 +427,14 @@ Read `evaluator.rs` in each shell crate.
 
 | Command string | Engine call | `TransportCommand` equivalent |
 |---|---|---|
-| | | |
+| version |  engine.version() | | 
+| devices | engine.devices() | |
+| load | engine.load(&path) | |
+| save { path } | engine.save(&path) | |
+| play | engine.play() | |
+| record | engine.record() | |
+| monitor | engine.monitor() | |
+| stop | engine.stop() | |
 
 ---
 
@@ -435,8 +442,22 @@ Read `evaluator.rs` in each shell crate.
 
 | Command string | Engine call | `TransportCommand` equivalent |
 |---|---|---|
-| | | |
-
+| audio version |  engine.version() | | 
+| audio devices | engine.devices() | |
+| audio load | engine.load(&path) | |
+| audio save { path } | engine.save(&path) | |
+| audio play | engine.play() | |
+| audio record | engine.record() | |
+| audio monitor | engine.monitor() | |
+| audio stop | engine.stop() | |
+| midi version |  engine.version() | | 
+| midi devices | engine.devices() | |
+| midi load | engine.load(&path) | |
+| midi save { path } | engine.save(&path) | |
+| midi play | engine.play() | |
+| midi record | engine.record() | |
+| midi monitor | engine.monitor() | |
+| midi stop | engine.stop() | |
 ---
 
 ### 6.4 Commands With No `TransportCommand` Equivalent

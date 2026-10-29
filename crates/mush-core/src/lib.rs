@@ -100,3 +100,8 @@ fn run_batch<S: Shell>(shell: &S) {
         }
     }
 }
+
+// add at the bottom
+pub mod sink;
+pub mod transport;
+pub mod update;
