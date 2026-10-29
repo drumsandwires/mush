@@ -1,8 +1,6 @@
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
-use enum_iterator::{Sequence, all};
-use std::fmt;
 use std::path::Path;
 use std::sync::RwLock;
 
@@ -16,28 +14,10 @@ pub enum MidiResponse {
     Exit(String),
 }
 
-/// Canonical list of MIDI tasks — drives help output in any frontend.
-#[derive(Debug, PartialEq, Sequence)]
-pub enum MidiTasks {
-    Help,
-    Version,
-    Devices,
-    Load,
-    Save,
-    Play,
-    Record,
-    Stop,
-}
-
-impl fmt::Display for MidiTasks {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 /// MIDI command evaluator.
 /// Pure domain logic — no string parsing, no clap, no shlex, no REPL types.
 /// Each frontend (REPL, nushell plugin, GUI) calls methods directly.
+#[derive(Default)]
 pub struct MidiEngine {
     /// Refreshable cache of enumerated MIDI devices.
     /// None = unpopulated or invalidated; Some = ready to serve.
@@ -46,9 +26,7 @@ pub struct MidiEngine {
 
 impl MidiEngine {
     pub fn new() -> Self {
-        Self {
-            devices_cache: RwLock::new(None),
-        }
+        Self::default()
     }
 
     /// Invalidates the devices cache so the next call to `devices()`
@@ -61,13 +39,7 @@ impl MidiEngine {
     /// Returns a formatted list of all available MIDI tasks.
     /// Frontends can call this for their own `help` command.
     pub fn help(&self) -> MidiResponse {
-        MidiResponse::Output(format!(
-            "MIDI commands: {}",
-            all::<MidiTasks>()
-                .map(|t| t.to_string().to_lowercase())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
+        MidiResponse::Output(format!("MIDI commands: {}", "TBD"))
     }
 
     pub fn version(&self) -> MidiResponse {
@@ -126,6 +98,11 @@ impl MidiEngine {
         MidiResponse::Output("TBD: Recording...".to_string())
     }
 
+    pub fn monitor(&self) -> MidiResponse {
+        // TODO(#22): Monitor MIDI data.
+        MidiResponse::Output("TBD: Monitoring...".to_string())
+    }
+
     fn format_devices(result: &Result<Vec<MidiPortInfo>, String>) -> MidiResponse {
         match result {
             Err(e) => MidiResponse::Output(format!("error enumerating devices: {e}")),
@@ -134,12 +111,6 @@ impl MidiEngine {
                 None => MidiResponse::Output("no MIDI devices found".to_string()),
             },
         }
-    }
-}
-
-impl Default for MidiEngine {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

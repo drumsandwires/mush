@@ -4,4 +4,6 @@ edition.workspace = true
 version.workspace = true
 
 [dependencies]
-reedline.workspace = true
+tokio     = { workspace = true }
+serde     = { workspace = true }
+reedline  = { workspace = true }

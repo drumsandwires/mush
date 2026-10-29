@@ -1,0 +1,64 @@
+@startuml mush_distribution_dependencies
+
+skinparam defaultFontName "JetBrains Mono"
+skinparam defaultFontSize 12
+' skinparam linetype ortho
+
+together {
+    package "Host A · Controller" {
+        component [mush-shell\nmush-nu-plugin] as SHELL
+        component [rusty_link\nAbleton Link client] as LINK_A
+    }
+}
+
+together {
+    package "Host B · Engine Node" {
+        component [EngineMonitor\nTokio Async Runtime] as EM
+        component [TransportEngine\nArc<TransportState>] as TE
+        component [AudioEngine\nSCHED_FIFO] as AE
+        component [MidiEngine\nhi-pri thread] as ME
+        component [rusty_link\nAbleton Link client] as LINK_B
+
+        package "Hardware" {
+            component [Audio Interface] as AI
+            component [MIDI Interface] as MI
+        }
+    }
+}
+
+package "Network Transport (wired LAN)" {
+    component [TCP / QUIC\nquinn\nTransportCommand\nStatusUpdate] as NET
+    component [UDP multicast\nAbleton Link protocol\nclock + tempo sync] as LINK_NET
+}
+
+package "Serialization" {
+    component [rkyv\nzero-copy] as SER
+}
+
+' Control flow
+SHELL --> NET : TransportCommand\nload_midi / play\nstop / seek / bpm
+NET --> EM   : recv TransportCommand
+EM  --> TE   : write atomics\n(play/stop/seek/bpm)
+TE  --> AE   : read atomics\n(playhead / is_playing)
+TE  --> ME   : read playhead\n(display / sync)
+AE  --> ME   : push MidiEvent\ncrossbeam::ArrayQueue
+ME  --> MI   : send MIDI bytes\nmidir
+AE  --> AI   : audio I/O\ncpal
+
+' Status flow
+AE  --> EM   : AudioUpdate\nmpsc
+ME  --> EM   : MidiUpdate\nmpsc
+EM  --> NET  : StatusUpdate\nplayhead / tempo
+NET --> SHELL : recv StatusUpdate
+
+' Clock sync
+LINK_A    --> LINK_NET : peer discovery\nbeat / tempo
+LINK_B    --> LINK_NET : peer discovery\nbeat / tempo
+LINK_NET  --> LINK_A   : sync
+LINK_NET  --> LINK_B   : sync
+LINK_B    --> TE       : authoritative\ntempo / beat
+
+' Serialization
+NET --> SER : encode / decode
+
+@enduml
