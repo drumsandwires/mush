@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 // ── Errors ───────────────────────────────────────────────────────────────────
@@ -13,13 +12,13 @@ pub enum AudioDeviceError {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct AudioSupportedRates {
     pub min: u32,
     pub max: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct AudioDeviceInfo {
     pub description: String,
     pub is_default_input: bool,
@@ -29,13 +28,13 @@ pub struct AudioDeviceInfo {
     pub supported_rates: Option<AudioSupportedRates>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct AudioHostInfo {
     pub name: String,
     pub devices: Vec<AudioDeviceInfo>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct AudioSystemInfo {
     pub hosts: Vec<AudioHostInfo>,
 }

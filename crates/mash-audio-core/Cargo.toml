@@ -7,4 +7,3 @@ edition.workspace = true
 enum-iterator = { workspace = true }
 cpal = { workspace = true }
 thiserror = { workspace = true }
-serde = { workspace = true }

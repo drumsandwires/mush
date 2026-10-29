@@ -1580,7 +1580,6 @@ version = "0.1.0"
 dependencies = [
  "cpal",
  "enum-iterator",
- "serde",
  "thiserror 2.0.21",
 ]
 
