@@ -26,3 +26,12 @@ pub fn enumerate_devices() -> Result<Vec<MidiPortInfo>, MidiError> {
 
     inputs.chain(outputs).collect()
 }
+
+/// Returns all available MIDI ports as structured data.
+/// Always enumerates fresh from the OS — no cache.
+///
+/// This is the function called by the EngineMonitor in response
+/// to `TransportCommand::MidiDevices`.
+pub fn list_midi_ports() -> Result<Vec<MidiPortInfo>, MidiError> {
+    enumerate_devices()
+}
