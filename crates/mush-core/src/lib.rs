@@ -1,6 +1,10 @@
 use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
 use std::io::{self, BufRead, IsTerminal, Write};
 
+pub mod sink;
+pub mod transport;
+pub mod update;
+
 /// The response returned by a [`Shell`] implementation after
 /// evaluating one line of user input.
 #[derive(Debug, PartialEq)]
@@ -100,8 +104,3 @@ fn run_batch<S: Shell>(shell: &S) {
         }
     }
 }
-
-// add at the bottom
-pub mod sink;
-pub mod transport;
-pub mod update;

@@ -1,5 +1,3 @@
-// mush/crates/mush-core/src/sink.rs
-//
 // EngineSink — the push-based counterpart to the pull-based Shell trait.
 //
 // Shell trait  (existing, lib.rs) — user input → engine
@@ -7,8 +5,6 @@
 //
 // EngineSink trait (this file)   — engine → display
 //                                  "what should be shown to the user?"
-//
-// These are deliberately separate traits with separate concerns.
 
 use crate::update::EngineUpdate;
 

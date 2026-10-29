@@ -1,5 +1,3 @@
-// mush/crates/mush-core/src/update.rs
-//
 // Updates flow from the EngineMonitor outward to all frontends.
 // The direction is opposite to TransportCommand:
 //
@@ -8,12 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
-// Forward declaration — AudioHostInfo is defined in mash-audio-core.
-// We use a placeholder here and will replace it in Slice 1c when
-// mash-audio-core gains its serde types.
-//
 // For now, device list information is carried as a String
-// and will be replaced with the structured type in Slice 1c.
+// and will be replaced with a structured type.
 
 /// Updates emitted by the audio engine or EngineMonitor.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,8 +23,8 @@ pub enum AudioUpdate {
     TransportStopped,
 
     /// Response to TransportCommand::AudioDevices.
-    /// Payload is a formatted string at MVP — replaced with
-    /// structured AudioHostInfo in Slice 1c.
+    /// Payload is a formatted string at MVP — replace with
+    /// structured AudioHostInfo.
     DeviceList(String),
 
     /// A non-fatal error from the audio subsystem.
@@ -45,7 +39,7 @@ pub enum MidiUpdate {
 
     /// Response to TransportCommand::MidiDevices.
     /// Payload is a formatted string at MVP — replaced with
-    /// structured MidiPortInfo in Slice 1b.
+    /// structured MidiPortInfo.
     PortList(String),
 
     /// A non-fatal error from the MIDI subsystem.
