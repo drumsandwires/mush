@@ -1,8 +1,18 @@
+use crossbeam::queue::ArrayQueue;
+use midir::MidiOutput as MidirOutput;
+use std::path::Path;
+use std::sync::{
+    Arc, RwLock,
+    atomic::{AtomicBool, Ordering},
+};
+use std::thread;
+
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
-use std::path::Path;
-use std::sync::RwLock;
+use mush_core::midi_output::MidiOutput;
+use mush_core::rt_priority;
+use mush_core::update::MidiUpdate;
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —
@@ -113,17 +123,6 @@ impl MidiEngine {
         }
     }
 }
-
-use crossbeam::queue::ArrayQueue;
-use midir::MidiOutput as MidirOutput;
-use mush_core::midi_output::MidiOutput;
-use mush_core::rt_priority;
-use mush_core::update::MidiUpdate;
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
-use std::thread;
 
 // ── DesktopMidiOutput ────────────────────────────────────────────────────────
 

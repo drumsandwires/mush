@@ -1690,6 +1690,7 @@ dependencies = [
 name = "mish-midi-core"
 version = "0.1.0"
 dependencies = [
+ "cpal",
  "crossbeam",
  "enum-iterator",
  "midir",

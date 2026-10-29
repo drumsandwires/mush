@@ -1,2 +1,5 @@
 /target
 /docs/.ipynb_checkpoints/
+/.shed
+/.cellar
+/.attic
