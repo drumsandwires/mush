@@ -15,4 +15,6 @@ midir = "0.11.0"
 midly = { workspace = true }
 thiserror = { workspace = true }
 enum-iterator = { workspace = true }
+crossbeam = { workspace = true }
+cpal = { workspace = true }
 mush-core = { path = "../mush-core" }

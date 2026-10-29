@@ -7,3 +7,5 @@ version.workspace = true
 tokio     = { workspace = true }
 serde     = { workspace = true }
 reedline  = { workspace = true }
+crossbeam = { workspace = true }
+libc = { workspace = true } 

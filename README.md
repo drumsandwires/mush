@@ -246,11 +246,11 @@ nu -c "do -i {plugin rm $plugin}; plugin add target/release/nu_plugin_$plugin; p
 ## pr-check
 
 ```sh
-echo Tests..
-cargo nextest run --workspace
-echo Clippy...
-cargo clippy --workspace
 echo Fmt...
 cargo fmt --check
+echo Clippy...
+cargo clippy --workspace
+echo Tests..
+cargo nextest run --workspace
 ```
 
