@@ -15,6 +15,10 @@ fn is_wildcard_rate(rates: &AudioSupportedRates) -> bool {
     rates.min == ALSA_WILDCARD_MIN && rates.max == ALSA_WILDCARD_MAX
 }
 
+pub fn list_devices() -> Result<AudioSystemInfo, AudioDeviceError> {
+    enumerate_hosts_and_devices()
+}
+
 pub fn enumerate_hosts_and_devices() -> Result<AudioSystemInfo, AudioDeviceError> {
     let mut hosts = Vec::new();
 
