@@ -6,6 +6,8 @@ pub mod rt_priority;
 pub mod sink;
 pub mod transport;
 pub mod update;
+pub mod zmq_client;
+pub mod zmq_transport;
 
 /// The response returned by a [`Shell`] implementation after
 /// evaluating one ar
