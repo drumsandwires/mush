@@ -1,6 +1,7 @@
 use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
 use std::io::{self, BufRead, IsTerminal, Write};
 
+pub mod addrs;
 pub mod midi_output;
 pub mod rt_priority;
 pub mod sink;

@@ -1,11 +1,3 @@
-// Server-side ZMQ transport for the EngineMonitor.
-//
-// Binds two sockets:
-//   ROUTER tcp://*:5252  — receives TransportCommand from shell DEALERs
-//   PUB    tcp://*:5253  — publishes EngineUpdate to shell SUBscribers
-//
-// Serialisation: msgpack via rmp-serde.
-
 use futures::SinkExt;
 use tmq::publish::Publish;
 use tmq::router::Router;
@@ -26,15 +18,28 @@ pub struct ZmqTransport {
 impl ZmqTransport {
     /// Bind both sockets and return a ready-to-use transport.
     ///
+    /// # Arguments
+    /// - `cmd_addr` — address to bind the ROUTER socket
+    /// - `pub_addr` — address to bind the PUB socket
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// // Same process
+    /// ZmqTransport::bind(addrs::CMD_INPROC, addrs::PUB_INPROC)?;
+    ///
+    /// // Separate process
+    /// ZmqTransport::bind(addrs::CMD_TCP, addrs::PUB_TCP)?;
+    /// ```
+    ///
     /// # Errors
     /// Returns `Err` if either socket fails to bind — typically
-    /// because the port is already in use.
-    pub fn bind() -> Result<Self, tmq::TmqError> {
+    /// because the address is already in use.
+    pub fn bind(cmd_addr: &str, pub_addr: &str) -> Result<Self, tmq::TmqError> {
         let ctx = Context::new();
 
-        let router = router(&ctx).bind("tcp://*:5252")?;
+        let router = router(&ctx).bind(cmd_addr)?;
 
-        let pub_socket = publish(&ctx).bind("tcp://*:5253")?;
+        let pub_socket = publish(&ctx).bind(pub_addr)?;
 
         Ok(Self { router, pub_socket })
     }
@@ -50,8 +55,7 @@ impl ZmqTransport {
         let msg = self.router.next().await?;
         let msg = msg.ok()?;
 
-        // ROUTER receives: [identity, empty delimiter, payload]
-        // Collect into Vec so we can index by position
+        // ROUTER frames: [identity, empty delimiter, payload]
         let frames: Vec<_> = msg.into_iter().collect();
         let payload = frames.get(2)?;
 
@@ -60,14 +64,11 @@ impl ZmqTransport {
 
     /// Publish an `EngineUpdate` to all connected shell subscribers.
     ///
-    /// PUB/SUB in ZMQ requires a topic prefix. We use an empty topic
-    /// so all subscribers receive all messages — shells subscribe with
-    /// an empty filter.
+    /// Empty topic — all subscribers receive all messages.
     pub async fn send_update(&mut self, update: &EngineUpdate) -> Result<(), String> {
         let payload = rmp_serde::to_vec(update).map_err(|e| e.to_string())?;
 
-        // PUB frame: [topic, payload]
-        // Empty topic — all subscribers receive.
+        // PUB frame: [topic, payload] — empty topic
         self.pub_socket
             .send(vec![vec![], payload])
             .await
@@ -79,8 +80,6 @@ impl ZmqTransport {
 mod tests {
     use super::*;
     use crate::update::{AudioUpdate, EngineUpdate};
-
-    // ── Msgpack roundtrip tests ───────────────────────────────────────────
 
     #[test]
     fn roundtrip_transport_command_play() {
