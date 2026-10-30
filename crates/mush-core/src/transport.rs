@@ -1,5 +1,3 @@
-// mush/crates/mush-core/src/transport.rs
-
 /// Implemented by any type that occupies a position on the
 /// sample-accurate timeline.
 ///
@@ -107,7 +105,7 @@ use std::path::PathBuf;
 ///
 /// Serialisable via MessagePack for ZMQ transport.
 /// Sent directly via mpsc for Nushell plugins.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TransportCommand {
     Play,
     Stop,

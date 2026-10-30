@@ -9,3 +9,6 @@ serde     = { workspace = true }
 reedline  = { workspace = true }
 crossbeam = { workspace = true }
 libc = { workspace = true } 
+tmq        = { workspace = true }
+rmp-serde  = { workspace = true }
+futures    = { workspace = true }
