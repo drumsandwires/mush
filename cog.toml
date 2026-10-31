@@ -6,4 +6,5 @@ ignore_merge_commits = true
 hotfix = { changelog_title = "Hotfixes", order = 0 }
 release = { changelog_title = "Releases", order = 1 }
 wip = { changelog_title = "WIP", order = 2 }
+merge = { changelog_title = "Merged", order = 3 }
 

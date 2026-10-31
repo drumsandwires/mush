@@ -30,7 +30,7 @@ pub struct ClockArgs {
     pub next_event_idx: Arc<AtomicUsize>,
     pub timeline: Arc<RwLock<Vec<TimelineEvent>>>,
     pub midi_queue: Arc<ArrayQueue<[u8; 3]>>,
-    pub status_tx: std::sync::mpsc::Sender<AudioUpdate>,
+    pub status_tx: tokio::sync::mpsc::Sender<AudioUpdate>,
     pub sample_rate: u32,
 }
 
@@ -145,7 +145,7 @@ impl Clock {
 
                 // Report playhead position periodically.
                 if frame_end - last_report >= REPORT_INTERVAL {
-                    let _ = status_tx.send(AudioUpdate::PlayheadMoved(frame_end));
+                    let _ = status_tx.try_send(AudioUpdate::PlayheadMoved(frame_end));
                     last_report = frame_end;
                 }
             },
@@ -154,7 +154,7 @@ impl Clock {
             // because the audio callback already owns the original.
             {
                 move |err| {
-                    let _ = status_tx_err.send(AudioUpdate::Error(err.to_string()));
+                    let _ = status_tx_err.try_send(AudioUpdate::Error(err.to_string()));
                 }
             },
             None, // timeout
@@ -195,7 +195,7 @@ impl Clock {
                         playhead.store(frame_end, Ordering::Release);
 
                         if frame_end - last_report >= REPORT_INTERVAL {
-                            let _ = status_tx.send(AudioUpdate::PlayheadMoved(frame_end));
+                            let _ = status_tx.try_send(AudioUpdate::PlayheadMoved(frame_end));
                             last_report = frame_end;
                         }
                     }

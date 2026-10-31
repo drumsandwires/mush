@@ -141,6 +141,14 @@ cargo nextest run --package mash-audio-core --profile unit
 cargo nextest run --package tests --profile ci
 ```
 
+## buildest
+
+> Build all workspace crates
+
+```sh
+cargo build --workspace && cargo nextest run --workspace
+```
+
 ### test unit
 
 > Run domain unit tests only (fast, parallel, no PTY)

@@ -19,6 +19,22 @@ pub struct ProjectMeta {
     pub time_sig_denom: u8,
 }
 
+/// A single MIDI event, as received from a Nushell pipeline.
+///
+/// Represents one row from a MUDL file or structured stream:
+///   event beat=1 channel=1 note=60 vel=100 duration=0.5
+///
+/// `beat` and `duration` are in beats — TheConductor converts
+/// to samples using the current BPM and sample rate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MidiEvent {
+    pub beat: f64,
+    pub channel: u8,
+    pub note: u8,
+    pub vel: u8,
+    pub duration: f64,
+}
+
 use std::sync::{
     Arc, RwLock,
     atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
@@ -112,6 +128,17 @@ pub enum TransportCommand {
     Seek(u64),
     SetBpm(f64),
     LoadMidi(PathBuf),
+    /// Load a MUDL file (.mudl) and build the timeline from it.
+    /// MUDL is a KDL-based format for mush MIDI event sequences.
+    /// Parsing is implemented in task 8 (nu_plugin_midi).
+    /// Reserved here to ensure the architecture supports it.
+    LoadMudl(PathBuf),
+    /// Queue a single MIDI event from a Nushell pipeline.
+    /// Sent by `midi play` for each record in the input stream:
+    ///   open song.mudl | where note > 60 | midi play
+    /// TheConductor appends the event to the timeline or
+    /// dispatches immediately depending on playback state.
+    QueueEvent(MidiEvent),
     AudioDevices,
     MidiDevices,
 }

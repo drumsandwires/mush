@@ -1,47 +1,75 @@
-@startuml mush_architecture_simplified
+@startuml mush_architecture
 
 skinparam defaultFontName "JetBrains Mono"
 skinparam defaultFontSize 12
-' skinparam linetype ortho
+top to bottom direction
 
-package "Control Layer" {
-    component [mush-shell\nmush-nu-plugin] as SHELL
+package "mish-shell binary (MVP — same pattern for mash · mush · nu_plugin_midi)" {
+
+    package "Control Layer" {
+        component [Shell REPL\nReedline · or Nushell plugin interface] as SHELL
+    }
+
+    package "Transport Layer — ZMQ inproc" {
+        component [ZmqClient\nDEALER · SUB\ninproc://mush-cmd · mush-pub] as ZMQC
+        component [ZmqTransport\nROUTER · PUB\ninproc://mush-cmd · mush-pub] as ZMQS
+    }
+
+    package "Conductor Layer — Tokio Runtime" {
+        component [Conductor\ntokio::select! loop] as TC
+        component [Subscription · SubscriptionHandle\nmpsc — in-process] as SUB
+    }
+
+    package "Transport State — Arc<TransportState>" {
+        component [playhead · is_playing\nbpm · timeline · next_event_idx] as TE
+    }
+
+    package "RT Layer" {
+        component [Clock\ncpal callback · software fallback] as CLK
+        component [MidiEngine\nhi-pri thread] as ME
+        component [MidiEngineRt\nSCHED_FIFO] as MERT
+        component [crossbeam::ArrayQueue\nMidiEvent] as LFQ
+    }
+
+    package "Hardware" {
+        component [Audio Interface\ncpal] as AI
+        component [MIDI Interface\nmidir] as MI
+    }
+
+    ' Command path — downward
+    SHELL -d-> ZMQC : TransportCommand
+    ZMQC  -d-> ZMQS : DEALER→ROUTER inproc
+
+    ' Conductor receives and dispatches
+    ZMQS -d-> TC  : TransportCommand
+    TC   -d-> TE  : write atomics
+    TC   -r-> ME  : LoadMidi · QueueEvent\nLoadMudl (reserved)
+    TC   -l-> CLK : Play · Stop · Seek · SetBpm
+
+    ' RT execution path
+    TE   -d-> CLK  : read atomics
+    CLK  -d-> LFQ  : push MidiEvent
+    LFQ  -r-> MERT : pop MidiEvent
+    MERT -u-> TE   : read playhead
+    CLK  -d-> AI   : audio I/O
+    MERT -d-> MI   : send MIDI bytes
+
+    ' Status path — upward to conductor
+    CLK -u-> TC : AudioUpdate · tokio::sync::mpsc
+    ME  -u-> TC : MidiUpdate  · tokio::sync::mpsc
+
+    ' Conductor fan-out — upward to shell
+    TC   -u-> ZMQS : EngineUpdate
+    ZMQS -u-> ZMQC : EngineUpdate · SUB inproc
+    ZMQC -u-> SHELL : EngineUpdate
+    TC   -r-> SUB  : EngineUpdate · in-process
+    SUB  -u-> SHELL : EngineUpdate · SubscriptionHandle
 }
 
-package "Async Bridge Layer\nTokio Runtime" {
-    component [EngineMonitor\nTransport / Audio / MIDI Bridges] as EM
-}
-
-package "Transport State\nArc<TransportState>" {
-    component [playhead · is_playing\nbpm · timeline\nnext_event_idx] as TE
-}
-
-package "RT Layer" {
-    component [AudioEngine\nSCHED_FIFO] as AE
-    component [MidiEngine\nhi-pri thread] as ME
-    component [crossbeam::ArrayQueue\nMidiEvent] as LFQ
-}
-
-package "Hardware" {
-    component [Audio Interface\ncpal] as AI
-    component [MIDI Interface\nmidir] as MI
-}
-
-' Command path
-SHELL --> EM  : TransportCommand\nplay/stop/seek/bpm\nload_midi
-EM    --> TE  : write atomics
-
-' RT execution path
-TE  --> AE  : read atomics
-AE  --> LFQ : push MidiEvent
-LFQ --> ME  : pop MidiEvent
-ME  --> TE  : read playhead
-AE  --> AI  : audio I/O
-ME  --> MI  : send MIDI bytes
-
-' Status path
-AE --> EM : AudioUpdate · mpsc
-ME --> EM : MidiUpdate · mpsc
-EM --> SHELL : StatusUpdate\nplayhead / tempo
+note bottom
+  Post-MVP Model A: extract TheConductor into mush-conductor binary.
+  Change ZmqClient addresses from inproc:// to tcp://5252/5253.
+  No other code changes required.
+end note
 
 @enduml

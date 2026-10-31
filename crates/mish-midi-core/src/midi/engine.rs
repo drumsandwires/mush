@@ -196,7 +196,7 @@ impl MidiEngineRt {
     pub fn spawn<O: MidiOutput>(
         output: O,
         queue: Arc<ArrayQueue<[u8; 3]>>,
-        status_tx: std::sync::mpsc::Sender<MidiUpdate>,
+        status_tx: tokio::sync::mpsc::Sender<MidiUpdate>,
         running: Arc<AtomicBool>,
     ) -> thread::JoinHandle<()> {
         thread::Builder::new()
@@ -211,7 +211,7 @@ impl MidiEngineRt {
     fn run_loop<O: MidiOutput>(
         mut output: O,
         queue: Arc<ArrayQueue<[u8; 3]>>,
-        status_tx: std::sync::mpsc::Sender<MidiUpdate>,
+        status_tx: tokio::sync::mpsc::Sender<MidiUpdate>,
         running: Arc<AtomicBool>,
     ) {
         while running.load(Ordering::Acquire) {
@@ -228,11 +228,11 @@ impl MidiEngineRt {
                     };
 
                     if let Err(e) = output.send(slice) {
-                        let _ = status_tx.send(MidiUpdate::Error(e));
+                        let _ = status_tx.try_send(MidiUpdate::Error(e));
                         break;
                     }
 
-                    let _ = status_tx.send(MidiUpdate::EventDispatched {
+                    let _ = status_tx.try_send(MidiUpdate::EventDispatched {
                         channel,
                         note: bytes[1],
                         vel: bytes[2],
