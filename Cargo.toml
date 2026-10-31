@@ -36,6 +36,7 @@ crossbeam     = "0.8"
 midly         = "0.5"
 libc = "0.2"
 futures   = "0.3"
+shadow-rs = "1"
 # internal
 mush-core   = { path = "crates/mush-core" }
 mush-commands = { path = "crates/mush-commands" }

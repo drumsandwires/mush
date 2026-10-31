@@ -6,9 +6,13 @@ edition.workspace = true
 [dependencies]
 clap            = { workspace = true }
 shlex           = { workspace = true }
+shadow-rs      = { workspace = true }
 mush-core = { workspace = true }
 mash-audio-core = { workspace = true }
 mush-commands  = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }
 
 [lib]
 path = "src/lib.rs"
