@@ -1931,7 +1931,10 @@ dependencies = [
  "mish-midi-core",
  "mush-commands",
  "mush-core",
+ "reedline",
+ "shadow-rs 1.7.1",
  "shlex 2.0.1",
+ "tokio",
 ]
 
 [[package]]
@@ -1951,7 +1954,6 @@ dependencies = [
  "reedline",
  "rmp-serde",
  "serde",
- "shadow-rs 1.7.1",
  "tmq",
  "tokio",
 ]

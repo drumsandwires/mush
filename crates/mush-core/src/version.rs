@@ -1,35 +1,22 @@
-use shadow_rs::shadow;
-
-shadow!(build);
-
 /// Format a short version string for a mush shell binary.
-///
-/// # Example
-/// ```
-/// let s = mush_core::version::short("mish");
-/// assert_eq!(s, "mish 0.1.0");
-/// ```
-pub fn short(name: &str) -> String {
-    format!("{name} {}", build::PKG_VERSION)
+pub fn short(name: &str, pkg_version: &str) -> String {
+    format!("{name} {pkg_version}")
 }
 
 /// Format a long version banner for a mush shell binary.
-///
-/// # Example
-/// ```
-/// let s = mush_core::version::long("mish");
-/// ```
-pub fn long(name: &str) -> String {
+pub fn long(
+    name: &str,
+    pkg_version: &str,
+    branch: &str,
+    short_commit: &str,
+    build_time: &str,
+    rust_version: &str,
+) -> String {
     format!(
-        "{name} {}\n\
-         branch:   {}\n\
-         commit:   {}\n\
-         built:    {}\n\
-         rustc:    {}",
-        build::PKG_VERSION,
-        build::BRANCH,
-        build::SHORT_COMMIT,
-        build::BUILD_TIME,
-        build::RUST_VERSION,
+        "{name} {pkg_version}\n\
+         branch:   {branch}\n\
+         commit:   {short_commit}\n\
+         built:    {build_time}\n\
+         rustc:    {rust_version}",
     )
 }

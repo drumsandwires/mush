@@ -9,6 +9,7 @@ pub mod sink;
 pub mod subscription;
 pub mod transport;
 pub mod update;
+pub mod version;
 pub mod zmq_client;
 pub mod zmq_transport;
 
