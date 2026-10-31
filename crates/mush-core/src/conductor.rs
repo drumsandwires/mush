@@ -1,8 +1,5 @@
-use std::sync::{Arc, RwLock};
-
 use tokio::sync::mpsc;
 
-use crate::addrs;
 use crate::subscription::{Subscription, subscription};
 use crate::transport::TransportCommand;
 use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};

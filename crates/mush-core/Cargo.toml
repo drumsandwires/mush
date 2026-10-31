@@ -12,3 +12,7 @@ libc = { workspace = true }
 tmq        = { workspace = true }
 rmp-serde  = { workspace = true }
 futures    = { workspace = true }
+shadow-rs = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }

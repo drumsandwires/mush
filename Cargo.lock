@@ -1813,7 +1813,6 @@ dependencies = [
  "mash-audio-core",
  "mush-commands",
  "mush-core",
- "shadow-rs 1.7.1",
  "shlex 2.0.1",
 ]
 
@@ -1932,7 +1931,6 @@ dependencies = [
  "mish-midi-core",
  "mush-commands",
  "mush-core",
- "shadow-rs 1.7.1",
  "shlex 2.0.1",
 ]
 
@@ -1953,6 +1951,7 @@ dependencies = [
  "reedline",
  "rmp-serde",
  "serde",
+ "shadow-rs 1.7.1",
  "tmq",
  "tokio",
 ]
@@ -1966,7 +1965,6 @@ dependencies = [
  "mish-midi-core",
  "mush-commands",
  "mush-core",
- "shadow-rs 1.7.1",
  "shlex 2.0.1",
 ]
 
