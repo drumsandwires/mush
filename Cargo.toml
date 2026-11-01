@@ -20,7 +20,7 @@ version = "0.1.0"
 [workspace.dependencies]
 clap          = { version = "4", features = ["derive"] }
 shlex         = "2"
-reedline      = "0.52"
+reedline = { version = "0.52", features = ["external_printer"] }
 nu-plugin     = "0.116"
 nu-protocol   = "0.116"
 thiserror     = "2"

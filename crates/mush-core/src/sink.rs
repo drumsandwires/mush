@@ -28,3 +28,48 @@ pub trait EngineSink: Send + Sync + 'static {
     /// A human-readable name for this sink, used in logging.
     fn name(&self) -> &str;
 }
+
+/// Delivers [`EngineUpdate`]s to a reedline REPL without blocking.
+///
+/// Holds the sending end of a [`reedline::ExternalPrinter`] channel.
+/// `main.rs` constructs the `ExternalPrinter`, passes the sender here
+/// via [`ReedlineSink::new`], and registers the printer with
+/// `Reedline::with_external_printer()`.
+///
+/// # Non-blocking guarantee
+/// Uses `try_send` — if the channel is full the message is dropped
+/// rather than blocking the Conductor async loop.
+///
+/// # Feature flag
+/// Only compiled when the `reedline-sink` feature is enabled.
+/// Shell crates opt in via:
+/// ```toml
+/// mush-core = { workspace = true, features = ["reedline-sink"] }
+/// ```
+#[cfg(feature = "reedline-sink")]
+pub struct ReedlineSink {
+    sender: std::sync::mpsc::SyncSender<String>,
+    name: &'static str,
+}
+
+#[cfg(feature = "reedline-sink")]
+impl ReedlineSink {
+    pub fn new(sender: std::sync::mpsc::SyncSender<String>, name: &'static str) -> Self {
+        Self { sender, name }
+    }
+}
+
+#[cfg(feature = "reedline-sink")]
+impl EngineSink for ReedlineSink {
+    fn emit(&self, update: EngineUpdate) {
+        if let Some(line) = crate::format::format_update(&update) {
+            if let Err(e) = self.sender.try_send(line) {
+                eprintln!("{} sink: dropped update — {e}", self.name);
+            }
+        }
+    }
+
+    fn name(&self) -> &str {
+        self.name
+    }
+}
