@@ -8,8 +8,7 @@ members = [
     "crates/mush-shell",
     "crates/nu_plugin_midi",
     "crates/nu_plugin_live_audio",
-    "crates/mush-commands",
-    # TODO(#2): add for integration tests: 
+    # TODO(#2): add for integration tests:
     "tests",
 ]
 resolver = "3"
@@ -34,11 +33,10 @@ rmp-serde     = "1.3"
 tmq           = "0.4"
 crossbeam     = "0.8"
 midly         = "0.5"
-libc = "0.2"
-futures   = "0.3"
-shadow-rs = "1"
+libc          = "0.2"
+futures       = "0.3"
+shadow-rs     = "1"
 # internal
-mush-core   = { path = "crates/mush-core" }
-mush-commands = { path = "crates/mush-commands" }
-mish-midi-core   = { path = "crates/mish-midi-core" }
-mash-audio-core   = { path = "crates/mash-audio-core" }
+mush-core       = { path = "crates/mush-core" }
+mish-midi-core  = { path = "crates/mish-midi-core" }
+mash-audio-core = { path = "crates/mash-audio-core" }

@@ -1,7 +1,0 @@
-[package]
-name = "mush-commands"
-edition.workspace = true
-version.workspace = true
-
-[dependencies]
-clap = { workspace = true }

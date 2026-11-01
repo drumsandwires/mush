@@ -22,12 +22,14 @@ async fn main() {
     let mut client = ZmqClient::connect(addrs::CMD_INPROC, addrs::PUB_INPROC)
         .expect("failed to connect ZMQ client");
 
-    println!("Welcome to mish — MIDI shell. Type 'help' for commands.");
-    println!("{}", version::short());
+    println!(
+        "Welcome to mish — MIDI shell v{}. Type 'help' for commands.",
+        version::short()
+    );
 
     let mut editor = Reedline::create();
     let prompt = DefaultPrompt::new(
-        DefaultPromptSegment::Basic("mish> ".to_string()),
+        DefaultPromptSegment::Basic("mish".to_string()),
         DefaultPromptSegment::Empty,
     );
 

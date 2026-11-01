@@ -7,10 +7,14 @@ edition.workspace = true
 mush-core = { workspace = true }
 mish-midi-core = { workspace = true }
 mash-audio-core = { workspace = true }
-mush-commands  = { workspace = true }
 clap            = { workspace = true }
 shlex           = { workspace = true }
+tokio           = { workspace = true }
+reedline        = { workspace = true }
+shadow-rs       = { workspace = true }
 
+[build-dependencies]
+shadow-rs = { workspace = true }
 [lib]
 path = "src/lib.rs"
 
