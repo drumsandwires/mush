@@ -186,7 +186,7 @@
 
 ---
 
-## 6. Conductor — `mush-core`
+## 6. TheConductor — `mush-core`
 
 ### 6.0 TransportCommand Extensions
 
@@ -202,36 +202,36 @@
 - [x] 6.1.4 Implement `SubscriptionHandle::recv()`
 - [x] 6.1.5 Implement dropped handle detection and cleanup
 
-### 6.2 Conductor
+### 6.2 TheConductor
 
-- [ ] 6.2.1  Create `mush-core/src/conductor.rs`
-- [ ] 6.2.2  Define `Conductor` struct
-- [ ] 6.2.3  Implement `Conductor::new()`
-- [ ] 6.2.4  Implement `Conductor::run()`
-- [ ] 6.2.5  Implement `tokio::select!` loop
-- [ ] 6.2.6  Implement `handle_command()` — `Play`, `Stop`, `SetBpm`, `Seek`
-- [ ] 6.2.7  Implement `handle_command()` — `LoadMidi`
-- [ ] 6.2.8  Implement `handle_command()` — `LoadMudl` (reserved — NotImplemented)
-- [ ] 6.2.9  Implement `handle_command()` — `QueueEvent`
-- [ ] 6.2.10 Implement `handle_command()` — `AudioDevices`
-- [ ] 6.2.11 Implement `handle_command()` — `MidiDevices`
-- [ ] 6.2.12 Implement `emit_all()` — fan-out to ZMQ PUB + all Subscriptions
-- [ ] 6.2.13 Implement subscription cleanup — `retain()` on dead handles
-- [ ] 6.2.14 Switch clock status_tx to `tokio::sync::mpsc`
-- [ ] 6.2.15 Wire `conductor` module into `lib.rs`
+- [x] 6.2.1  Create `mush-core/src/conductor.rs`
+- [x] 6.2.2  Define `TheConductor` struct
+- [x] 6.2.3  Implement `TheConductor::new()`
+- [x] 6.2.4  Implement `TheConductor::run()`
+- [x] 6.2.5  Implement `tokio::select!` loop
+- [x] 6.2.6  Implement `handle_command()` — `Play`, `Stop`, `SetBpm`, `Seek`
+- [x] 6.2.7  Implement `handle_command()` — `LoadMidi`
+- [x] 6.2.8  Implement `handle_command()` — `LoadMudl` (reserved — NotImplemented)
+- [x] 6.2.9  Implement `handle_command()` — `QueueEvent`
+- [x] 6.2.10 Implement `handle_command()` — `AudioDevices`
+- [x] 6.2.11 Implement `handle_command()` — `MidiDevices`
+- [x] 6.2.12 Implement `emit_all()` — fan-out to ZMQ PUB + all Subscriptions
+- [x] 6.2.13 Implement subscription cleanup — `retain()` on dead handles
+- [x] 6.2.14 Switch clock status_tx to `tokio::sync::mpsc`
+- [x] 6.2.15 Wire `conductor` module into `lib.rs`
 
-### 6.3 Conductor Tests
+### 6.3 TheConductor Tests
 
-- [ ] 6.3.1  Test `Play` command sets `is_playing`
-- [ ] 6.3.2  Test `Stop` command clears `is_playing`
-- [ ] 6.3.3  Test `SetBpm` updates transport
-- [ ] 6.3.4  Test update reaches ZMQ subscriber
-- [ ] 6.3.5  Test update reaches `SubscriptionHandle`
-- [ ] 6.3.6  Test closed subscription is removed cleanly
-- [ ] 6.3.7  Test `LoadMidi` populates timeline
-- [ ] 6.3.8  Test `AudioDevices` emits device list
-- [ ] 6.3.9  Test `MidiDevices` emits port list
-- [ ] 6.3.10 Test multiple subscriptions all receive update
+- [x] 6.3.1  Test `Play` command sets `is_playing`
+- [x] 6.3.2  Test `Stop` command clears `is_playing`
+- [x] 6.3.3  Test `SetBpm` updates transport
+- [x] 6.3.4  Test update reaches ZMQ subscriber
+- [x] 6.3.5  Test update reaches `SubscriptionHandle`
+- [x] 6.3.6  Test closed subscription is removed cleanly
+- [x] 6.3.7  Test `LoadMidi` populates timeline
+- [x] 6.3.8  Test `AudioDevices` emits device list
+- [x] 6.3.9  Test `MidiDevices` emits port list
+- [x] 6.3.10 Test multiple subscriptions all receive update
 
 ---
 

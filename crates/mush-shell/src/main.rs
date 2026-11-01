@@ -1,32 +1,64 @@
-mod evaluator;
+mod repl;
+mod version;
 
-use mash_audio_core::audio::engine::AudioEngine;
-use mish_midi_core::midi::engine::MidiEngine;
-use mush_core::{Response, Shell, run};
+use mush_core::Response;
+use mush_core::addrs;
+use mush_core::conductor::Conductor;
+use mush_core::zmq_client::ZmqClient;
+use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
 
-struct MushShell {
-    audio: AudioEngine,
-    midi: MidiEngine,
-}
+#[tokio::main]
+async fn main() {
+    let (conductor, _audio_tx, _midi_tx) =
+        Conductor::new(addrs::CMD_INPROC, addrs::PUB_INPROC).expect("failed to bind conductor");
 
-impl Shell for MushShell {
-    fn prompt(&self) -> &str {
-        "mush"
-    }
-
-    fn evaluate(&self, input: &str) -> Response {
-        evaluator::evaluate(&self.audio, &self.midi, input)
-    }
-
-    fn on_start(&self) {
-        println!("Welcome to mush — Music shell. Type 'help' for commands.");
-        println!("Domains: audio, midi");
-    }
-}
-
-fn main() {
-    run(MushShell {
-        audio: AudioEngine::new(),
-        midi: MidiEngine::new(),
+    tokio::spawn(async move {
+        conductor.run().await;
     });
+
+    let mut client = ZmqClient::connect(addrs::CMD_INPROC, addrs::PUB_INPROC)
+        .expect("failed to connect ZMQ client");
+
+    println!(
+        "Welcome to mush — Audio/MIDI Music shell v{}. Type 'help' for commands.",
+        version::short()
+    );
+
+    let mut editor = Reedline::create();
+    let prompt = DefaultPrompt::new(
+        DefaultPromptSegment::Basic("mush".to_string()),
+        DefaultPromptSegment::Empty,
+    );
+
+    loop {
+        match editor.read_line(&prompt) {
+            Ok(Signal::Success(line)) => {
+                let input = line.trim();
+                match input {
+                    "quit" | "exit" => {
+                        println!("Bye!");
+                        break;
+                    }
+                    _ => match repl::evaluate(&mut client, input).await {
+                        Response::Output(msg) => println!("{msg}"),
+                        Response::Empty => {}
+                        Response::Exit(msg) => {
+                            println!("{msg}");
+                            break;
+                        }
+                    },
+                }
+            }
+            Ok(Signal::CtrlD) => {
+                println!("Bye!");
+                break;
+            }
+            Ok(Signal::CtrlC) => println!("(interrupted)"),
+            Err(e) => {
+                eprintln!("error: {e}");
+                break;
+            }
+            Ok(_) => {}
+        }
+    }
 }

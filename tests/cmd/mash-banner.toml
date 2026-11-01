@@ -4,5 +4,6 @@ stdin = "quit\n"
 status = "success"
 stdout = """
 Welcome to mash — Audio shell. Type 'help' for commands.
+mash 0.1.0
 Bye!
 """

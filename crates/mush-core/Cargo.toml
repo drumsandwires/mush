@@ -3,10 +3,13 @@ name = "mush-core"
 edition.workspace = true
 version.workspace = true
 
+[features]
+reedline-sink = ["dep:reedline"]
+
 [dependencies]
 tokio     = { workspace = true }
 serde     = { workspace = true }
-reedline  = { workspace = true }
+reedline  = { workspace = true, optional = true }
 crossbeam = { workspace = true }
 libc = { workspace = true } 
 tmq        = { workspace = true }
