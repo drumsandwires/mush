@@ -3,6 +3,7 @@ use std::io::{self, BufRead, IsTerminal, Write};
 
 pub mod addrs;
 pub mod conductor;
+pub mod format;
 pub mod midi_output;
 pub mod rt_priority;
 pub mod sink;
