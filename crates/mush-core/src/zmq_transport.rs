@@ -34,12 +34,10 @@ impl ZmqTransport {
     /// # Errors
     /// Returns `Err` if either socket fails to bind — typically
     /// because the address is already in use.
-    pub fn bind(cmd_addr: &str, pub_addr: &str) -> Result<Self, tmq::TmqError> {
-        let ctx = Context::new();
+    pub fn bind(ctx: &Context, cmd_addr: &str, pub_addr: &str) -> Result<Self, tmq::TmqError> {
+        let router = router(ctx).bind(cmd_addr)?;
 
-        let router = router(&ctx).bind(cmd_addr)?;
-
-        let pub_socket = publish(&ctx).bind(pub_addr)?;
+        let pub_socket = publish(ctx).bind(pub_addr)?;
 
         Ok(Self { router, pub_socket })
     }

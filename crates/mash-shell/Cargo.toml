@@ -11,6 +11,8 @@ mash-audio-core = { workspace = true }
 tokio          = { workspace = true }
 reedline       = { workspace = true }
 shadow-rs      = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }

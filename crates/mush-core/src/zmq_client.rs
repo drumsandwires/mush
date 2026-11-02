@@ -32,12 +32,10 @@ impl ZmqClient {
     ///
     /// # Errors
     /// Returns `Err` if either socket fails to connect.
-    pub fn connect(cmd_addr: &str, pub_addr: &str) -> Result<Self, tmq::TmqError> {
-        let ctx = Context::new();
+    pub fn connect(ctx: &Context, cmd_addr: &str, pub_addr: &str) -> Result<Self, tmq::TmqError> {
+        let dealer = dealer(ctx).connect(cmd_addr)?;
 
-        let dealer = dealer(&ctx).connect(cmd_addr)?;
-
-        let subscribe = subscribe(&ctx).connect(pub_addr)?.subscribe(b"")?;
+        let subscribe = subscribe(ctx).connect(pub_addr)?.subscribe(b"")?;
 
         Ok(Self { dealer, subscribe })
     }

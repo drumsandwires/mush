@@ -239,95 +239,126 @@
 
 ### 7.1 Formatting
 
-- [ ] 7.1.1  Create `mish-shell/src/format.rs`
-- [ ] 7.1.2  Implement `format_update()` — `TransportStarted`
-- [ ] 7.1.3  Implement `format_update()` — `TransportStopped`
-- [ ] 7.1.4  Implement `format_update()` — `PlayheadMoved` (suppress)
-- [ ] 7.1.5  Implement `format_update()` — `DeviceList`
-- [ ] 7.1.6  Implement `format_update()` — `PortList`
-- [ ] 7.1.7  Implement `format_update()` — errors
-- [ ] 7.1.8  Implement `format_update()` — `LoadMudl` acknowledgement
-- [ ] 7.1.9  Unit tests for all format functions
-- [ ] 7.1.10 Create `mash-shell/src/format.rs` — same pattern
-- [ ] 7.1.11 Create `mush-shell/src/format.rs` — combined MIDI + audio
+- [x] 7.1.1  Create `mish-shell/src/format.rs`
+- [x] 7.1.2  Implement `format_update()` — `TransportStarted`
+- [x] 7.1.3  Implement `format_update()` — `TransportStopped`
+- [x] 7.1.4  Implement `format_update()` — `PlayheadMoved` (suppress)
+- [x] 7.1.5  Implement `format_update()` — `DeviceList`
+- [x] 7.1.6  Implement `format_update()` — `PortList`
+- [x] 7.1.7  Implement `format_update()` — errors
+- [x] 7.1.8  Implement `format_update()` — `LoadMudl` acknowledgement
+- [x] 7.1.9  Unit tests for all format functions
+- [x] 7.1.10 Create `mash-shell/src/format.rs` — same pattern
+- [x] 7.1.11 Create `mush-shell/src/format.rs` — combined MIDI + audio
 
 ### 7.2 Sink
 
-- [ ] 7.2.1 Create `mish-shell/src/sink.rs`
-- [ ] 7.2.2 Define `ReedlineSink` struct
-- [ ] 7.2.3 Implement `EngineSink` for `ReedlineSink`
+- [x] 7.2.1 Create `mish-shell/src/sink.rs`
+- [x] 7.2.2 Define `ReedlineSink` struct
+- [x] 7.2.3 Implement `EngineSink` for `ReedlineSink`
   — `emit()` must be non-blocking
   — use `external_print` not blocking I/O
-- [ ] 7.2.4 Repeat for `mash-shell` and `mush-shell`
+- [x] 7.2.4 Repeat for `mash-shell` and `mush-shell`
 
 ### 7.3 `mish-shell` Migration
 
-- [ ] 7.3.1 Rename `evaluator.rs` → `evaluator_legacy.rs`
-- [ ] 7.3.2 Create `repl.rs` — parse input, send `TransportCommand`
-- [ ] 7.3.3 Wire `ZmqClient` into `repl.rs`
+- [x] 7.3.1 Rename `evaluator.rs` → `evaluator_legacy.rs`
+- [x] 7.3.2 Create `repl.rs` — parse input, send `TransportCommand`
+- [x] 7.3.3 Wire `ZmqClient` into `repl.rs`
   — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)` for MVP
-- [ ] 7.3.4 Rewrite `main.rs` — wire all components
-- [ ] 7.3.5 Confirm existing `trycmd` tests pass
-- [ ] 7.3.6 Update snapshots if formatting changed
+- [x] 7.3.4 Rewrite `main.rs` — wire all components
+- [x] 7.3.5 Confirm existing `trycmd` tests pass
+- [x] 7.3.6 Update snapshots if formatting changed
 - [ ] 7.3.7 Delete `evaluator_legacy.rs`
 
 ### 7.4 `mash-shell` Migration
 
-- [ ] 7.4.1 Follow same pattern as 7.3
-- [ ] 7.4.2 Wire `ZmqClient` — inproc transport
-- [ ] 7.4.3 Confirm existing tests pass
+- [x] 7.4.1 Follow same pattern as 7.3
+- [x] 7.4.2 Wire `ZmqClient` — inproc transport
+- [x] 7.4.3 Confirm existing tests pass
 
 ### 7.5 `mush-shell` Migration
 
-- [ ] 7.5.1 Follow same pattern as 7.3
-- [ ] 7.5.2 Full MIDI + audio command set — superset of `mish` and `mash`
-- [ ] 7.5.3 Wire `ZmqClient` — inproc transport
-- [ ] 7.5.4 Developed after 7.3 and 7.4 are stable
-- [ ] 7.5.5 Confirm existing tests pass
+- [x] 7.5.1 Follow same pattern as 7.3
+- [x] 7.5.2 Full MIDI + audio command set — superset of `mish` and `mash`
+- [x] 7.5.3 Wire `ZmqClient` — inproc transport
+- [x] 7.5.4 Developed after 7.3 and 7.4 are stable
+- [x] 7.5.5 Confirm existing tests pass
 
 ---
 
 ## 8. Plugin Migration
 
+### 8.0 Deferred from Task 7
+
+### 8.0 Deferred from Task 7 ✅
+
+- [x] 8.0.1  `mish-shell/src/main.rs` — subscribe + sink task
+- [x] 8.0.2  `mash-shell/src/main.rs` — subscribe + sink task
+- [x] 8.0.3  `mush-shell/src/main.rs` — subscribe + sink task
+- [x] 8.0.4  Confirmed `mish> play` → `▶ transport started` in REPL
+- [x] 8.0.F  Fix: shared ZMQ Context required for inproc transport
+              — `Conductor` owns `Context`, exposes `context()`
+              — `ZmqTransport::bind` and `ZmqClient::connect` take `&Context`
+              — shells pass `conductor.context().clone()` to `ZmqClient`
+- [ ] 8.0.5  Update `trycmd` snapshots — `mish-shell`
+- [ ] 8.0.6  Update `trycmd` snapshots — `mash-shell`
+- [ ] 8.0.7  Update `trycmd` snapshots — `mush-shell`
+- [ ] 8.0.8  Add `EngineUpdate::Midi(MidiUpdate::LoadMudlAck)` variant
+             — `format_update()` arm + unit test
+
 ### 8.1 `nu_plugin_midi` Migration
 
-- [ ] 8.1.1  Wire `ZmqClient` into `main.rs`
-   — `connect(addrs::CMD_TCP, addrs::PUB_TCP)`
-- [ ] 8.1.2  Rewrite `commands/play.rs`
-   — `PipelineData::Empty` → `TransportCommand::Play`
-   — `PipelineData::ListStream` → `QueueEvent` per record + `Play`
-   — handles: `midi play``open song.mudl | midi play`
-              `open song.mudl | where note > 60 | midi play`
-- [ ] 8.1.3  Rewrite `commands/stop.rs`
-   — `TransportCommand::Stop` via `ZmqClient`
-- [ ] 8.1.4  Rewrite `commands/ports.rs`
-   — `TransportCommand::MidiDevices` via `ZmqClient`
-   — always fresh — no refresh command
-- [ ] 8.1.5  Remove `commands/ports_refresh.rs`
-   — deprecated, always-fresh enumeration replaces cache
-- [ ] 8.1.6  Stub `commands/record.rs`
-- [ ] 8.1.7  Add `commands/monitor.rs` — streaming via ZMQ SUB
-   — `recv_update()` loop → `engine_update_to_value()` → `ListStream`
-- [ ] 8.1.8  Implement `engine_update_to_value()`
-- [ ] 8.1.9  Add `commands/audio_devices.rs`
-   — `TransportCommand::AudioDevices` via `ZmqClient`
-- [ ] 8.1.10 Add `commands/load_mudl.rs`
-   — `TransportCommand::LoadMudl(path)` — reserved
-- [ ] 8.1.11 Confirm existing plugin tests pass
+- [ ] 8.1.1  Embed `Conductor` in `main.rs`
+             — same pattern as `mish-shell`
+             — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
+- [ ] 8.1.2  Remove `MidiEngine` from `MidiPlugin` struct
+             — engine ownership moves to `Conductor`
+- [ ] 8.1.3  Wire `ZmqClient` into plugin commands via shared state
+- [ ] 8.1.4  Rewrite `commands/play.rs`
+             — `PipelineData::Empty` → `TransportCommand::Play`
+             — `PipelineData::ListStream` → `QueueEvent` per record + `Play`
+             — handles: `midi play`
+                        `open song.mudl | midi play`
+                        `open song.mudl | where note > 60 | midi play`
+- [ ] 8.1.5  Rewrite `commands/stop.rs`
+             — `TransportCommand::Stop` via `ZmqClient`
+- [ ] 8.1.6  Rewrite `commands/ports.rs`
+             — `TransportCommand::MidiDevices` via `ZmqClient`
+             — always fresh — no refresh command
+- [ ] 8.1.7  Remove `commands/ports_refresh.rs`
+             — deprecated, always-fresh enumeration replaces cache
+- [ ] 8.1.8  Stub `commands/record.rs`
+- [ ] 8.1.9  Add `commands/monitor.rs`
+             — `ZmqClient::recv_update()` loop (already implemented)
+             — `engine_update_to_value()` → `ListStream`
+             — handles: `midi monitor`
+- [ ] 8.1.10 Implement `engine_update_to_value()`
+             — `EngineUpdate` → `Value::Record` with `"type"` discriminator
+             — lives in `nu_plugin_midi` — depends on `nu_protocol`
+- [ ] 8.1.11 Add `commands/audio_devices.rs`
+             — `TransportCommand::AudioDevices` via `ZmqClient`
+- [ ] 8.1.12 Add `commands/load_mudl.rs`
+             — `TransportCommand::LoadMudl(path)` — reserved
+- [ ] 8.1.13 Confirm existing plugin tests pass
 
 ### 8.2 `nu_plugin_live_audio` Migration
 
-- [ ] 8.2.1 Wire `ZmqClient` into `main.rs`
-  — `connect(addrs::CMD_TCP, addrs::PUB_TCP)`
-- [ ] 8.2.2 Rewrite `commands/devices.rs`
-  — `TransportCommand::AudioDevices` via `ZmqClient`
-  — always fresh — no refresh command
-- [ ] 8.2.3 Remove `commands/devices_refresh.rs`
-  — deprecated, always-fresh enumeration replaces cache
-- [ ] 8.2.4 Stub `commands/play.rs`
-- [ ] 8.2.5 Stub `commands/stop.rs`
-- [ ] 8.2.6 Stub `commands/record.rs`
-- [ ] 8.2.7 Confirm existing plugin tests pass
+- [ ] 8.2.1  Embed `Conductor` in `main.rs`
+             — same pattern as `mash-shell`
+             — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
+- [ ] 8.2.2  Remove `AudioEngine` from `AudioPlugin` struct
+             — engine ownership moves to `Conductor`
+- [ ] 8.2.3  Wire `ZmqClient` into plugin commands via shared state
+- [ ] 8.2.4  Rewrite `commands/devices.rs`
+             — `TransportCommand::AudioDevices` via `ZmqClient`
+             — always fresh — no refresh command
+- [ ] 8.2.5  Remove `commands/devices_refresh.rs`
+             — deprecated, always-fresh enumeration replaces cache
+- [ ] 8.2.6  Stub `commands/play.rs`
+- [ ] 8.2.7  Stub `commands/stop.rs`
+- [ ] 8.2.8  Stub `commands/record.rs`
+- [ ] 8.2.9  Confirm existing plugin tests pass
 
 ---
 
