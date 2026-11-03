@@ -1,23 +1,20 @@
-use crate::MidiPlugin;
-use mish_midi_core::midi::engine::MidiResponse;
+use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, Type, Value};
+
+use crate::MidiPlugin;
 
 pub struct Play;
 
 impl SimplePluginCommand for Play {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str {
-        "midi play"
-    }
-
-    fn description(&self) -> &str {
-        "Start MIDI playback"
-    }
+    fn name(&self) -> &str { "midi play" }
+    fn description(&self) -> &str { "Start MIDI playback" }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name())
+            .input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
@@ -27,9 +24,15 @@ impl SimplePluginCommand for Play {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match plugin.engine.play() {
-            MidiResponse::Output(s) => Value::string(s, Span::unknown()),
-            _ => Value::nothing(Span::unknown()),
-        })
+        let mut client = plugin.client.lock().expect("client lock poisoned");
+        plugin.rt.block_on(client.send_command(&TransportCommand::Play))
+            .map_err(|e| LabeledError::new(e))?;
+
+        let update = plugin.rt.block_on(client.recv_update());
+        let s = update
+            .and_then(|u| mush_core::format::format_update(&u))
+            .unwrap_or_else(|| "ok".to_string());
+
+        Ok(Value::string(s, Span::unknown()))
     }
 }

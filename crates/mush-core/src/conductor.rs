@@ -1,5 +1,5 @@
 use tokio::sync::mpsc;
-use tracing::{debug, trace, warn};
+use tracing::{debug, warn};
 
 use crate::subscription::{Subscription, subscription};
 use crate::transport::TransportCommand;
