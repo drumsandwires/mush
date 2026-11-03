@@ -291,8 +291,6 @@
 
 ### 8.0 Deferred from Task 7
 
-### 8.0 Deferred from Task 7 ✅
-
 - [x] 8.0.1  `mish-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.2  `mash-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.3  `mush-shell/src/main.rs` — subscribe + sink task
