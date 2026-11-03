@@ -296,63 +296,63 @@
 - [x] 8.0.3  `mush-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.4  Confirmed `mish> play` → `▶ transport started` in REPL
 - [x] 8.0.F  Fix: shared ZMQ Context required for inproc transport
-              — `Conductor` owns `Context`, exposes `context()`
-              — `ZmqTransport::bind` and `ZmqClient::connect` take `&Context`
-              — shells pass `conductor.context().clone()` to `ZmqClient`
-- [ ] 8.0.5  Update `trycmd` snapshots — `mish-shell`
-- [ ] 8.0.6  Update `trycmd` snapshots — `mash-shell`
-- [ ] 8.0.7  Update `trycmd` snapshots — `mush-shell`
-- [ ] 8.0.8  Add `EngineUpdate::Midi(MidiUpdate::LoadMudlAck)` variant
-             — `format_update()` arm + unit test
+          — `Conductor` owns `Context`, exposes `context()`
+          — `ZmqTransport::bind` and `ZmqClient::connect` take `&Context`
+          — shells pass `conductor.context().clone()` to `ZmqClient`
+- [x] 8.0.5  Update `trycmd` snapshots — `mish-shell`
+- [x] 8.0.6  Update `trycmd` snapshots — `mash-shell`
+- [x] 8.0.7  Update `trycmd` snapshots — `mush-shell`
+- [x] 8.0.8  Add `EngineUpdate::Midi(MidiUpdate::LoadMudlAck)` variant
+         — `format_update()` arm + unit test
 
 ### 8.1 `nu_plugin_midi` Migration
 
-- [ ] 8.1.1  Embed `Conductor` in `main.rs`
-             — same pattern as `mish-shell`
-             — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
-- [ ] 8.1.2  Remove `MidiEngine` from `MidiPlugin` struct
-             — engine ownership moves to `Conductor`
-- [ ] 8.1.3  Wire `ZmqClient` into plugin commands via shared state
+- [x] 8.1.1  Embed `Conductor` in `main.rs`
+         — same pattern as `mish-shell`
+         — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
+- [x] 8.1.2  Remove `MidiEngine` from `MidiPlugin` struct
+         — engine ownership moves to `Conductor`
+- [x] 8.1.3  Wire `ZmqClient` into plugin commands via shared state
 - [ ] 8.1.4  Rewrite `commands/play.rs`
-             — `PipelineData::Empty` → `TransportCommand::Play`
-             — `PipelineData::ListStream` → `QueueEvent` per record + `Play`
-             — handles: `midi play`
-                        `open song.mudl | midi play`
-                        `open song.mudl | where note > 60 | midi play`
+         — `PipelineData::Empty` → `TransportCommand::Play`
+         — `PipelineData::ListStream` → `QueueEvent` per record + `Play`
+         — handles: `midi play`
+                    `open song.mudl | midi play`
+                    `open song.mudl | where note > 60 | midi play`
 - [ ] 8.1.5  Rewrite `commands/stop.rs`
-             — `TransportCommand::Stop` via `ZmqClient`
+         — `TransportCommand::Stop` via `ZmqClient`
 - [ ] 8.1.6  Rewrite `commands/ports.rs`
-             — `TransportCommand::MidiDevices` via `ZmqClient`
-             — always fresh — no refresh command
+         — `TransportCommand::MidiDevices` via `ZmqClient`
+         — always fresh — no refresh command
 - [ ] 8.1.7  Remove `commands/ports_refresh.rs`
-             — deprecated, always-fresh enumeration replaces cache
+         — deprecated, always-fresh enumeration replaces cache
 - [ ] 8.1.8  Stub `commands/record.rs`
 - [ ] 8.1.9  Add `commands/monitor.rs`
-             — `ZmqClient::recv_update()` loop (already implemented)
-             — `engine_update_to_value()` → `ListStream`
-             — handles: `midi monitor`
+         — `ZmqClient::recv_update()` loop (already implemented)
+         — `engine_update_to_value()` → `ListStream`
+         — handles: `midi monitor`
 - [ ] 8.1.10 Implement `engine_update_to_value()`
-             — `EngineUpdate` → `Value::Record` with `"type"` discriminator
-             — lives in `nu_plugin_midi` — depends on `nu_protocol`
+         — `EngineUpdate` → `Value::Record` with `"type"` discriminator
+         — lives in `nu_plugin_midi` — depends on `nu_protocol`
 - [ ] 8.1.11 Add `commands/audio_devices.rs`
-             — `TransportCommand::AudioDevices` via `ZmqClient`
+         — `TransportCommand::AudioDevices` via `ZmqClient`
 - [ ] 8.1.12 Add `commands/load_mudl.rs`
-             — `TransportCommand::LoadMudl(path)` — reserved
+         — `TransportCommand::LoadMudl(path)` — reserved
 - [ ] 8.1.13 Confirm existing plugin tests pass
 
 ### 8.2 `nu_plugin_live_audio` Migration
 
 - [ ] 8.2.1  Embed `Conductor` in `main.rs`
-             — same pattern as `mash-shell`
-             — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
+         — same pattern as `mash-shell`
+         — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
 - [ ] 8.2.2  Remove `AudioEngine` from `AudioPlugin` struct
-             — engine ownership moves to `Conductor`
+         — engine ownership moves to `Conductor`
 - [ ] 8.2.3  Wire `ZmqClient` into plugin commands via shared state
 - [ ] 8.2.4  Rewrite `commands/devices.rs`
-             — `TransportCommand::AudioDevices` via `ZmqClient`
-             — always fresh — no refresh command
+         — `TransportCommand::AudioDevices` via `ZmqClient`
+         — always fresh — no refresh command
 - [ ] 8.2.5  Remove `commands/devices_refresh.rs`
-             — deprecated, always-fresh enumeration replaces cache
+         — deprecated, always-fresh enumeration replaces cache
 - [ ] 8.2.6  Stub `commands/play.rs`
 - [ ] 8.2.7  Stub `commands/stop.rs`
 - [ ] 8.2.8  Stub `commands/record.rs`
