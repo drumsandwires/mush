@@ -11,40 +11,28 @@ use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 pub fn format_update(update: &EngineUpdate) -> Option<String> {
     match update {
         // ── Transport ────────────────────────────────────────────────────
-        EngineUpdate::Audio(AudioUpdate::TransportStarted) => {
-            Some("▶ transport started".into())
-        }
+        EngineUpdate::Audio(AudioUpdate::TransportStarted) => Some("▶ transport started".into()),
 
-        EngineUpdate::Audio(AudioUpdate::TransportStopped) => {
-            Some("■ transport stopped".into())
-        }
+        EngineUpdate::Audio(AudioUpdate::TransportStopped) => Some("■ transport stopped".into()),
 
         // High frequency — suppress entirely.
         EngineUpdate::Audio(AudioUpdate::PlayheadMoved(_)) => None,
 
         // ── Audio devices ────────────────────────────────────────────────
-        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => {
-            Some(format!("audio devices:\n{s}"))
-        }
+        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => Some(format!("audio devices:\n{s}")),
 
-        EngineUpdate::Audio(AudioUpdate::Error(e)) => {
-            Some(format!("✗ audio error: {e}"))
-        }
+        EngineUpdate::Audio(AudioUpdate::Error(e)) => Some(format!("✗ audio error: {e}")),
 
         // ── MIDI ─────────────────────────────────────────────────────────
-        EngineUpdate::Midi(MidiUpdate::PortList(s)) => {
-            Some(format!("MIDI ports:\n{s}"))
-        }
+        EngineUpdate::Midi(MidiUpdate::PortList(s)) => Some(format!("MIDI ports:\n{s}")),
 
         EngineUpdate::Midi(MidiUpdate::EventDispatched { channel, note, vel }) => {
-            Some(format!(
-                "▶ MIDI event — ch:{channel} note:{note} vel:{vel}"
-            ))
+            Some(format!("▶ MIDI event — ch:{channel} note:{note} vel:{vel}"))
         }
 
-        EngineUpdate::Midi(MidiUpdate::Error(e)) => {
-            Some(format!("✗ MIDI error: {e}"))
-        }
+        EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => Some(format!("✓ loaded {path}")),
+
+        EngineUpdate::Midi(MidiUpdate::Error(e)) => Some(format!("✗ MIDI error: {e}")),
     }
 }
 
@@ -74,10 +62,7 @@ mod tests {
     #[test]
     fn device_list_formats() {
         let u = EngineUpdate::Audio(AudioUpdate::DeviceList("ALSA: hw:0".into()));
-        assert_eq!(
-            format_update(&u),
-            Some("audio devices:\nALSA: hw:0".into())
-        );
+        assert_eq!(format_update(&u), Some("audio devices:\nALSA: hw:0".into()));
     }
 
     #[test]
@@ -101,10 +86,7 @@ mod tests {
     #[test]
     fn midi_error_formats() {
         let u = EngineUpdate::Midi(MidiUpdate::Error("no device".into()));
-        assert_eq!(
-            format_update(&u),
-            Some("✗ MIDI error: no device".into())
-        );
+        assert_eq!(format_update(&u), Some("✗ MIDI error: no device".into()));
     }
 
     #[test]
@@ -119,4 +101,11 @@ mod tests {
             Some("▶ MIDI event — ch:1 note:60 vel:100".into())
         );
     }
+
+    #[test]
+    fn load_mudl_ack_formats() {
+        let u = EngineUpdate::Midi(MidiUpdate::LoadMudlAck("song.mudl".into()));
+        assert_eq!(format_update(&u), Some("✓ loaded song.mudl".into()));
+    }
 }
+

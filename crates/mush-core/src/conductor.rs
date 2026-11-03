@@ -1,4 +1,5 @@
 use tokio::sync::mpsc;
+use tracing::{debug, trace, warn};
 
 use crate::subscription::{Subscription, subscription};
 use crate::transport::TransportCommand;
@@ -25,6 +26,7 @@ use crate::zmq_transport::ZmqTransport;
 /// conductor.run().await;
 /// ```
 pub struct Conductor {
+    ctx: tmq::Context,
     transport: ZmqTransport,
     audio_rx: mpsc::Receiver<AudioUpdate>,
     midi_rx: mpsc::Receiver<MidiUpdate>,
@@ -55,12 +57,14 @@ impl Conductor {
         cmd_addr: &str,
         pub_addr: &str,
     ) -> Result<(Self, mpsc::Sender<AudioUpdate>, mpsc::Sender<MidiUpdate>), tmq::TmqError> {
-        let transport = ZmqTransport::bind(cmd_addr, pub_addr)?;
+        let ctx = tmq::Context::new();
+        let transport = ZmqTransport::bind(&ctx, cmd_addr, pub_addr)?;
 
         let (audio_tx, audio_rx) = mpsc::channel(CHANNEL_CAPACITY);
         let (midi_tx, midi_rx) = mpsc::channel(CHANNEL_CAPACITY);
 
         let conductor = Self {
+            ctx,
             transport,
             audio_rx,
             midi_rx,
@@ -68,6 +72,14 @@ impl Conductor {
         };
 
         Ok((conductor, audio_tx, midi_tx))
+    }
+
+    /// Return a reference to the shared ZMQ context.
+    ///
+    /// Pass this to `ZmqClient::connect` when deploying in the same
+    /// process — inproc transport requires a shared context.
+    pub fn context(&self) -> &tmq::Context {
+        &self.ctx
     }
 
     /// Register an in-process subscriber.
@@ -114,6 +126,7 @@ impl Conductor {
 
     /// Dispatch a `TransportCommand` to the appropriate handler.
     async fn handle_command(&mut self, cmd: TransportCommand) {
+        debug!(?cmd, "handle_command");
         match cmd {
             TransportCommand::Play => {
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStarted))
@@ -170,9 +183,12 @@ impl Conductor {
     async fn emit_all(&mut self, update: EngineUpdate) {
         // Fan out to in-process subscribers first.
         // retain() removes any whose handle has been dropped.
+        debug!(?update, subs = self.subs.len(), "emit_all");
         self.subs.retain(|s| !s.is_closed());
         for sub in &self.subs {
-            let _ = sub.send(update.clone());
+            if let Err(()) = sub.send(update.clone()) {
+                warn!(?update, "subscription send failed — channel full or closed");
+            }
         }
 
         // Publish to ZMQ PUB socket — reaches all ZMQ SUB subscribers.

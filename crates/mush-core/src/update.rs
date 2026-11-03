@@ -42,6 +42,10 @@ pub enum MidiUpdate {
     /// structured MidiPortInfo.
     PortList(String),
 
+    /// Acknowledgement that a .mudl file was loaded successfully.
+    /// Payload is the path as a display string.
+    LoadMudlAck(String),
+
     /// A non-fatal error from the MIDI subsystem.
     Error(String),
 }

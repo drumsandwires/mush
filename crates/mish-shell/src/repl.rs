@@ -74,8 +74,15 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
 }
 
 async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
-    if let Err(e) = client.send_command(&cmd).await {
-        return Response::Output(format!("error: {e}"));
+    tracing::debug!(?cmd, "send_command called");
+    match client.send_command(&cmd).await {
+        Ok(()) => {
+            tracing::debug!(?cmd, "send_command ok");
+            Response::Empty
+        }
+        Err(ref e) => {
+            tracing::error!(?cmd, error = e, "send_command failed");
+            Response::Output(format!("error: {e}"))
+        }
     }
-    Response::Empty
 }

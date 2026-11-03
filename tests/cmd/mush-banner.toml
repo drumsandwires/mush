@@ -3,7 +3,7 @@ stdin = "quit\n"
 
 status = "success"
 stdout = """
-Welcome to mush — Music shell. Type 'help' for commands.
-Domains: audio, midi
+Welcome to mush 0.1.0 — Audio/MIDI Music shell. Type 'help' for commands.
+Bye!
 Bye!
 """

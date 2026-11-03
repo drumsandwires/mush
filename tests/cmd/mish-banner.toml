@@ -3,6 +3,7 @@ stdin = "quit\n"
 
 status = "success"
 stdout = """
-Welcome to mish — MIDI shell. Type 'help' for commands.
+Welcome to mish 0.1.0 — MIDI shell. Type 'help' for commands.
+Bye!
 Bye!
 """

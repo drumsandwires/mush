@@ -4,13 +4,15 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-mush-core      = { workspace = true, features = ["reedline-sink"] }
+mush-core      = { workspace = true, features = ["reedline-shell"] }
 mish-midi-core = { workspace = true }
 clap           = { workspace = true }
 shlex          = { workspace = true }
 tokio          = { workspace = true }
 reedline       = { workspace = true }
 shadow-rs      = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }

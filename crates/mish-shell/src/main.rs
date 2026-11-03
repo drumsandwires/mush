@@ -1,67 +1,42 @@
+mod format;
 mod repl;
 mod version;
 
-use mush_core::Response;
-use mush_core::addrs;
-use mush_core::conductor::Conductor;
+use mush_core::shell::Shell;
 use mush_core::zmq_client::ZmqClient;
-use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
+use mush_core::{Response, addrs};
+
+struct MishShell;
+
+impl Shell for MishShell {
+    fn name(&self) -> &'static str {
+        "mish"
+    }
+    fn prompt(&self) -> &'static str {
+        "mish"
+    }
+    fn sink_name(&self) -> &'static str {
+        "mish-reedline"
+    }
+    fn banner(&self) -> String {
+        format!(
+            "Welcome to {} — MIDI shell. Type 'help' for commands.",
+            version::short()
+        )
+    }
+    async fn evaluate(&self, client: &mut ZmqClient, input: &str) -> Response {
+        repl::evaluate(client, input).await
+    }
+}
 
 #[tokio::main]
 async fn main() {
-    // Embed the conductor in this process (MVP — Model B).
-    let (conductor, _audio_tx, _midi_tx) =
-        Conductor::new(addrs::CMD_INPROC, addrs::PUB_INPROC).expect("failed to bind conductor");
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
-    // Spawn the conductor loop — runs until shutdown.
-    tokio::spawn(async move {
-        conductor.run().await;
-    });
-
-    // Connect the ZMQ client — same process, inproc transport.
-    let mut client = ZmqClient::connect(addrs::CMD_INPROC, addrs::PUB_INPROC)
-        .expect("failed to connect ZMQ client");
-
-    println!(
-        "Welcome to mish — MIDI shell v{}. Type 'help' for commands.",
-        version::short()
-    );
-
-    let mut editor = Reedline::create();
-    let prompt = DefaultPrompt::new(
-        DefaultPromptSegment::Basic("mish".to_string()),
-        DefaultPromptSegment::Empty,
-    );
-
-    loop {
-        match editor.read_line(&prompt) {
-            Ok(Signal::Success(line)) => {
-                let input = line.trim();
-                match input {
-                    "quit" | "exit" => {
-                        println!("Bye!");
-                        break;
-                    }
-                    _ => match repl::evaluate(&mut client, input).await {
-                        Response::Output(msg) => println!("{msg}"),
-                        Response::Empty => {}
-                        Response::Exit(msg) => {
-                            println!("{msg}");
-                            break;
-                        }
-                    },
-                }
-            }
-            Ok(Signal::CtrlD) => {
-                println!("Bye!");
-                break;
-            }
-            Ok(Signal::CtrlC) => println!("(interrupted)"),
-            Err(e) => {
-                eprintln!("error: {e}");
-                break;
-            }
-            Ok(_) => {}
-        }
-    }
+    mush_core::shell::run(MishShell, addrs::CMD_INPROC, addrs::PUB_INPROC)
+        .await
+        .expect("shell exited with error");
 }
+
