@@ -41,25 +41,25 @@ pub trait EngineSink: Send + Sync + 'static {
 /// rather than blocking the Conductor async loop.
 ///
 /// # Feature flag
-/// Only compiled when the `reedline-sink` feature is enabled.
+/// Only compiled when the `reedline-shell` feature is enabled.
 /// Shell crates opt in via:
 /// ```toml
-/// mush-core = { workspace = true, features = ["reedline-sink"] }
+/// mush-core = { workspace = true, features = ["reedline-shell"] }
 /// ```
-#[cfg(feature = "reedline-sink")]
+#[cfg(feature = "reedline-shell")]
 pub struct ReedlineSink {
     sender: std::sync::mpsc::SyncSender<String>,
     name: &'static str,
 }
 
-#[cfg(feature = "reedline-sink")]
+#[cfg(feature = "reedline-shell")]
 impl ReedlineSink {
     pub fn new(sender: std::sync::mpsc::SyncSender<String>, name: &'static str) -> Self {
         Self { sender, name }
     }
 }
 
-#[cfg(feature = "reedline-sink")]
+#[cfg(feature = "reedline-shell")]
 impl EngineSink for ReedlineSink {
     fn emit(&self, update: EngineUpdate) {
         if let Some(line) = crate::format::format_update(&update) {

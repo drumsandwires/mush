@@ -4,7 +4,7 @@ edition.workspace = true
 version.workspace = true
 
 [features]
-reedline-sink = ["dep:reedline"]
+reedline-shell = ["dep:reedline"]
 
 [dependencies]
 tokio     = { workspace = true }
@@ -16,3 +16,4 @@ tmq        = { workspace = true }
 rmp-serde  = { workspace = true }
 futures    = { workspace = true }
 tracing = { workspace = true }
+anyhow = { workspace = true }

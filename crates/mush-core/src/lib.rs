@@ -3,6 +3,7 @@ pub mod conductor;
 pub mod format;
 pub mod midi_output;
 pub mod rt_priority;
+pub mod shell;
 pub mod sink;
 pub mod subscription;
 pub mod transport;
@@ -18,3 +19,4 @@ pub enum Response {
     Empty,
     Exit(String),
 }
+

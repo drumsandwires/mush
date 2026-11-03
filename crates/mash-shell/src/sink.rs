@@ -1,1 +1,0 @@
-pub use mush_core::sink::ReedlineSink;

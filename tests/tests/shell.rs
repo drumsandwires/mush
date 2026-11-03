@@ -7,19 +7,19 @@
 // use predicates::str::contains;
 // use predicates::prelude::*;
 
-#[ignore]
+// #[ignore]
 #[test]
 fn test_mash_banner() {
     trycmd::TestCases::new().case("cmd/mash-banner.toml");
 }
 
-#[ignore]
+// #[ignore]
 #[test]
 fn test_mish_banner() {
     trycmd::TestCases::new().case("cmd/mish-banner.toml");
 }
 
-#[ignore]
+// #[ignore]
 #[test]
 fn test_mush_banner() {
     trycmd::TestCases::new().case("cmd/mush-banner.toml");

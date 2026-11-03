@@ -3,7 +3,7 @@ stdin = "quit\n"
 
 status = "success"
 stdout = """
-Welcome to mash — Audio shell. Type 'help' for commands.
-mash 0.1.0
+Welcome to mash 0.1.0 — Audio shell. Type 'help' for commands.
+Bye!
 Bye!
 """

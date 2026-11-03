@@ -98,12 +98,9 @@ impl Conductor {
     /// arrives or an update is ready to fan out. Returns when the
     /// ZMQ transport is closed or all senders are dropped.
     pub async fn run(mut self) {
-        trace!("[conductor] run() started"); // ← temporary
         loop {
-            trace!("[conductor] select top"); // ← temporary
             tokio::select! {
                 cmd = self.transport.recv_command() => {
-                    trace!("[conductor] recv_command returned: {cmd:?}");
                     match cmd {
                         Some(cmd) => self.handle_command(cmd).await,
                         None      => break,
