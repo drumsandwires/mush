@@ -25,7 +25,7 @@ fn test_mush_banner() {
     trycmd::TestCases::new().case("cmd/mush-banner.toml");
 }
 
-#[ignore]
+#[ignore = "requires audio hardware — run manually on a dev machine"]
 #[test]
 fn test_mash_cmd_devices() {
     assert_cmd::Command::new("../target/debug/mash")
