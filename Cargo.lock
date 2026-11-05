@@ -1802,16 +1802,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0d28e293f2b8c9d2b2d1c0193bd3c1cbdc0d2cf396888dc01162f7cf9d6c3f3"
 
 [[package]]
-name = "mash-audio-core"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "enum-iterator",
- "serde",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "mash-shell"
 version = "0.1.0"
 dependencies = [
@@ -1927,21 +1917,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mish-midi-core"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "crossbeam",
- "enum-iterator",
- "midir",
- "midly",
- "mush-core",
- "serde",
- "thiserror 2.0.21",
- "tokio",
-]
-
-[[package]]
 name = "mish-shell"
 version = "0.1.0"
 dependencies = [
@@ -1981,8 +1956,6 @@ name = "mush-shell"
 version = "0.1.0"
 dependencies = [
  "clap",
- "mash-audio-core",
- "mish-midi-core",
  "mush-core",
  "reedline",
  "shadow-rs 1.7.1",
