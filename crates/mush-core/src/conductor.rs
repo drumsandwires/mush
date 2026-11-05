@@ -174,6 +174,51 @@ impl Conductor {
             TransportCommand::MidiDevices => {
                 // TODO 6.2.11: enumerate MIDI ports, emit PortList
             }
+            TransportCommand::Save(path) => {
+                // TODO 8.x: serialise timeline to .mid or .mudl
+                let _ = path;
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
+                    "Save not yet implemented".into(),
+                )))
+                .await;
+            }
+
+            TransportCommand::SendMessage(bytes) => {
+                // TODO 8.x: forward raw bytes to MidiEngineRt queue
+                let _ = bytes;
+            }
+
+            TransportCommand::Record { start, path } => {
+                // TODO 8.x: start/stop capture, save to path
+                let _ = (start, path);
+            }
+
+            TransportCommand::MidiPort(name) => {
+                // TODO 8.x: set or query active_midi_port on TransportState
+                let _ = name;
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
+                    .await;
+            }
+
+            TransportCommand::AudioHost(name) => {
+                // TODO 8.x: set or query active_audio_host on TransportState
+                let _ = name;
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveHost(None)))
+                    .await;
+            }
+
+            TransportCommand::AudioDevice(name) => {
+                // TODO 8.x: set or query active_audio_device on TransportState
+                let _ = name;
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveDevice(None)))
+                    .await;
+            }
+
+            TransportCommand::AudioHosts => {
+                // TODO 8.x: enumerate cpal hosts, emit HostList
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::HostList(vec![])))
+                    .await;
+            }
         }
     }
 
