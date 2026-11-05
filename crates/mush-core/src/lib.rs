@@ -1,7 +1,9 @@
 pub mod addrs;
+pub mod audio;
 pub mod clock;
 pub mod conductor;
 pub mod format;
+pub mod midi;
 pub mod midi_output;
 pub mod rt_priority;
 pub mod shell;

@@ -18,4 +18,7 @@ futures    = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+midir = "0.11.0"
+midly = { workspace = true }
+enum-iterator = { workspace = true }
 cpal = { workspace = true }

@@ -1816,7 +1816,6 @@ name = "mash-shell"
 version = "0.1.0"
 dependencies = [
  "clap",
- "mash-audio-core",
  "mush-core",
  "reedline",
  "shadow-rs 1.7.1",
@@ -1947,7 +1946,6 @@ name = "mish-shell"
 version = "0.1.0"
 dependencies = [
  "clap",
- "mish-midi-core",
  "mush-core",
  "reedline",
  "shadow-rs 1.7.1",
@@ -1964,8 +1962,11 @@ dependencies = [
  "anyhow",
  "cpal",
  "crossbeam",
+ "enum-iterator",
  "futures",
  "libc",
+ "midir",
+ "midly",
  "reedline",
  "rmp-serde",
  "serde",
@@ -2374,7 +2375,7 @@ dependencies = [
 name = "nu_plugin_live_audio"
 version = "0.1.0"
 dependencies = [
- "mash-audio-core",
+ "mush-core",
  "nu-plugin",
  "nu-protocol",
 ]
