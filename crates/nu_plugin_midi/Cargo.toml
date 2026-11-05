@@ -9,4 +9,6 @@ path = "src/lib.rs"
 [dependencies]
 nu-plugin = { workspace = true }
 nu-protocol = { workspace = true }
-mish-midi-core = { workspace = true }
+mush-core = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }

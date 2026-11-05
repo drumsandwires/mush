@@ -1,0 +1,53 @@
+@startuml
+!pragma teoz true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+box "Nushell Process" #LightYellow
+  participant "Nushell\nREPL" as nu
+end box
+
+box "nu_plugin_midi Process" #LightBlue
+  participant "PluginCommand\n::run()" as cmd
+  participant "MidiPlugin\n{ client, rt }" as plugin
+  participant "tokio\nRuntime" as rt
+end box
+
+box "mush-core (in plugin process)" #LightGreen
+  participant "ZmqClient\n(DEALER)" as client
+  participant "Conductor\n(background task)" as conductor
+  participant "ZmqTransport\n(ROUTER + PUB)" as transport
+end box
+
+nu -> cmd : midi play\n(PipelineData::Empty)
+activate cmd
+
+cmd -> plugin : lock client\nblock_on(send_command(Play))
+activate rt
+rt -> client : send_command(&TransportCommand::Play)
+client -> transport : DEALER → ROUTER\n[empty, msgpack(Play)]
+transport -> conductor : recv_command() → Some(Play)
+conductor -> conductor : handle_command(Play)\nemit_all(TransportStarted)
+conductor -> transport : publish(EngineUpdate::Audio\n(TransportStarted))
+transport -> client : SUB ← PUB\n[topic, msgpack]
+client --> rt : Ok(())
+rt --> cmd : Ok(())
+
+cmd -> plugin : block_on(recv_update())
+rt -> client : recv_update()
+client --> rt : Some(EngineUpdate::Audio\n(TransportStarted))
+rt --> cmd : Some(update)
+deactivate rt
+
+cmd -> cmd : format_update()\n→ "▶ transport started"
+cmd --> nu : PipelineData::Value\n(String)
+deactivate cmd
+
+note over conductor #Pink
+  **No MIDI output.**
+  TransportStarted is emitted
+  but no clock or MIDI engine
+  is started.
+end note
+
+@enduml

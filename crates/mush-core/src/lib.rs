@@ -1,4 +1,5 @@
 pub mod addrs;
+pub mod clock;
 pub mod conductor;
 pub mod format;
 pub mod midi_output;
@@ -6,6 +7,7 @@ pub mod rt_priority;
 pub mod shell;
 pub mod sink;
 pub mod subscription;
+pub mod timeline;
 pub mod transport;
 pub mod update;
 pub mod version;
@@ -19,4 +21,3 @@ pub enum Response {
     Empty,
     Exit(String),
 }
-

@@ -1962,12 +1962,14 @@ name = "mush-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cpal",
  "crossbeam",
  "futures",
  "libc",
  "reedline",
  "rmp-serde",
  "serde",
+ "thiserror 2.0.21",
  "tmq",
  "tokio",
  "tracing",
@@ -2381,9 +2383,11 @@ dependencies = [
 name = "nu_plugin_midi"
 version = "0.1.0"
 dependencies = [
- "mish-midi-core",
+ "anyhow",
+ "mush-core",
  "nu-plugin",
  "nu-protocol",
+ "tokio",
 ]
 
 [[package]]
@@ -3411,11 +3415,13 @@ dependencies = [
  "assert_cmd",
  "mash-shell",
  "mish-shell",
+ "mush-core",
  "mush-shell",
  "nu-plugin-test-support",
  "nu-protocol",
  "nu_plugin_midi",
  "predicates",
+ "tokio",
  "trycmd",
 ]
 

@@ -1,35 +1,28 @@
-use crate::MidiPlugin;
-use mish_midi_core::midi::engine::MidiResponse;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, Type, Value};
+
+use crate::MidiPlugin;
 
 pub struct Record;
 
 impl SimplePluginCommand for Record {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str {
-        "midi record"
-    }
-
-    fn description(&self) -> &str {
-        "Start MIDI recording"
-    }
+    fn name(&self) -> &str { "midi record" }
+    fn description(&self) -> &str { "Start MIDI recording" }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name())
+            .input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
         &self,
-        plugin: &MidiPlugin,
+        _plugin: &MidiPlugin,
         _engine: &nu_plugin::EngineInterface,
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match plugin.engine.record() {
-            MidiResponse::Output(s) => Value::string(s, Span::unknown()),
-            _ => Value::nothing(Span::unknown()),
-        })
+        Ok(Value::string("record: not yet implemented", Span::unknown()))
     }
 }

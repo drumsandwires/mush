@@ -1,0 +1,35 @@
+@startuml
+!pragma teoz true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+box "mish-shell Process" #LightBlue
+  participant "reedline\nREPL" as repl
+  participant "Evaluator" as eval
+  participant "ZmqClient\n(DEALER)" as client
+  participant "SubscriptionHandle\n(in-process)" as sub
+end box
+
+box "mush-core (same process)" #LightGreen
+  participant "Conductor\n(tokio task)" as conductor
+  participant "ZmqTransport\n(ROUTER + PUB)" as transport
+end box
+
+repl -> eval : user types "play"
+eval -> client : send_command(Play)
+client -> transport : DEALER → ROUTER
+transport -> conductor : recv_command() → Play
+conductor -> conductor : emit_all(TransportStarted)
+conductor -> transport : publish via PUB socket
+conductor -> sub : Subscription::send(TransportStarted)
+transport --> client : SUB ← PUB
+client --> eval : recv_update() → TransportStarted
+eval -> repl : format_update() → "▶ transport started"
+
+note over conductor #Pink
+  Same gap: TransportStarted
+  emitted but no MIDI clock
+  or output port driven.
+end note
+
+@enduml

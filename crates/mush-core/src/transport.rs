@@ -1,3 +1,10 @@
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::{
+    Arc, RwLock,
+    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+};
+
 /// Implemented by any type that occupies a position on the
 /// sample-accurate timeline.
 ///
@@ -24,7 +31,7 @@ pub struct ProjectMeta {
 /// Represents one row from a MUDL file or structured stream:
 ///   event beat=1 channel=1 note=60 vel=100 duration=0.5
 ///
-/// `beat` and `duration` are in beats — TheConductor converts
+/// `beat` and `duration` are in beats — the Conductor converts
 /// to samples using the current BPM and sample rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiEvent {
@@ -35,21 +42,21 @@ pub struct MidiEvent {
     pub duration: f64,
 }
 
-use std::sync::{
-    Arc, RwLock,
-    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-};
-
 /// Shared, lock-free transport state.
 ///
 /// Wrapped in `Arc` and cloned into every component that needs it.
-/// Fields read by the audio callback use atomics — no locking,
-/// no allocation, no blocking on the RT path.
-/// `meta` uses `RwLock` but is only written before playback begins.
+///
+/// # Synchronisation strategy
+/// - **Atomics** — fields read by the audio callback. Lock-free,
+///   never block, single machine-word operations.
+/// - **`RwLock`** — fields written rarely (user commands) but read
+///   by many components. Multiple readers proceed concurrently.
+///   Never held across an audio callback boundary.
 pub struct TransportState {
+    // ── RT-safe atomics ───────────────────────────────────────────
     /// Current playhead position in samples from project start.
     /// Written by the audio callback on every buffer.
-    /// Read by the EngineMonitor for display.
+    /// Read by the Conductor for display.
     pub playhead: Arc<AtomicU64>,
 
     /// Whether the transport is currently running.
@@ -63,8 +70,28 @@ pub struct TransportState {
     /// Advanced by the audio callback as events are dispatched.
     pub next_event_idx: Arc<AtomicUsize>,
 
+    // ── Non-RT RwLock fields ──────────────────────────────────────
     /// Project metadata — display only, never read by the RT thread.
     pub meta: Arc<RwLock<ProjectMeta>>,
+
+    /// The MIDI output port currently selected by the user.
+    /// `None` — no port selected; Conductor uses the first available.
+    /// `Some(name)` — Conductor opens this port by name.
+    /// Written by `TransportCommand::MidiPort(Some(name))`.
+    /// Read when opening a midir connection.
+    pub active_midi_port: Arc<RwLock<Option<String>>>,
+
+    /// The audio host currently selected by the user.
+    /// `None` — use the platform default host.
+    /// `Some(name)` — use this cpal host by name (e.g. "ALSA", "JACK").
+    /// Written by `TransportCommand::AudioHost(Some(name))`.
+    pub active_audio_host: Arc<RwLock<Option<String>>>,
+
+    /// The audio output device currently selected by the user.
+    /// `None` — use the default device for the active host.
+    /// `Some(name)` — use this device by name.
+    /// Written by `TransportCommand::AudioDevice(Some(name))`.
+    pub active_audio_device: Arc<RwLock<Option<String>>>,
 }
 
 impl TransportState {
@@ -75,6 +102,9 @@ impl TransportState {
             bpm_milli: Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
             next_event_idx: Arc::new(AtomicUsize::new(0)),
             meta: Arc::new(RwLock::new(ProjectMeta::default())),
+            active_midi_port: Arc::new(RwLock::new(None)),
+            active_audio_host: Arc::new(RwLock::new(None)),
+            active_audio_device: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -108,46 +138,131 @@ impl TransportState {
         self.next_event_idx.store(new_idx, Ordering::Release);
         self.playhead.store(target_sample, Ordering::Release);
     }
+
+    /// Read the active MIDI port name, if one has been selected.
+    pub fn midi_port(&self) -> Option<String> {
+        self.active_midi_port.read().unwrap().clone()
+    }
+
+    /// Set the active MIDI port by name.
+    /// Pass `None` to clear the selection and revert to first-available.
+    pub fn set_midi_port(&self, name: Option<String>) {
+        *self.active_midi_port.write().unwrap() = name;
+    }
+
+    /// Read the active audio host name, if one has been selected.
+    pub fn audio_host(&self) -> Option<String> {
+        self.active_audio_host.read().unwrap().clone()
+    }
+
+    /// Set the active audio host by name.
+    pub fn set_audio_host(&self, name: Option<String>) {
+        *self.active_audio_host.write().unwrap() = name;
+    }
+
+    /// Read the active audio device name, if one has been selected.
+    pub fn audio_device(&self) -> Option<String> {
+        self.active_audio_device.read().unwrap().clone()
+    }
+
+    /// Set the active audio device by name.
+    pub fn set_audio_device(&self, name: Option<String>) {
+        *self.active_audio_device.write().unwrap() = name;
+    }
 }
 
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-
-/// Commands sent from any frontend to the EngineMonitor.
+/// Commands sent from any frontend to the Conductor.
 ///
 /// This is the complete set of things a frontend can ask the
-/// engine to do. The EngineMonitor pattern-matches on these
-/// and updates TransportState or dispatches work accordingly.
+/// engine to do. The Conductor pattern-matches on these and
+/// updates `TransportState` or dispatches work accordingly.
 ///
 /// Serialisable via MessagePack for ZMQ transport.
-/// Sent directly via mpsc for Nushell plugins.
+/// Sent directly via mpsc for in-process frontends.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TransportCommand {
+    // ── Transport ─────────────────────────────────────────────────
     Play,
     Stop,
     Seek(u64),
     SetBpm(f64),
+
+    // ── File I/O ──────────────────────────────────────────────────
     LoadMidi(PathBuf),
+
     /// Load a MUDL file (.mudl) and build the timeline from it.
     /// MUDL is a KDL-based format for mush MIDI event sequences.
-    /// Parsing is implemented in task 8 (nu_plugin_midi).
-    /// Reserved here to ensure the architecture supports it.
     LoadMudl(PathBuf),
+
+    /// Save the current timeline.
+    /// File extension determines format: `.mid` or `.mudl`.
+    Save(PathBuf),
+
+    // ── Event streaming ───────────────────────────────────────────
     /// Queue a single MIDI event from a Nushell pipeline.
     /// Sent by `midi play` for each record in the input stream:
     ///   open song.mudl | where note > 60 | midi play
-    /// TheConductor appends the event to the timeline or
-    /// dispatches immediately depending on playback state.
     QueueEvent(MidiEvent),
-    AudioDevices,
+
+    /// Send raw MIDI bytes immediately, bypassing the timeline.
+    /// Used for live input, panic, and test commands.
+    /// Payload is 1–3 bytes of standard MIDI wire format.
+    SendMessage(Vec<u8>),
+
+    // ── Recording ─────────────────────────────────────────────────
+    /// Start or stop MIDI capture.
+    ///
+    /// `start: true`  — begin capture.
+    ///   `path: Some(p)` — pre-specify the save path.
+    ///   `path: None`    — path decided at stop time.
+    ///
+    /// `start: false` — stop capture and save.
+    ///   `path: Some(p)` — override the pre-specified path.
+    ///   `path: None`    — use pre-specified path, or generate a
+    ///                     timestamped default if none was given.
+    ///
+    /// Conductor responds with `MidiUpdate::RecordSaved(path)`
+    /// or `MidiUpdate::RecordEmpty` if nothing was captured.
+    Record {
+        start: bool,
+        path: Option<PathBuf>,
+    },
+
+    // ── Device selection ──────────────────────────────────────────
+    /// Query or set the active MIDI output port.
+    /// `None` — query; engine responds with `MidiUpdate::ActivePort`.
+    /// `Some(name)` — select port by name; engine confirms with
+    ///   `MidiUpdate::ActivePort(Some(name))`.
+    MidiPort(Option<String>),
+
+    /// Query or set the active audio host.
+    /// `None` — query; engine responds with `AudioUpdate::ActiveHost`.
+    /// `Some(name)` — select host by name (e.g. "ALSA", "JACK").
+    AudioHost(Option<String>),
+
+    /// Query or set the active audio output device.
+    /// `None` — query; engine responds with `AudioUpdate::ActiveDevice`.
+    /// `Some(name)` — select device by name.
+    AudioDevice(Option<String>),
+
+    // ── Enumeration ───────────────────────────────────────────────
+    /// Enumerate available MIDI ports.
+    /// Engine responds with `MidiUpdate::PortList`.
     MidiDevices,
+
+    /// Enumerate available audio output devices on the active host.
+    /// Engine responds with `AudioUpdate::DeviceList`.
+    AudioDevices,
+
+    /// Enumerate available audio hosts on this platform.
+    /// Engine responds with `AudioUpdate::HostList`.
+    AudioHosts,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // A minimal HasSamplePos implementation for testing seek.
     struct TestEvent(u64);
     impl HasSamplePos for TestEvent {
         fn sample_pos(&self) -> u64 {
@@ -187,11 +302,8 @@ mod tests {
             TestEvent(88_200),
             TestEvent(132_300),
         ];
-
         ts.seek(44_100, &timeline);
-
         assert_eq!(ts.playhead.load(Ordering::Acquire), 44_100);
-        // cursor points at the event AT the seek position
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 1);
     }
 
@@ -199,10 +311,8 @@ mod tests {
     fn seek_to_zero_resets_cursor() {
         let ts = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
-
         ts.seek(44_100, &timeline);
         ts.seek(0, &timeline);
-
         assert_eq!(ts.playhead.load(Ordering::Acquire), 0);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 0);
     }
@@ -211,18 +321,49 @@ mod tests {
     fn seek_past_end_positions_cursor_at_len() {
         let ts = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
-
         ts.seek(999_999, &timeline);
-
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), timeline.len());
     }
 
     #[test]
     fn bpm_stored_as_milli() {
         let ts = TransportState::new(120.0);
-        // Verify the internal representation directly
         assert_eq!(ts.bpm_milli.load(Ordering::Relaxed), 120_000);
         ts.set_bpm(140.5);
         assert_eq!(ts.bpm_milli.load(Ordering::Relaxed), 140_500);
     }
+
+    #[test]
+    fn active_midi_port_defaults_to_none() {
+        let ts = TransportState::new(120.0);
+        assert_eq!(ts.midi_port(), None);
+    }
+
+    #[test]
+    fn set_and_clear_midi_port() {
+        let ts = TransportState::new(120.0);
+        ts.set_midi_port(Some("IAC Driver Bus 1".into()));
+        assert_eq!(ts.midi_port(), Some("IAC Driver Bus 1".into()));
+        ts.set_midi_port(None);
+        assert_eq!(ts.midi_port(), None);
+    }
+
+    #[test]
+    fn set_and_clear_audio_host() {
+        let ts = TransportState::new(120.0);
+        ts.set_audio_host(Some("JACK".into()));
+        assert_eq!(ts.audio_host(), Some("JACK".into()));
+        ts.set_audio_host(None);
+        assert_eq!(ts.audio_host(), None);
+    }
+
+    #[test]
+    fn set_and_clear_audio_device() {
+        let ts = TransportState::new(120.0);
+        ts.set_audio_device(Some("hw:0,0".into()));
+        assert_eq!(ts.audio_device(), Some("hw:0,0".into()));
+        ts.set_audio_device(None);
+        assert_eq!(ts.audio_device(), None);
+    }
 }
+

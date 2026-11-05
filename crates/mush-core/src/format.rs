@@ -33,6 +33,38 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
         EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => Some(format!("✓ loaded {path}")),
 
         EngineUpdate::Midi(MidiUpdate::Error(e)) => Some(format!("✗ MIDI error: {e}")),
+        EngineUpdate::Audio(AudioUpdate::HostList(hosts)) => {
+            if hosts.is_empty() {
+                Some("audio hosts: none found".into())
+            } else {
+                Some(format!("audio hosts:\n{}", hosts.join("\n")))
+            }
+        }
+
+        EngineUpdate::Audio(AudioUpdate::ActiveHost(name)) => Some(match name {
+            Some(n) => format!("audio host: {n}"),
+            None => "audio host: (default)".into(),
+        }),
+
+        EngineUpdate::Audio(AudioUpdate::ActiveDevice(name)) => Some(match name {
+            Some(n) => format!("audio device: {n}"),
+            None => "audio device: (default)".into(),
+        }),
+
+        EngineUpdate::Midi(MidiUpdate::ActivePort(name)) => Some(match name {
+            Some(n) => format!("MIDI port: {n}"),
+            None => "MIDI port: (none selected)".into(),
+        }),
+
+        EngineUpdate::Midi(MidiUpdate::SaveAck(path)) => Some(format!("✓ saved {path}")),
+
+        EngineUpdate::Midi(MidiUpdate::RecordSaved(path)) => {
+            Some(format!("✓ recording saved to {path}"))
+        }
+
+        EngineUpdate::Midi(MidiUpdate::RecordEmpty) => {
+            Some("recording stopped — no events captured".into())
+        }
     }
 }
 
@@ -108,4 +140,3 @@ mod tests {
         assert_eq!(format_update(&u), Some("✓ loaded song.mudl".into()));
     }
 }
-

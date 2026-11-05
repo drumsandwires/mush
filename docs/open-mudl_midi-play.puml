@@ -1,0 +1,51 @@
+@startuml
+!pragma teoz true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+box "Nushell Process" #LightYellow
+  participant "Nushell\nREPL" as nu
+end box
+
+box "nu_plugin_midi Process" #LightBlue
+  participant "PluginCommand\n::run()" as cmd
+  participant "tokio\nRuntime" as rt
+end box
+
+box "mush-core (in plugin process)" #LightGreen
+  participant "ZmqClient\n(DEALER)" as client
+  participant "Conductor\n(background task)" as conductor
+  participant "ZmqTransport\n(ROUTER + PUB)" as transport
+end box
+
+nu -> cmd : open song.mudl | midi play\n(PipelineData::ListStream)
+activate cmd
+
+group For each MidiEvent record in stream
+  cmd -> rt : block_on(send_command\n(QueueEvent(event)))
+  rt -> client : send_command
+  client -> transport : DEALER → ROUTER\n[empty, msgpack(QueueEvent)]
+  transport -> conductor : recv_command() → Some(QueueEvent)
+  conductor -> conductor : handle_command(QueueEvent)\n**let _ = event;  ← dropped**
+end
+
+cmd -> rt : block_on(send_command(Play))
+rt -> client : send_command
+client -> transport : DEALER → ROUTER\n[empty, msgpack(Play)]
+transport -> conductor : recv_command() → Some(Play)
+conductor -> conductor : handle_command(Play)\nemit_all(TransportStarted)
+conductor -> transport : publish(TransportStarted)
+transport -> client : SUB ← PUB
+client --> rt : Some(TransportStarted)
+rt --> cmd : "▶ transport started"
+cmd --> nu : PipelineData::Value(String)
+deactivate cmd
+
+note over conductor #Pink
+  **QueueEvent is silently dropped.**
+  No timeline exists yet.
+  Play emits TransportStarted
+  but no events are dispatched.
+end note
+
+@enduml
