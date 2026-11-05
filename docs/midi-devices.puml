@@ -1,0 +1,39 @@
+@startuml
+!pragma teoz true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+
+box "Nushell Process" #LightYellow
+  participant "Nushell\nREPL" as nu
+end box
+
+box "nu_plugin_midi Process" #LightBlue
+  participant "PluginCommand\n::run()" as cmd
+  participant "tokio\nRuntime" as rt
+end box
+
+box "mush-core (in plugin process)" #LightGreen
+  participant "ZmqClient\n(DEALER)" as client
+  participant "Conductor\n(background task)" as conductor
+  participant "ZmqTransport\n(ROUTER + PUB)" as transport
+end box
+
+nu -> cmd : midi devices
+activate cmd
+
+cmd -> rt : block_on(send_command(MidiDevices))
+rt -> client : send_command
+client -> transport : DEALER → ROUTER\n[empty, msgpack(MidiDevices)]
+transport -> conductor : recv_command() → Some(MidiDevices)
+conductor -> conductor : handle_command(MidiDevices)\n**no emit — empty arm**
+
+cmd -> rt : block_on(recv_update())
+rt -> client : recv_update()
+
+note over client, conductor #Pink
+  **recv_update() suspends here forever.**
+  Conductor never emits a PortList.
+  No timeout. Plugin hangs.
+end note
+
+@enduml

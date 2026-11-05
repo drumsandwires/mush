@@ -289,76 +289,209 @@
 
 ## 8. Plugin Migration
 
-### 8.0 Deferred from Task 7
+### 8.0 Deferred from Task 7 ✅ Complete
 
 - [x] 8.0.1  `mish-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.2  `mash-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.3  `mush-shell/src/main.rs` — subscribe + sink task
 - [x] 8.0.4  Confirmed `mish> play` → `▶ transport started` in REPL
 - [x] 8.0.F  Fix: shared ZMQ Context required for inproc transport
-          — `Conductor` owns `Context`, exposes `context()`
-          — `ZmqTransport::bind` and `ZmqClient::connect` take `&Context`
-          — shells pass `conductor.context().clone()` to `ZmqClient`
 - [x] 8.0.5  Update `trycmd` snapshots — `mish-shell`
 - [x] 8.0.6  Update `trycmd` snapshots — `mash-shell`
 - [x] 8.0.7  Update `trycmd` snapshots — `mush-shell`
 - [x] 8.0.8  Add `EngineUpdate::Midi(MidiUpdate::LoadMudlAck)` variant
-         — `format_update()` arm + unit test
 
-### 8.1 `nu_plugin_midi` Migration
+### 8.1 `nu_plugin_midi` Migration — Structural ✅ Complete
 
 - [x] 8.1.1  Embed `Conductor` in `main.rs`
-         — same pattern as `mish-shell`
-         — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
 - [x] 8.1.2  Remove `MidiEngine` from `MidiPlugin` struct
-         — engine ownership moves to `Conductor`
 - [x] 8.1.3  Wire `ZmqClient` into plugin commands via shared state
-- [ ] 8.1.4  Rewrite `commands/play.rs`
+
+### 8.1 `nu_plugin_midi` Migration — Commands ⏸ Deferred to post-8.3
+
+Commands cannot be meaningfully implemented until `handle_command` is
+complete (8.3). Stubs that call `recv_update()` will hang.
+
+- [ ] 8.1.4  `midi ports`
+         — `TransportCommand::MidiDevices` → `MidiUpdate::PortList`
+- [ ] 8.1.5  `midi port` (no arg)
+         — return active port name from `TransportState`
+- [ ] 8.1.6  `midi port <name>`
+         — set active port in `TransportState`
+- [ ] 8.1.7  `midi play`
          — `PipelineData::Empty` → `TransportCommand::Play`
          — `PipelineData::ListStream` → `QueueEvent` per record + `Play`
-         — handles: `midi play`
-                    `open song.mudl | midi play`
-                    `open song.mudl | where note > 60 | midi play`
-- [ ] 8.1.5  Rewrite `commands/stop.rs`
-         — `TransportCommand::Stop` via `ZmqClient`
-- [ ] 8.1.6  Rewrite `commands/ports.rs`
-         — `TransportCommand::MidiDevices` via `ZmqClient`
-         — always fresh — no refresh command
-- [ ] 8.1.7  Remove `commands/ports_refresh.rs`
-         — deprecated, always-fresh enumeration replaces cache
-- [ ] 8.1.8  Stub `commands/record.rs`
-- [ ] 8.1.9  Add `commands/monitor.rs`
-         — `ZmqClient::recv_update()` loop (already implemented)
-         — `engine_update_to_value()` → `ListStream`
-         — handles: `midi monitor`
-- [ ] 8.1.10 Implement `engine_update_to_value()`
-         — `EngineUpdate` → `Value::Record` with `"type"` discriminator
-         — lives in `nu_plugin_midi` — depends on `nu_protocol`
-- [ ] 8.1.11 Add `commands/audio_devices.rs`
-         — `TransportCommand::AudioDevices` via `ZmqClient`
-- [ ] 8.1.12 Add `commands/load_mudl.rs`
-         — `TransportCommand::LoadMudl(path)` — reserved
-- [ ] 8.1.13 Confirm existing plugin tests pass
+- [ ] 8.1.8  `midi stop`
+         — `TransportCommand::Stop`
+- [ ] 8.1.9  `midi load <path>`
+         — `.mid` → `TransportCommand::LoadMidi(path)`
+         — `.mudl` → `TransportCommand::LoadMudl(path)`
+         — extension determines variant
+- [ ] 8.1.10 `midi send <msg>`
+         — `TransportCommand::SendMessage(bytes)`
+- [ ] 8.1.11 `midi monitor`
+         — `recv_update()` loop → `ListStream`
+         — autosave pre-roll to `.mudl` in cwd (optional path arg)
+- [ ] 8.1.12 `midi record`
+         — on-demand bounded capture
+         — `TransportCommand::Record` start/stop
+- [ ] 8.1.13 `midi save <path>`
+         — `.mid` or `.mudl` determined by extension
+         — `TransportCommand::Save(path)`
+- [ ] 8.1.14 Confirm plugin tests pass
 
-### 8.2 `nu_plugin_live_audio` Migration
+### 8.2 `nu_plugin_live_audio` Migration ⏸ Deferred to post-8.3
 
 - [ ] 8.2.1  Embed `Conductor` in `main.rs`
-         — same pattern as `mash-shell`
-         — `connect(addrs::CMD_INPROC, addrs::PUB_INPROC)`
 - [ ] 8.2.2  Remove `AudioEngine` from `AudioPlugin` struct
-         — engine ownership moves to `Conductor`
 - [ ] 8.2.3  Wire `ZmqClient` into plugin commands via shared state
-- [ ] 8.2.4  Rewrite `commands/devices.rs`
-         — `TransportCommand::AudioDevices` via `ZmqClient`
-         — always fresh — no refresh command
-- [ ] 8.2.5  Remove `commands/devices_refresh.rs`
-         — deprecated, always-fresh enumeration replaces cache
-- [ ] 8.2.6  Stub `commands/play.rs`
-- [ ] 8.2.7  Stub `commands/stop.rs`
-- [ ] 8.2.8  Stub `commands/record.rs`
-- [ ] 8.2.9  Confirm existing plugin tests pass
+- [ ] 8.2.4  `audio hosts`
+         — `TransportCommand::AudioHosts` → `AudioUpdate::HostList`
+- [ ] 8.2.5  `audio host` (no arg)
+         — return active host name from `TransportState`
+- [ ] 8.2.6  `audio host <name>`
+         — set active host in `TransportState`
+- [ ] 8.2.7  `audio devices`
+         — `TransportCommand::AudioDevices` → `AudioUpdate::DeviceList`
+- [ ] 8.2.8  `audio device` (no arg)
+         — return active device name from `TransportState`
+- [ ] 8.2.9  `audio device <name>`
+         — set active device in `TransportState`
+- [ ] 8.2.10 Confirm plugin tests pass
 
----
+### 8.3 Wire Clock, Timeline, and MIDI Output into Conductor
+
+This is the critical path. All of 8.1 and 8.2 unblock once this is done.
+
+#### 8.3.1 Audit `mish-midi-core`
+- [ ] Confirm what exists: `clock.rs`, `timeline.rs`, `engine.rs`,
+      `midir` wiring
+- [ ] Identify what moves to `mush-core` vs stays in `mish-midi-core`
+- [ ] Confirm `midir` output port open/close lifecycle
+
+#### 8.3.2 Extend `TransportState`
+- [ ] Add `active_midi_port: Arc<RwLock<Option<String>>>`
+         — set by `midi port <name>`
+         — read by `Conductor` when opening `midir` connection
+- [ ] Add `active_audio_host: Arc<RwLock<Option<String>>>`
+- [ ] Add `active_audio_device: Arc<RwLock<Option<String>>>`
+
+#### 8.3.3 Extend `TransportCommand`
+- [ ] Add `MidiPort(Option<String>)`
+         — `None` → query active port
+         — `Some(name)` → set active port
+- [ ] Add `AudioHost(Option<String>)`
+- [ ] Add `AudioDevice(Option<String>)`
+- [ ] Add `AudioHosts`
+         — enumerate available hosts
+- [ ] Add `SendMessage(Vec<u8>)`
+         — raw MIDI bytes, bypasses timeline
+- [ ] Add `Record(bool)`
+         — `true` → start bounded capture
+         — `false` → stop and return events
+- [ ] Add `Save(PathBuf)`
+         — save timeline to `.mid` or `.mudl`
+
+#### 8.3.4 Extend `EngineUpdate`
+- [ ] Add `MidiUpdate::PortList` — already exists ✅
+- [ ] Add `MidiUpdate::ActivePort(Option<String>)`
+- [ ] Add `AudioUpdate::HostList(String)`
+- [ ] Add `AudioUpdate::ActiveHost(Option<String>)`
+- [ ] Add `AudioUpdate::ActiveDevice(Option<String>)`
+- [ ] Add `MidiUpdate::RecordStopped(Vec<MidiEvent>)`
+- [ ] Add `MidiUpdate::SaveAck(String)`
+
+#### 8.3.5 Add timeline to `Conductor`
+- [ ] Add `timeline: Arc<RwLock<Vec<TimelineEvent>>>`
+- [ ] Add `midi_queue: Arc<ArrayQueue<[u8; 3]>>`
+- [ ] `handle_command(QueueEvent(event))` → append to timeline,
+      sort by `beat`
+- [ ] `handle_command(LoadMidi(path))` → parse via `midly`
+      → populate timeline → emit `MidiUpdate::LoadMudlAck`
+- [ ] `handle_command(LoadMudl(path))` → parse KDL
+      → populate timeline → emit `MidiUpdate::LoadMudlAck`
+
+#### 8.3.6 Add MIDI output to `Conductor`
+- [ ] Open `midir::MidiOutput` on startup
+- [ ] `handle_command(MidiDevices)` → enumerate ports
+      → emit `MidiUpdate::PortList`
+- [ ] `handle_command(MidiPort(None))` → emit `MidiUpdate::ActivePort`
+- [ ] `handle_command(MidiPort(Some(name)))` → open connection
+      → store in `Conductor` → update `TransportState::active_midi_port`
+      → emit `MidiUpdate::ActivePort`
+- [ ] `handle_command(SendMessage(bytes))` → write directly to
+      open `MidiOutputConnection` → bypasses timeline
+
+#### 8.3.7 Wire `Clock` into `Conductor`
+- [ ] Add `clock: Option<Clock>` to `Conductor`
+- [ ] `handle_command(Play)`:
+      — construct `ClockArgs` from `Conductor` fields
+      — `Clock::start(args)` → store in `self.clock`
+      — emit `AudioUpdate::TransportStarted`
+- [ ] `handle_command(Stop)`:
+      — drop `self.clock`
+      — emit `AudioUpdate::TransportStopped`
+- [ ] `handle_command(Seek(pos))` → write `TransportState` atomics
+- [ ] `handle_command(SetBpm(bpm))` → write `TransportState` atomics
+
+#### 8.3.8 Add pre-roll buffer to `Conductor`
+- [ ] Add `pre_roll: Arc<ArrayQueue<MidiEvent>>`
+      — fixed large capacity (e.g. 65_536 events)
+- [ ] Fed by `midi monitor` — every incoming MIDI event pushed here
+- [ ] Autosave to `.mudl` in cwd when buffer wraps
+      — autosave path overridable via `midi monitor <path>` arg
+- [ ] `handle_command(Record(true))` → begin bounded capture
+      alongside pre-roll
+- [ ] `handle_command(Record(false))` → stop capture
+      → emit `MidiUpdate::RecordStopped(events)`
+
+#### 8.3.9 Wire audio device enumeration into `Conductor`
+- [ ] `handle_command(AudioHosts)` → enumerate `cpal` hosts
+      → emit `AudioUpdate::HostList`
+- [ ] `handle_command(AudioDevices)` → enumerate devices on active host
+      → emit `AudioUpdate::DeviceList`
+- [ ] `handle_command(AudioHost(None))` → emit `AudioUpdate::ActiveHost`
+- [ ] `handle_command(AudioHost(Some(name)))` → set active host
+      → emit `AudioUpdate::ActiveHost`
+- [ ] `handle_command(AudioDevice(None))` → emit `AudioUpdate::ActiveDevice`
+- [ ] `handle_command(AudioDevice(Some(name)))` → set active device
+      → emit `AudioUpdate::ActiveDevice`
+
+#### 8.3.10 Implement `Save`
+- [ ] `handle_command(Save(path))`:
+      — `.mid` extension → write via `midly`
+      — `.mudl` extension → write KDL
+      — emit `MidiUpdate::SaveAck(path)`
+
+#### 8.3.11 Update `format_update`
+- [ ] Add arms for all new `EngineUpdate` variants added in 8.3.4
+- [ ] Add unit tests for each new arm
+
+#### 8.3.12 Confirm MVP command surface end-to-end
+- [ ] `midi ports` — returns structured port list
+- [ ] `midi port` — returns active port name
+- [ ] `midi port <name>` — sets active port
+- [ ] `midi load song.mid` — loads SMF file
+- [ ] `midi load song.mudl` — loads MUDL file
+- [ ] `midi play` — audible output on connected synth
+- [ ] `midi stop` — stops playback cleanly
+- [ ] `open song.mudl | midi play` — pipeline play
+- [ ] `open song.mudl | where note > 60 | midi play` — filtered pipeline
+- [ ] `midi send <msg>` — raw message delivered to port
+- [ ] `midi monitor` — streams live events, autosaves pre-roll
+- [ ] `midi record` — on-demand bounded capture
+- [ ] `midi save song.mudl` — saves timeline
+- [ ] `midi save song.mid` — saves as SMF
+- [ ] `audio hosts` — returns host list
+- [ ] `audio host` — returns active host
+- [ ] `audio host <name>` — sets active host
+- [ ] `audio devices` — returns device list
+- [ ] `audio device` — returns active device
+- [ ] `audio device <name>` — sets active device
+- [ ] All commands functional in `mish-shell`, `mash-shell`,
+      `mush-shell`, `nu_plugin_midi`, `nu_plugin_live_audio`
+
+----
 
 ## 9. Integration and Cleanup
 

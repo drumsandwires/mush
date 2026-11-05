@@ -1962,12 +1962,14 @@ name = "mush-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cpal",
  "crossbeam",
  "futures",
  "libc",
  "reedline",
  "rmp-serde",
  "serde",
+ "thiserror 2.0.21",
  "tmq",
  "tokio",
  "tracing",

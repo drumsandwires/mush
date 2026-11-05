@@ -6,27 +6,12 @@
 // No I/O, no threads, no hardware. Pure transformation logic.
 
 use midly::{MetaMessage, MidiMessage, Smf, Timing, TrackEventKind};
-use mush_core::transport::HasSamplePos;
+use mush_core::timeline::TimelineEvent;
 use std::path::Path;
-
-/// A single event on the sample-accurate timeline.
-#[derive(Debug, Clone)]
-pub struct TimelineEvent {
-    /// Absolute position in samples from the start of the project.
-    pub sample_pos: u64,
-    /// The event payload.
-    pub payload: EventPayload,
-}
-
-impl HasSamplePos for TimelineEvent {
-    fn sample_pos(&self) -> u64 {
-        self.sample_pos
-    }
-}
 
 /// The data carried by a timeline event.
 #[derive(Debug, Clone)]
-pub enum EventPayload {
+pub enum MidiPayload {
     /// A raw MIDI message — channel, note, velocity or equivalent.
     /// Stored as three bytes matching the MIDI wire format.
     /// Two-byte messages (e.g. ProgramChange) use the third byte as 0.
@@ -51,7 +36,7 @@ pub fn load_midi_bytes(
     bytes: &[u8],
     sample_rate: u32,
     initial_bpm: f64,
-) -> Result<Vec<TimelineEvent>, Box<dyn std::error::Error>> {
+) -> Result<Vec<TimelineEvent<MidiPayload>>, Box<dyn std::error::Error>> {
     let smf = Smf::parse(bytes)?;
 
     let ticks_per_beat = match smf.header.timing {
@@ -63,7 +48,7 @@ pub fn load_midi_bytes(
         }
     };
 
-    let mut events: Vec<TimelineEvent> = Vec::new();
+    let mut events: Vec<TimelineEvent<MidiPayload>> = Vec::new();
 
     // Each track is processed independently.
     // Tempo events from any track affect all subsequent tracks.
@@ -99,7 +84,7 @@ pub fn load_midi_bytes(
 
                     events.push(TimelineEvent {
                         sample_pos,
-                        payload: EventPayload::TempoChange(bpm),
+                        payload: MidiPayload::TempoChange(bpm),
                     });
                 }
 
@@ -121,7 +106,7 @@ pub fn load_midi(
     path: &Path,
     sample_rate: u32,
     initial_bpm: f64,
-) -> Result<Vec<TimelineEvent>, Box<dyn std::error::Error>> {
+) -> Result<Vec<TimelineEvent<MidiPayload>>, Box<dyn std::error::Error>> {
     let bytes = std::fs::read(path)?;
     load_midi_bytes(&bytes, sample_rate, initial_bpm)
 }
@@ -180,7 +165,7 @@ impl TempoMap {
 
 /// Convert a midly MidiMessage to an EventPayload.
 /// Returns None for messages we do not handle at MVP.
-fn midi_message_to_payload(channel: u8, message: MidiMessage) -> Option<EventPayload> {
+fn midi_message_to_payload(channel: u8, message: MidiMessage) -> Option<MidiPayload> {
     let bytes = match message {
         MidiMessage::NoteOn { key, vel } => [0x90 | channel, key.as_int(), vel.as_int()],
 
@@ -203,7 +188,7 @@ fn midi_message_to_payload(channel: u8, message: MidiMessage) -> Option<EventPay
         _ => return None,
     };
 
-    Some(EventPayload::Midi(bytes))
+    Some(MidiPayload::Midi(bytes))
 }
 
 #[cfg(test)]
@@ -235,7 +220,7 @@ mod tests {
         assert!(
             events
                 .iter()
-                .any(|e| matches!(e.payload, EventPayload::Midi(_))),
+                .any(|e| matches!(e.payload, MidiPayload::Midi(_))),
             "no MIDI events found in timeline"
         );
     }
@@ -254,9 +239,9 @@ mod tests {
     fn has_sample_pos_impl_returns_field() {
         let event = TimelineEvent {
             sample_pos: 12_345,
-            payload: EventPayload::Midi([0x90, 60, 100]),
+            payload: MidiPayload::Midi([0x90, 60, 100]),
         };
-        assert_eq!(event.sample_pos(), 12_345);
+        assert_eq!(event.sample_pos, 12_345);
     }
 
     #[test]
