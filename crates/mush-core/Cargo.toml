@@ -22,3 +22,7 @@ midir = "0.11.0"
 midly = { workspace = true }
 enum-iterator = { workspace = true }
 cpal = { workspace = true }
+
+[[bin]]
+name = "gen_test_mid"
+path = "src/bin/gen_test_mid.rs"
