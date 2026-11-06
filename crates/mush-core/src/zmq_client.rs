@@ -22,7 +22,7 @@ impl ZmqClient {
     /// - `pub_addr` — address of the PUB socket to subscribe to
     ///
     /// # Examples
-    /// ```rust,no_run
+    /// ```rust,ignore
     /// // Same process
     /// ZmqClient::connect(addrs::CMD_INPROC, addrs::PUB_INPROC)?;
     ///

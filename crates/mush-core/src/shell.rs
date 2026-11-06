@@ -37,10 +37,12 @@ pub async fn run<S: Shell + 'static>(
     shell: S,
     cmd_addr: &str,
     pub_addr: &str,
+    sample_rate: u32,
 ) -> Result<(), tmq::TmqError> {
     let printer = ExternalPrinter::<String>::new(32);
 
-    let (mut conductor, _audio_tx, _midi_tx) = Conductor::new(cmd_addr, pub_addr)?;
+    let (mut conductor, _midi_queue, _audio_tx, _midi_tx) =
+        Conductor::new(cmd_addr, pub_addr, sample_rate)?;
 
     let mut handle = conductor.subscribe();
     let ctx = conductor.context().clone();
@@ -139,4 +141,3 @@ async fn run_batch<S: Shell>(shell: &S, client: &mut ZmqClient) {
         }
     }
 }
-

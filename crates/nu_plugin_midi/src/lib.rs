@@ -21,7 +21,8 @@ impl MidiPlugin {
     }
 
     pub async fn setup(cmd_addr: &str, pub_addr: &str) -> anyhow::Result<ZmqClient> {
-        let (conductor, _audio_tx, _midi_tx) = Conductor::new(cmd_addr, pub_addr)?;
+        let (conductor, _midi_queue, _audio_tx, _midi_tx) =
+            Conductor::new(cmd_addr, pub_addr, 44_100)?;
 
         let ctx = conductor.context().clone();
 

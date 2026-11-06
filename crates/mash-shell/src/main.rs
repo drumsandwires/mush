@@ -35,7 +35,7 @@ async fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    mush_core::shell::run(MashShell, addrs::CMD_INPROC, addrs::PUB_INPROC)
+    mush_core::shell::run(MashShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
         .await
         .expect("shell exited with error");
 }
