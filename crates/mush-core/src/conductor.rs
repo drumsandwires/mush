@@ -1,10 +1,15 @@
 use std::sync::Arc;
 
 use crossbeam_queue::ArrayQueue;
+use midir::MidiOutput as MidirOutput;
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
 
+use crate::midi::display::list_enumerated_devices;
+use crate::midi::engine::DesktopMidiOutput;
+use crate::midi::enumerate::list_midi_ports;
 use crate::midi::timeline::{MidiPayload, load_midi};
+use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
 use crate::timeline::TimelineEvent;
 use crate::transport::{MidiEvent, TransportCommand};
@@ -24,7 +29,7 @@ const CHANNEL_CAPACITY: usize = 64;
 /// realistic tempo. If this fills, the Conductor logs a warning
 /// and drops the event rather than blocking the RT thread.
 ///
-/// TODO(#38): Make midi queue capacity configurable via `ConductorConfig` post-MVP.
+/// TODO: make this configurable via `ConductorConfig` post-MVP.
 const MIDI_QUEUE_CAPACITY: usize = 1024;
 
 /// The central coordinator for the mush engine.
@@ -41,7 +46,7 @@ const MIDI_QUEUE_CAPACITY: usize = 1024;
 ///
 /// # Example
 /// ```rust,ignore
-/// let (conductor, midi_queue, audio_tx, midi_tx) = Conductor::new(
+/// let (conductor, _midi_queue, _audio_tx, _midi_tx) = Conductor::new(
 ///     addrs::CMD_INPROC,
 ///     addrs::PUB_INPROC,
 ///     44_100,
@@ -66,15 +71,25 @@ pub struct Conductor {
     /// Protected by `RwLock` — never held across an audio callback.
     timeline: Arc<std::sync::RwLock<Vec<TimelineEvent<MidiPayload>>>>,
 
-    /// Lock-free queue of raw MIDI bytes ready for the audio callback.
+    /// Lock-free queue of raw MIDI bytes for the RT audio callback.
     ///
-    /// The Conductor pushes `[u8; 3]` messages here in response to
-    /// `SendMessage` and live dispatch. The Clock pops from this queue
-    /// on every audio buffer without locking.
+    /// The Clock pops from this queue on every audio buffer without
+    /// locking. Bounded at `MIDI_QUEUE_CAPACITY`.
     ///
-    /// Bounded at `MIDI_QUEUE_CAPACITY`. If full, the message is
-    /// dropped and a warning is logged — the RT thread is never blocked.
+    /// Note: `SendMessage` does NOT use this queue — it writes
+    /// directly to `midi_connection` if one is open, or returns an
+    /// error if not. The queue is solely for the RT dispatch path.
+    #[allow(dead_code)]
     midi_queue: Arc<ArrayQueue<[u8; 3]>>,
+
+    /// The currently open MIDI output connection, if any.
+    ///
+    /// `None`  — no port selected; `SendMessage` returns an error.
+    /// `Some`  — port is open; `SendMessage` writes directly.
+    ///
+    /// Replaced on `MidiPort(Some(name))`. Closed (dropped) on
+    /// `MidiPort(None)`.
+    midi_connection: Option<Box<dyn MidiOutput>>,
 }
 
 impl Conductor {
@@ -123,6 +138,7 @@ impl Conductor {
             sample_rate,
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
+            midi_connection: None,
         };
 
         Ok((conductor, midi_queue, audio_tx, midi_tx))
@@ -212,7 +228,7 @@ impl Conductor {
             // ── File I/O ──────────────────────────────────────────
             TransportCommand::LoadMidi(path) => {
                 let bpm = 120.0; // TODO 8.x: read from TransportState
-                let result = load_midi(&path, self.sample_rate, bpm).map_err(|e| e.to_string()); // convert to String before .await
+                let result = load_midi(&path, self.sample_rate, bpm).map_err(|e| e.to_string());
                 match result {
                     Ok(events) => {
                         let path_str = path.display().to_string();
@@ -256,7 +272,7 @@ impl Conductor {
             }
 
             TransportCommand::SendMessage(bytes) => {
-                self.send_raw_message(bytes);
+                self.send_raw_message(bytes).await;
             }
 
             // ── Recording ─────────────────────────────────────────
@@ -267,10 +283,7 @@ impl Conductor {
 
             // ── Device selection ──────────────────────────────────
             TransportCommand::MidiPort(name) => {
-                // TODO 8.x: set or query active_midi_port on TransportState
-                let _ = name;
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
-                    .await;
+                self.select_midi_port(name).await;
             }
 
             TransportCommand::AudioHost(name) => {
@@ -293,7 +306,7 @@ impl Conductor {
             }
 
             TransportCommand::MidiDevices => {
-                // TODO 8.x: enumerate MIDI ports, emit PortList
+                self.enumerate_midi_devices().await;
             }
 
             TransportCommand::AudioHosts => {
@@ -304,12 +317,63 @@ impl Conductor {
         }
     }
 
+    /// Enumerate MIDI ports and emit a formatted `PortList`.
+    ///
+    /// Always enumerates fresh from the OS — no cache.
+    async fn enumerate_midi_devices(&mut self) {
+        let result = list_midi_ports().map_err(|e| e.to_string());
+        let update = match result {
+            Err(e) => {
+                warn!(error = %e, "MidiDevices enumeration failed");
+                MidiUpdate::Error(format!("failed to enumerate MIDI ports: {e}"))
+            }
+            Ok(ref ports) => {
+                let listing = list_enumerated_devices(ports)
+                    .unwrap_or_else(|| "no MIDI devices found".into());
+                MidiUpdate::PortList(listing)
+            }
+        };
+        self.emit_all(EngineUpdate::Midi(update)).await;
+    }
+
+    /// Select a MIDI output port by name, or clear the current selection.
+    ///
+    /// - `None`       — drop the current connection, emit `ActivePort(None)`
+    /// - `Some(name)` — open a connection to the named port, emit
+    ///                  `ActivePort(Some(name))` on success or `Error` on failure
+    async fn select_midi_port(&mut self, name: Option<String>) {
+        match name {
+            None => {
+                self.midi_connection = None;
+                debug!("MIDI output port cleared");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
+                    .await;
+            }
+
+            Some(ref port_name) => match open_midi_port_by_name(port_name) {
+                Ok(conn) => {
+                    self.midi_connection = Some(Box::new(conn));
+                    debug!(port = %port_name, "MIDI output port opened");
+                    self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
+                        port_name.clone(),
+                    ))))
+                    .await;
+                }
+                Err(e) => {
+                    warn!(port = %port_name, error = %e, "failed to open MIDI port");
+                    self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                        "failed to open MIDI port '{port_name}': {e}"
+                    ))))
+                    .await;
+                }
+            },
+        }
+    }
+
     /// Append a `MidiEvent` (in beats) to the timeline as a note-on /
     /// note-off pair, then re-sort.
     ///
     /// Beat-to-sample conversion uses the current BPM and sample rate.
-    /// Both events are inserted in sorted order so the timeline remains
-    /// ready for linear dispatch.
     fn queue_event(&self, event: MidiEvent) {
         let bpm = 120.0; // TODO 8.x: read from TransportState
         let sr = self.sample_rate as f64;
@@ -335,24 +399,49 @@ impl Conductor {
         tl.sort_by_key(|e| e.sample_pos);
     }
 
-    /// Push raw MIDI bytes onto the lock-free dispatch queue.
+    /// Send raw MIDI bytes directly to the open output connection.
     ///
-    /// Drops the message and logs a warning if the queue is full.
-    /// Never blocks — safe to call from any async context.
-    fn send_raw_message(&self, bytes: Vec<u8>) {
-        if bytes.len() < 1 || bytes.len() > 3 {
-            warn!(
-                len = bytes.len(),
-                "SendMessage: invalid byte length, dropping"
-            );
+    /// Emits `Error` if no port is selected — does not fall back to
+    /// `midi_queue`. The queue is solely for the RT dispatch path.
+    async fn send_raw_message(&mut self, bytes: Vec<u8>) {
+        if bytes.is_empty() || bytes.len() > 3 {
+            warn!(len = bytes.len(), "SendMessage: invalid byte length");
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                "SendMessage: invalid byte length {}",
+                bytes.len()
+            ))))
+            .await;
             return;
         }
 
-        let mut msg = [0u8; 3];
-        msg[..bytes.len()].copy_from_slice(&bytes);
-
-        if self.midi_queue.push(msg).is_err() {
-            warn!("midi_queue full — SendMessage dropped");
+        match self.midi_connection.as_mut() {
+            None => {
+                warn!("SendMessage: no MIDI output port selected");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
+                    "no MIDI output port selected — use 'midi port <name>' first".into(),
+                )))
+                .await;
+            }
+            Some(conn) => match conn.send(&bytes) {
+                Ok(()) => {
+                    let channel = bytes[0] & 0x0F;
+                    let note = bytes.get(1).copied().unwrap_or(0);
+                    let vel = bytes.get(2).copied().unwrap_or(0);
+                    self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
+                        channel,
+                        note,
+                        vel,
+                    }))
+                    .await;
+                }
+                Err(e) => {
+                    warn!(error = %e, "SendMessage: MIDI send failed");
+                    self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                        "MIDI send failed: {e}"
+                    ))))
+                    .await;
+                }
+            },
         }
     }
 
@@ -371,6 +460,26 @@ impl Conductor {
     }
 }
 
+/// Open a MIDI output connection to the port matching `name`.
+///
+/// Creates a fresh `MidiOutput` handle for enumeration — midir
+/// consumes the handle on `connect()` so it cannot be reused.
+///
+/// Returns `Err` if no port with that name exists or the connection fails.
+fn open_midi_port_by_name(name: &str) -> Result<DesktopMidiOutput, String> {
+    let output = MidirOutput::new("mush-midi-out").map_err(|e| e.to_string())?;
+    let ports = output.ports();
+
+    let port = ports
+        .iter()
+        .find(|p| output.port_name(p).as_deref() == Ok(name))
+        .ok_or_else(|| format!("MIDI port '{name}' not found"))?;
+
+    let connection = output.connect(port, name).map_err(|e| e.to_string())?;
+
+    Ok(DesktopMidiOutput::from_connection(connection))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -380,7 +489,6 @@ mod tests {
     const SAMPLE_RATE: u32 = 44_100;
 
     /// Helper — create a Conductor bound on inproc addresses.
-    /// Returns the conductor, midi_queue, and both status senders.
     fn make_conductor() -> (
         Conductor,
         Arc<ArrayQueue<[u8; 3]>>,
@@ -518,23 +626,6 @@ mod tests {
         );
     }
 
-    // 8.3.5 — SendMessage pushes to midi_queue
-    #[tokio::test]
-    async fn send_message_pushes_to_queue() {
-        let (conductor, midi_queue, _audio_tx, _midi_tx) = make_conductor();
-        conductor.send_raw_message(vec![0x90, 60, 100]);
-        assert_eq!(midi_queue.len(), 1);
-        assert_eq!(midi_queue.pop(), Some([0x90, 60, 100]));
-    }
-
-    // 8.3.5 — SendMessage with invalid length is dropped
-    #[tokio::test]
-    async fn send_message_invalid_length_dropped() {
-        let (conductor, midi_queue, _audio_tx, _midi_tx) = make_conductor();
-        conductor.send_raw_message(vec![0x90, 60, 100, 0]);
-        assert_eq!(midi_queue.len(), 0);
-    }
-
     // 8.3.5 — LoadMidi with a valid fixture populates the timeline
     #[tokio::test]
     async fn load_midi_populates_timeline() {
@@ -558,4 +649,72 @@ mod tests {
             EngineUpdate::Midi(MidiUpdate::LoadMudlAck(_))
         ));
     }
+
+    // 8.3.6 — MidiDevices emits PortList
+    #[tokio::test]
+    async fn midi_devices_emits_port_list() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::MidiDevices)
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert!(matches!(
+            update,
+            EngineUpdate::Midi(MidiUpdate::PortList(_))
+        ));
+    }
+
+    // 8.3.6 — MidiPort(None) emits ActivePort(None) and clears connection
+    #[tokio::test]
+    async fn midi_port_none_clears_connection() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::MidiPort(None))
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert_eq!(update, EngineUpdate::Midi(MidiUpdate::ActivePort(None)));
+        assert!(conductor.midi_connection.is_none());
+    }
+
+    // 8.3.6 — MidiPort(Some(invalid)) emits Error
+    #[tokio::test]
+    async fn midi_port_invalid_name_emits_error() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::MidiPort(Some(
+                "nonexistent-port-xyz".into(),
+            )))
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
+        assert!(conductor.midi_connection.is_none());
+    }
+
+    // 8.3.6 — SendMessage with no port selected emits Error
+    #[tokio::test]
+    async fn send_message_no_port_emits_error() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::SendMessage(vec![0x90, 60, 100]))
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
+    }
+
+    // 8.3.6 — SendMessage with invalid byte length emits Error
+    #[tokio::test]
+    async fn send_message_invalid_length_emits_error() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::SendMessage(vec![0x90, 60, 100, 0]))
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
+    }
 }
+
