@@ -95,7 +95,6 @@ impl AudioEngine {
     }
 
     pub fn monitor(&self) -> AudioResponse {
-        // TODO: Start monitoring an audio session.
         AudioResponse::Output("TBD: Monitoring...".to_string())
     }
 
