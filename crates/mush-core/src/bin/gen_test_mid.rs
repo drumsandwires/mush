@@ -1,4 +1,4 @@
-//! Run with: cargo run -p mish-midi-core --bin gen_test_mid
+//! Run with: cargo run -p mush-core --bin gen_test_mid
 //! Generates tests/fixtures/test.mid — a minimal 4-bar MIDI file
 //! at 120 BPM with a simple C major scale.
 

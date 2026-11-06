@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "crates/mush-core",
-    "crates/mish-midi-core",
-    "crates/mash-audio-core",
     "crates/mish-shell",
     "crates/mash-shell",
     "crates/mush-shell",
@@ -41,5 +39,3 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
 # internal
 mush-core       = { path = "crates/mush-core" }
-mish-midi-core  = { path = "crates/mish-midi-core" }
-mash-audio-core = { path = "crates/mash-audio-core" }

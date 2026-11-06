@@ -10,9 +10,9 @@ use std::thread;
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
-use mush_core::midi_output::MidiOutput;
-use mush_core::rt_priority;
-use mush_core::update::MidiUpdate;
+use crate::midi_output::MidiOutput;
+use crate::rt_priority;
+use crate::update::MidiUpdate;
 
 /// The result of evaluating a MIDI command.
 /// Deliberately decoupled from any REPL or plugin response type —

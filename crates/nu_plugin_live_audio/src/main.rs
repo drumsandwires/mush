@@ -1,6 +1,6 @@
 mod commands;
 
-use mash_audio_core::audio::engine::AudioEngine;
+use mush_core::audio::engine::AudioEngine;
 use nu_plugin::{MsgPackSerializer, Plugin, PluginCommand, serve_plugin};
 
 pub struct AudioPlugin {

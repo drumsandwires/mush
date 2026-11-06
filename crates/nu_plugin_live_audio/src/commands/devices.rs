@@ -1,5 +1,5 @@
 use crate::AudioPlugin;
-use mash_audio_core::audio::engine::AudioResponse;
+use mush_core::audio::engine::AudioResponse;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, Type, Value};
 

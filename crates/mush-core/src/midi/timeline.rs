@@ -5,8 +5,8 @@
 //
 // No I/O, no threads, no hardware. Pure transformation logic.
 
+use crate::timeline::TimelineEvent;
 use midly::{MetaMessage, MidiMessage, Smf, Timing, TrackEventKind};
-use mush_core::timeline::TimelineEvent;
 use std::path::Path;
 
 /// The data carried by a timeline event.
