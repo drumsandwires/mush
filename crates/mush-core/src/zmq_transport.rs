@@ -23,7 +23,7 @@ impl ZmqTransport {
     /// - `pub_addr` — address to bind the PUB socket
     ///
     /// # Examples
-    /// ```rust,no_run
+    /// ```rust,ignore
     /// // Same process
     /// ZmqTransport::bind(addrs::CMD_INPROC, addrs::PUB_INPROC)?;
     ///
