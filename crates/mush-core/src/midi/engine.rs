@@ -150,6 +150,14 @@ impl DesktopMidiOutput {
 
         Ok(Self { connection })
     }
+
+    /// Wrap an already-opened `midir::MidiOutputConnection`.
+    ///
+    /// Used by `open_midi_port_by_name` in `conductor.rs` which opens
+    /// the connection itself and hands it in.
+    pub fn from_connection(connection: midir::MidiOutputConnection) -> Self {
+        Self { connection }
+    }
 }
 
 impl MidiOutput for DesktopMidiOutput {
