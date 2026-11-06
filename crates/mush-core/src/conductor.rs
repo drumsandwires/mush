@@ -24,7 +24,7 @@ const CHANNEL_CAPACITY: usize = 64;
 /// realistic tempo. If this fills, the Conductor logs a warning
 /// and drops the event rather than blocking the RT thread.
 ///
-/// TODO: make this configurable via `ConductorConfig` post-MVP.
+/// TODO(#38): Make midi queue capacity configurable via `ConductorConfig` post-MVP.
 const MIDI_QUEUE_CAPACITY: usize = 1024;
 
 /// The central coordinator for the mush engine.

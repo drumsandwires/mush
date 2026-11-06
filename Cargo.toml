@@ -6,7 +6,6 @@ members = [
     "crates/mush-shell",
     "crates/nu_plugin_midi",
     "crates/nu_plugin_live_audio",
-    # TODO(#2): add for integration tests:
     "tests",
 ]
 resolver = "3"
