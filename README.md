@@ -137,7 +137,6 @@ cargo run --bin $shell
 ```sh
 cargo nextest run --package mish-midi-core --profile unit
 cargo nextest run --package mash-audio-core --profile unit
-# echo >> TODO(#4): 
 cargo nextest run --package tests --profile ci
 ```
 
@@ -164,7 +163,6 @@ cargo nextest run --package mash-audio-core --profile unit
 
 ```sh
 cargo build --workspace
-# echo TODO(#5): 
 cargo nextest run --package tests --profile ci
 ```
 
@@ -174,7 +172,6 @@ cargo nextest run --package tests --profile ci
 
 ```sh
 cargo build --bin $shell
-# echo TODO(#6): 
 cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
 ```
 
@@ -184,7 +181,6 @@ cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
 
 ```sh
 cargo build --package nu_plugin_midi
-# echo TODO(#7): 
 cargo nextest run --package mush-tests --test nu_plugin_midi_tests --profile ci
 ```
 
@@ -197,7 +193,6 @@ set -e
 cargo build --workspace
 cargo nextest run --package mish-midi-core --profile unit
 cargo nextest run --package mash-audio-core --profile unit
-# echo TODO(#8): 
 cargo nextest run --package tests --profile ci
 ```
 

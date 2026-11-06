@@ -63,7 +63,6 @@ impl MidiEngine {
     pub fn devices(&self) -> MidiResponse {
         // fast path: cache hit
         {
-            // TODO(#17): Remove unwrap on cache read.
             let read = self.devices_cache.read().unwrap();
             if let Some(ref cached) = *read {
                 return Self::format_devices(cached);
@@ -87,32 +86,26 @@ impl MidiEngine {
     }
 
     pub fn play(&self) -> MidiResponse {
-        // TODO(#18): Playback MIDI data.
         MidiResponse::Output("TBD: Playing...".to_string())
     }
 
     pub fn stop(&self) -> MidiResponse {
-        // TODO(#19): Stop MIDI playback/recording.
         MidiResponse::Output("TBD: Stopped.".to_string())
     }
 
     pub fn load(&self, path: &Path) -> MidiResponse {
-        // TODO(#20): Load a MIDI file.
         MidiResponse::Output(format!("TBD: Loading '{}'...", path.display()))
     }
 
     pub fn save(&self, path: &Path) -> MidiResponse {
-        // TODO(#21): Save MIDI data to file.
         MidiResponse::Output(format!("TBD: Saving to '{}'...", path.display()))
     }
 
     pub fn record(&self) -> MidiResponse {
-        // TODO(#22): Record MIDI data.
         MidiResponse::Output("TBD: Recording...".to_string())
     }
 
     pub fn monitor(&self) -> MidiResponse {
-        // TODO(#22): Monitor MIDI data.
         MidiResponse::Output("TBD: Monitoring...".to_string())
     }
 

@@ -9,7 +9,6 @@ members = [
     "crates/nu_plugin_midi",
     "crates/nu_plugin_live_audio",
     "crates/mush-commands",
-    # TODO(#2): add for integration tests: 
     "tests",
     # PoCs and prototypes. 
     ".shed",  
@@ -30,7 +29,6 @@ nu-protocol = "0.116"
 thiserror = "2"
 enum-iterator = "2"
 cpal = "0.18"
-# TODO(#3): add for integration tests: 
 expectrl = "0.9"
 # internal
 mush-core   = { path = "crates/mush-core" }

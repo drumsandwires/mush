@@ -43,7 +43,6 @@ impl AudioEngine {
         AudioResponse::Output(format!("Audio commands: {}", "TBD"))
     }
 
-    // TODO(#9): Use naming and version from the workspace
     pub fn version(&self) -> AudioResponse {
         AudioResponse::Output("mash-audio-core v0.1.0".to_string())
     }
@@ -80,22 +79,18 @@ impl AudioEngine {
     }
 
     pub fn load(&self, path: &Path) -> AudioResponse {
-        // TODO(#10): Load an audio file.
         AudioResponse::Output(format!("TBD: Loading '{}'...", path.display()))
     }
 
     pub fn save(&self, path: &Path) -> AudioResponse {
-        // TODO(#11): Save an audio session to a file.
         AudioResponse::Output(format!("TBD: Saving to '{}'...", path.display()))
     }
 
     pub fn play(&self) -> AudioResponse {
-        // TODO(#12): Playback an audio session or file.
         AudioResponse::Output("TBD: Playing back...".to_string())
     }
 
     pub fn record(&self) -> AudioResponse {
-        // TODO(#13): Start recording an audio session.
         AudioResponse::Output("TBD: Recording...".to_string())
     }
 
@@ -105,7 +100,6 @@ impl AudioEngine {
     }
 
     pub fn stop(&self) -> AudioResponse {
-        // TODO(#14): Stop playback/recording.
         AudioResponse::Output("TBD: Stopping...".to_string())
     }
 }
