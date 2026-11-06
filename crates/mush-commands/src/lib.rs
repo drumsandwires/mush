@@ -17,6 +17,8 @@ pub enum AudioCommand {
     Play,
     /// Start recording
     Record,
+    /// Monitor live audio
+    Monitor,
     /// Stop playback or recording
     Stop,
 }
@@ -37,6 +39,8 @@ pub enum MidiCommand {
     Play,
     /// Start MIDI recording
     Record,
+    /// Monitor live MIDI
+    Monitor,
     /// Stop playback or recording
     Stop,
 }

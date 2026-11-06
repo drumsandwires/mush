@@ -1,0 +1,8 @@
+bin.path = "../target/debug/mash"
+stdin = "quit\n"
+
+status = "success"
+stdout = """
+Welcome to mash — Audio shell. Type 'help' for commands.
+Bye!
+"""

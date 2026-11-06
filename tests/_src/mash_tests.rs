@@ -1,4 +1,3 @@
-// mush/tests/src/mash_tests.rs
 mod common {
     include!("lib.rs");
 }
@@ -24,7 +23,7 @@ fn mash_help() {
     eprintln!("cargo_bin(mash) = {path:?}");
     eprintln!("exists = {}", path.exists());
 
-    let mut repl = spawn_repl("mash", "mash> ").expect("failed to spawn mash-shell");
+    let mut repl = spawn_repl("mash", "mash>").expect("failed to spawn mash-shell");
     let out = clean(&repl.execute("help").unwrap());
     assert!(out.contains("Audio commands"), "got: {out}");
     repl.exit().ok();

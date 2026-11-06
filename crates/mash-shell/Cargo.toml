@@ -10,6 +10,9 @@ mush-core = { workspace = true }
 mash-audio-core = { workspace = true }
 mush-commands  = { workspace = true }
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name="mash"
 path="src/main.rs"

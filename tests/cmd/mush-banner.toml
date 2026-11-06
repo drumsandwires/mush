@@ -1,0 +1,9 @@
+bin.path = "../target/debug/mush"
+stdin = "quit\n"
+
+status = "success"
+stdout = """
+Welcome to mush — Music shell. Type 'help' for commands.
+Domains: audio, midi
+Bye!
+"""

@@ -1,0 +1,8 @@
+bin.path = "../target/debug/mish"
+stdin = "quit\n"
+
+status = "success"
+stdout = """
+Welcome to mish — MIDI shell. Type 'help' for commands.
+Bye!
+"""

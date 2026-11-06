@@ -41,6 +41,7 @@ pub fn evaluate(engine: &AudioEngine, input: &str) -> Response {
             AudioCommand::Save { path } => to_response(engine.save(&path)),
             AudioCommand::Play => to_response(engine.play()),
             AudioCommand::Record => to_response(engine.record()),
+            AudioCommand::Monitor => to_response(engine.monitor()),
             AudioCommand::Stop => to_response(engine.stop()),
         },
         Err(e) => Response::Output(e.render().to_string()),

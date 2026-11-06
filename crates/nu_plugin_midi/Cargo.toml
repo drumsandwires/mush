@@ -3,6 +3,9 @@ name = "nu_plugin_midi"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
 nu-plugin = { workspace = true }
 nu-protocol = { workspace = true }

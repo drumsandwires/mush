@@ -1,5 +1,7 @@
 # Config file for cocogitto conventional commits.
 
+ignore_merge_commits = true
+
 [commit_types]
 hotfix = { changelog_title = "Hotfixes", order = 0 }
 release = { changelog_title = "Releases", order = 1 }

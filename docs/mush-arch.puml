@@ -1,0 +1,63 @@
+@startuml mush_architecture
+
+skinparam defaultFontName "JetBrains Mono"
+skinparam defaultFontSize 12
+
+skinparam component {
+}
+
+skinparam package {
+}
+
+package "High-Priority MIDI Thread" {
+    component [MidiEngine\nstd::thread] as ME
+    component [crossbeam::ArrayQueue\nMidiEvent] as LFQ
+    component [std::sync::mpsc\nSender<MidiUpdate>] as ME_TX
+    ME --> LFQ
+    ME --> ME_TX
+}
+
+package "Hard RT Audio Thread" {
+    component [AudioEngine\nstd::thread\n(SCHED_FIFO)] as AE
+    component [std::sync::mpsc\nSender<AudioUpdate>] as AE_TX
+    AE --> AE_TX
+}
+
+LFQ --> AE : lock-free pop()\ninside RT callback
+
+package "Tokio Async Runtime" {
+
+    package "EngineMonitor" {
+        component [Audio Bridge\nspawn_blocking] as AB
+        component [MIDI Bridge\nspawn_blocking] as MB
+    }
+
+    package "UpdateSink (trait)" {
+        component [ReedlineSink\nExternalPrinter<String>] as RS
+        component [NushellSink\nMutex<Vec<String>>] as NS
+    }
+}
+
+package "mush-shell (binary)" {
+    component [MushShell\nimpl Shell] as MS
+    component [Reedline REPL\nblock_in_place] as RL
+    MS --> RL
+    RS --> RL : printer.print()
+}
+
+package "mush-nu-plugin (binary)" {
+    component [MushPlugin\nimpl Plugin] as MP
+    component [Nushell Plugin\nruntime] as NP
+    MP --> NP
+    NS --> NP : drain()
+}
+
+AE_TX --> AB : sync recv()
+ME_TX --> MB : sync recv()
+
+AB --> RS : sink.emit()
+AB --> NS : sink.emit()
+MB --> RS : sink.emit()
+MB --> NS : sink.emit()
+
+@enduml

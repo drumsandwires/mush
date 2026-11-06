@@ -1,7 +1,14 @@
 use reedline::{DefaultPrompt, DefaultPromptSegment, Reedline, Signal};
+use std::io::{self, BufRead, IsTerminal, Write};
+
+pub mod midi_output;
+pub mod rt_priority;
+pub mod sink;
+pub mod transport;
+pub mod update;
 
 /// The response returned by a [`Shell`] implementation after
-/// evaluating one line of user input.
+/// evaluating one ar
 #[derive(Debug, PartialEq)]
 pub enum Response {
     Output(String),
@@ -27,6 +34,16 @@ pub trait Shell {
 pub fn run<S: Shell>(shell: S) {
     shell.on_start();
 
+    if std::io::stdin().is_terminal() {
+        run_interactive(&shell);
+    } else {
+        run_batch(&shell);
+    }
+
+    shell.on_exit();
+}
+
+fn run_interactive<S: Shell>(shell: &S) {
     let mut editor = Reedline::create();
     let prompt = DefaultPrompt::new(
         DefaultPromptSegment::Basic(shell.prompt().to_string()),
@@ -61,6 +78,31 @@ pub fn run<S: Shell>(shell: S) {
             Ok(_) => {}
         }
     }
+}
 
-    shell.on_exit();
+fn run_batch<S: Shell>(shell: &S) {
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+
+    for line in stdin.lock().lines() {
+        let line = line.expect("failed to read line");
+        let trimmed = line.trim();
+
+        match trimmed {
+            "quit" | "exit" => {
+                writeln!(out, "Bye!").unwrap();
+                break;
+            }
+            "" => {}
+            input => match shell.evaluate(input) {
+                Response::Output(msg) => writeln!(out, "{msg}").unwrap(),
+                Response::Empty => {}
+                Response::Exit(msg) => {
+                    writeln!(out, "{msg}").unwrap();
+                    break;
+                }
+            },
+        }
+    }
 }

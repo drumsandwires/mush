@@ -1,0 +1,47 @@
+@startuml mush_architecture_simplified
+
+skinparam defaultFontName "JetBrains Mono"
+skinparam defaultFontSize 12
+' skinparam linetype ortho
+
+package "Control Layer" {
+    component [mush-shell\nmush-nu-plugin] as SHELL
+}
+
+package "Async Bridge Layer\nTokio Runtime" {
+    component [EngineMonitor\nTransport / Audio / MIDI Bridges] as EM
+}
+
+package "Transport State\nArc<TransportState>" {
+    component [playhead · is_playing\nbpm · timeline\nnext_event_idx] as TE
+}
+
+package "RT Layer" {
+    component [AudioEngine\nSCHED_FIFO] as AE
+    component [MidiEngine\nhi-pri thread] as ME
+    component [crossbeam::ArrayQueue\nMidiEvent] as LFQ
+}
+
+package "Hardware" {
+    component [Audio Interface\ncpal] as AI
+    component [MIDI Interface\nmidir] as MI
+}
+
+' Command path
+SHELL --> EM  : TransportCommand\nplay/stop/seek/bpm\nload_midi
+EM    --> TE  : write atomics
+
+' RT execution path
+TE  --> AE  : read atomics
+AE  --> LFQ : push MidiEvent
+LFQ --> ME  : pop MidiEvent
+ME  --> TE  : read playhead
+AE  --> AI  : audio I/O
+ME  --> MI  : send MIDI bytes
+
+' Status path
+AE --> EM : AudioUpdate · mpsc
+ME --> EM : MidiUpdate · mpsc
+EM --> SHELL : StatusUpdate\nplayhead / tempo
+
+@enduml
