@@ -5,6 +5,7 @@ use midir::MidiOutput as MidirOutput;
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
 
+use crate::clock::{Clock, ClockArgs};
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::engine::DesktopMidiOutput;
 use crate::midi::enumerate::list_midi_ports;
@@ -12,7 +13,7 @@ use crate::midi::timeline::{MidiPayload, load_midi};
 use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
 use crate::timeline::TimelineEvent;
-use crate::transport::{MidiEvent, TransportCommand};
+use crate::transport::{MidiEvent, TransportCommand, TransportState};
 use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 use crate::zmq_transport::ZmqTransport;
 
@@ -31,6 +32,11 @@ const CHANNEL_CAPACITY: usize = 64;
 ///
 /// TODO: make this configurable via `ConductorConfig` post-MVP.
 const MIDI_QUEUE_CAPACITY: usize = 1024;
+
+/// Initial BPM used before any `SetBpm` command is received.
+///
+/// TODO: make this configurable via `ConductorConfig` post-MVP.
+const INITIAL_BPM: f64 = 120.0;
 
 /// The central coordinator for the mush engine.
 ///
@@ -57,12 +63,21 @@ pub struct Conductor {
     ctx: tmq::Context,
     transport: ZmqTransport,
     audio_rx: mpsc::Receiver<AudioUpdate>,
+    /// Sender side of the audio update channel.
+    /// Cloned into `ClockArgs` on each `Play` command so the Clock
+    /// can report playhead position and errors back to the Conductor.
+    audio_tx: mpsc::Sender<AudioUpdate>,
     midi_rx: mpsc::Receiver<MidiUpdate>,
     subs: Vec<Subscription>,
 
     /// Sample rate passed at construction — used for beat-to-sample
-    /// conversion in `QueueEvent` and `LoadMidi`.
+    /// conversion in `QueueEvent` and `LoadMidi`, and passed to
+    /// `ClockArgs` on `Play`.
     sample_rate: u32,
+
+    /// Shared transport state — atomics written by `SetBpm`, `Seek`,
+    /// `Play`, and `Stop`; read by the Clock's audio callback.
+    state: Arc<TransportState>,
 
     /// The sorted, sample-accurate event timeline.
     ///
@@ -90,6 +105,12 @@ pub struct Conductor {
     /// Replaced on `MidiPort(Some(name))`. Closed (dropped) on
     /// `MidiPort(None)`.
     midi_connection: Option<Box<dyn MidiOutput>>,
+
+    /// The master clock. `Some` while playing, `None` while stopped.
+    ///
+    /// Dropping the `Clock` value stops playback — this is
+    /// intentional RAII. `Stop` sets this to `None`.
+    clock: Option<Clock>,
 }
 
 impl Conductor {
@@ -132,13 +153,16 @@ impl Conductor {
         let conductor = Self {
             ctx,
             transport,
+            audio_tx: audio_tx.clone(),
             audio_rx,
             midi_rx,
             subs: Vec::new(),
             sample_rate,
+            state: TransportState::new(INITIAL_BPM),
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
             midi_connection: None,
+            clock: None,
         };
 
         Ok((conductor, midi_queue, audio_tx, midi_tx))
@@ -206,34 +230,41 @@ impl Conductor {
         match cmd {
             // ── Transport ─────────────────────────────────────────
             TransportCommand::Play => {
+                self.start_clock();
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStarted))
                     .await;
             }
 
             TransportCommand::Stop => {
+                self.stop_clock();
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStopped))
                     .await;
             }
 
             TransportCommand::SetBpm(bpm) => {
-                // TODO 8.x: update TransportState::bpm_milli
-                let _ = bpm;
+                self.state.set_bpm(bpm);
+                debug!(bpm, "SetBpm");
             }
 
             TransportCommand::Seek(pos) => {
-                // TODO 8.x: update TransportState::playhead and next_event_idx
-                let _ = pos;
+                let tl = self.timeline.read().unwrap();
+                self.state.seek(pos, &*tl);
+                debug!(pos, "Seek");
             }
 
             // ── File I/O ──────────────────────────────────────────
             TransportCommand::LoadMidi(path) => {
-                let bpm = 120.0; // TODO 8.x: read from TransportState
+                let bpm = self.state.bpm();
                 let result = load_midi(&path, self.sample_rate, bpm).map_err(|e| e.to_string());
                 match result {
                     Ok(events) => {
                         let path_str = path.display().to_string();
                         let count = events.len();
                         *self.timeline.write().unwrap() = events;
+                        // Reset the event cursor — timeline has changed.
+                        self.state
+                            .next_event_idx
+                            .store(0, std::sync::atomic::Ordering::Release);
                         debug!(path = %path_str, events = count, "timeline loaded");
                         self.emit_all(EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path_str)))
                             .await;
@@ -317,6 +348,47 @@ impl Conductor {
         }
     }
 
+    /// Start the master clock.
+    ///
+    /// Constructs `ClockArgs` from the Conductor's own fields and
+    /// calls `Clock::start`. Stores the result in `self.clock`.
+    ///
+    /// If the clock is already running this is a no-op — a second
+    /// `Play` command does not restart playback.
+    fn start_clock(&mut self) {
+        if self.clock.is_some() {
+            debug!("Play received but clock already running — ignoring");
+            return;
+        }
+
+        self.state.play();
+
+        let args = ClockArgs {
+            playhead: Arc::clone(&self.state.playhead),
+            is_playing: Arc::clone(&self.state.is_playing),
+            next_event_idx: Arc::clone(&self.state.next_event_idx),
+            timeline: Arc::clone(&self.timeline),
+            midi_queue: Arc::clone(&self.midi_queue),
+            status_tx: self.audio_tx.clone(),
+            sample_rate: self.sample_rate,
+            extract_midi: extract_midi_payload,
+        };
+
+        self.clock = Some(Clock::start(args));
+        debug!("clock started");
+    }
+
+    /// Stop the master clock.
+    ///
+    /// Dropping `Clock` triggers its RAII stop. Sets `is_playing`
+    /// to false so the audio callback exits its dispatch loop cleanly
+    /// before the stream is dropped.
+    fn stop_clock(&mut self) {
+        self.state.stop();
+        self.clock = None;
+        debug!("clock stopped");
+    }
+
     /// Enumerate MIDI ports and emit a formatted `PortList`.
     ///
     /// Always enumerates fresh from the OS — no cache.
@@ -375,7 +447,7 @@ impl Conductor {
     ///
     /// Beat-to-sample conversion uses the current BPM and sample rate.
     fn queue_event(&self, event: MidiEvent) {
-        let bpm = 120.0; // TODO 8.x: read from TransportState
+        let bpm = self.state.bpm();
         let sr = self.sample_rate as f64;
         let secs_per_beat = 60.0 / bpm;
 
@@ -460,6 +532,18 @@ impl Conductor {
     }
 }
 
+/// Extract raw MIDI bytes from a `MidiPayload`.
+///
+/// Passed as a function pointer to `ClockArgs::extract_midi`.
+/// Returns `None` for non-MIDI payloads (e.g. `TempoChange`).
+/// Zero-cost, stateless, safe to call from the RT path.
+fn extract_midi_payload(p: &MidiPayload) -> Option<[u8; 3]> {
+    match p {
+        MidiPayload::Midi(bytes) => Some(*bytes),
+        MidiPayload::TempoChange(_) => None,
+    }
+}
+
 /// Open a MIDI output connection to the port matching `name`.
 ///
 /// Creates a fresh `MidiOutput` handle for enumeration — midir
@@ -498,7 +582,7 @@ mod tests {
         Conductor::new(addrs::CMD_INPROC, addrs::PUB_INPROC, SAMPLE_RATE).unwrap()
     }
 
-    // 6.3.1 — Play command emits TransportStarted
+    // 6.3.1 — Play command starts clock and emits TransportStarted
     #[tokio::test]
     async fn play_emits_transport_started() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
@@ -506,25 +590,88 @@ mod tests {
         conductor.handle_command(TransportCommand::Play).await;
         let update = handle.recv().await.unwrap();
         assert_eq!(update, EngineUpdate::Audio(AudioUpdate::TransportStarted));
+        assert!(conductor.clock.is_some());
+        assert!(
+            conductor
+                .state
+                .is_playing
+                .load(std::sync::atomic::Ordering::Acquire)
+        );
     }
 
-    // 6.3.2 — Stop command emits TransportStopped
+    // 6.3.2 — Stop command drops clock and emits TransportStopped
     #[tokio::test]
     async fn stop_emits_transport_stopped() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         let mut handle = conductor.subscribe();
+        conductor.handle_command(TransportCommand::Play).await;
+        let _ = handle.recv().await.unwrap(); // consume TransportStarted
         conductor.handle_command(TransportCommand::Stop).await;
         let update = handle.recv().await.unwrap();
         assert_eq!(update, EngineUpdate::Audio(AudioUpdate::TransportStopped));
+        assert!(conductor.clock.is_none());
+        assert!(
+            !conductor
+                .state
+                .is_playing
+                .load(std::sync::atomic::Ordering::Acquire)
+        );
     }
 
-    // 6.3.3 — SetBpm does not panic (stub)
+    // 6.3.3 — Second Play is a no-op (clock already running)
     #[tokio::test]
-    async fn set_bpm_does_not_panic() {
+    async fn double_play_is_noop() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor.handle_command(TransportCommand::Play).await;
+        let clock_ptr = conductor.clock.as_ref().map(|c| c as *const _);
+        conductor.handle_command(TransportCommand::Play).await;
+        // Clock reference unchanged — same instance
+        assert_eq!(clock_ptr, conductor.clock.as_ref().map(|c| c as *const _));
+    }
+
+    // 8.3.7 — SetBpm updates TransportState
+    #[tokio::test]
+    async fn set_bpm_updates_state() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         conductor
-            .handle_command(TransportCommand::SetBpm(120.0))
+            .handle_command(TransportCommand::SetBpm(140.0))
             .await;
+        assert!((conductor.state.bpm() - 140.0).abs() < 0.001);
+    }
+
+    // 8.3.7 — Seek updates playhead and next_event_idx
+    #[tokio::test]
+    async fn seek_updates_playhead() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor
+            .handle_command(TransportCommand::Seek(88_200))
+            .await;
+        assert_eq!(
+            conductor
+                .state
+                .playhead
+                .load(std::sync::atomic::Ordering::Acquire),
+            88_200
+        );
+    }
+
+    // 8.3.7 — QueueEvent uses live BPM from TransportState
+    #[tokio::test]
+    async fn queue_event_uses_live_bpm() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor
+            .handle_command(TransportCommand::SetBpm(60.0))
+            .await;
+        // At 60 BPM, beat 1 = 1 second = 44_100 samples
+        conductor.queue_event(MidiEvent {
+            beat: 1.0,
+            channel: 1,
+            note: 60,
+            vel: 100,
+            duration: 1.0,
+        });
+        let tl = conductor.timeline.read().unwrap();
+        assert_eq!(tl[0].sample_pos, 44_100);
     }
 
     // 6.3.5 — Update reaches SubscriptionHandle
@@ -717,4 +864,3 @@ mod tests {
         assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
     }
 }
-
