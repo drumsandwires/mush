@@ -1,14 +1,17 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crossbeam_queue::ArrayQueue;
 use midir::MidiOutput as MidirOutput;
 use tokio::sync::mpsc;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::clock::{Clock, ClockArgs};
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::engine::DesktopMidiOutput;
 use crate::midi::enumerate::list_midi_ports;
+use crate::midi::input::{InputEvent, MidiInputHandle};
+use crate::midi::preroll::PreRoll;
 use crate::midi::timeline::{MidiPayload, load_midi};
 use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
@@ -33,10 +36,29 @@ const CHANNEL_CAPACITY: usize = 64;
 /// TODO: make this configurable via `ConductorConfig` post-MVP.
 const MIDI_QUEUE_CAPACITY: usize = 1024;
 
+/// Capacity of the MIDI input event channel.
+/// The midir callback fires on its own thread; this channel
+/// bridges it to the Conductor's async task.
+const INPUT_CHANNEL_CAPACITY: usize = 256;
+
 /// Initial BPM used before any `SetBpm` command is received.
 ///
 /// TODO: make this configurable via `ConductorConfig` post-MVP.
 const INITIAL_BPM: f64 = 120.0;
+
+/// Tracks the current MIDI input mode.
+///
+/// Determines whether incoming [`InputEvent`]s are forwarded only
+/// (Monitor), also pushed to the pre-roll (Listen), or neither (Off).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum InputMode {
+    /// No input port open.
+    Off,
+    /// Input open, events forwarded to Conductor, pre-roll not fed.
+    Monitor,
+    /// Input open, events forwarded, pre-roll fed.
+    Listen,
+}
 
 /// The central coordinator for the mush engine.
 ///
@@ -62,12 +84,15 @@ const INITIAL_BPM: f64 = 120.0;
 pub struct Conductor {
     ctx: tmq::Context,
     transport: ZmqTransport,
+
     audio_rx: mpsc::Receiver<AudioUpdate>,
     /// Sender side of the audio update channel.
     /// Cloned into `ClockArgs` on each `Play` command so the Clock
     /// can report playhead position and errors back to the Conductor.
     audio_tx: mpsc::Sender<AudioUpdate>,
+
     midi_rx: mpsc::Receiver<MidiUpdate>,
+
     subs: Vec<Subscription>,
 
     /// Sample rate passed at construction — used for beat-to-sample
@@ -108,9 +133,41 @@ pub struct Conductor {
 
     /// The master clock. `Some` while playing, `None` while stopped.
     ///
-    /// Dropping the `Clock` value stops playback — this is
-    /// intentional RAII. `Stop` sets this to `None`.
+    /// Dropping the `Clock` value stops playback — intentional RAII.
+    /// `Stop` sets this to `None`.
     clock: Option<Clock>,
+
+    // ── MIDI input ────────────────────────────────────────────────
+    /// Active MIDI input connection, if Monitor, Listen, or Record
+    /// has opened one. Dropping this closes the midir connection —
+    /// intentional RAII.
+    midi_input: Option<MidiInputHandle>,
+
+    /// Receiver for events forwarded from the MIDI input callback.
+    input_rx: mpsc::Receiver<InputEvent>,
+
+    /// Sender side — cloned into `MidiInputHandle::open` on each
+    /// Monitor / Listen / Record command.
+    input_tx: mpsc::Sender<InputEvent>,
+
+    /// Pre-roll buffer. Allocated always; fed only when `Listen`
+    /// or `Record` is active.
+    pre_roll: PreRoll,
+
+    /// Whether the pre-roll is currently being fed.
+    /// `true` during Listen and Record; `false` during Monitor-only.
+    pre_roll_active: bool,
+
+    /// Active record capture buffer.
+    /// `Some` while `Record { start: true }` is in effect.
+    record_buffer: Option<Vec<InputEvent>>,
+
+    /// Path to save the completed recording.
+    /// Set by `Record { start: true, path: Some(p) }`.
+    record_path: Option<PathBuf>,
+
+    /// Current MIDI input mode.
+    input_mode: InputMode,
 }
 
 impl Conductor {
@@ -147,6 +204,7 @@ impl Conductor {
 
         let (audio_tx, audio_rx) = mpsc::channel(CHANNEL_CAPACITY);
         let (midi_tx, midi_rx) = mpsc::channel(CHANNEL_CAPACITY);
+        let (input_tx, input_rx) = mpsc::channel(INPUT_CHANNEL_CAPACITY);
 
         let midi_queue = Arc::new(ArrayQueue::new(MIDI_QUEUE_CAPACITY));
 
@@ -163,6 +221,14 @@ impl Conductor {
             midi_queue: Arc::clone(&midi_queue),
             midi_connection: None,
             clock: None,
+            midi_input: None,
+            input_rx,
+            input_tx,
+            pre_roll: PreRoll::new(),
+            pre_roll_active: false,
+            record_buffer: None,
+            record_path: None,
+            input_mode: InputMode::Off,
         };
 
         Ok((conductor, midi_queue, audio_tx, midi_tx))
@@ -220,6 +286,12 @@ impl Conductor {
                         None      => break,
                     }
                 }
+                event = self.input_rx.recv() => {
+                    match event {
+                        Some(event) => self.handle_input_event(event).await,
+                        None        => break,
+                    }
+                }
             }
         }
     }
@@ -261,7 +333,6 @@ impl Conductor {
                         let path_str = path.display().to_string();
                         let count = events.len();
                         *self.timeline.write().unwrap() = events;
-                        // Reset the event cursor — timeline has changed.
                         self.state
                             .next_event_idx
                             .store(0, std::sync::atomic::Ordering::Release);
@@ -280,7 +351,7 @@ impl Conductor {
             }
 
             TransportCommand::LoadMudl(path) => {
-                // Reserved — task 8 (KDL parser)
+                // TODO 8.x: parse KDL via mudld::kdl_to_smf, build timeline
                 let _ = path;
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
                     "LoadMudl not yet implemented".into(),
@@ -307,14 +378,42 @@ impl Conductor {
             }
 
             // ── Recording ─────────────────────────────────────────
+            TransportCommand::Monitor { path } => {
+                self.start_input(InputMode::Monitor, path).await;
+            }
+
+            TransportCommand::Listen { path } => {
+                self.start_input(InputMode::Listen, path).await;
+            }
+
+            TransportCommand::Ignore => {
+                self.stop_input().await;
+            }
+
+            TransportCommand::SetAutosavePath(path) => {
+                self.pre_roll.set_autosave_path(Some(path));
+            }
+
             TransportCommand::Record { start, path } => {
-                // TODO 8.x: start/stop capture, save to path
-                let _ = (start, path);
+                if start {
+                    self.start_record(path).await;
+                } else {
+                    self.stop_record(path).await;
+                }
             }
 
             // ── Device selection ──────────────────────────────────
             TransportCommand::MidiPort(name) => {
                 self.select_midi_port(name).await;
+            }
+
+            TransportCommand::MidiInputPort(name) => {
+                self.state.set_midi_input_port(name.clone());
+                // If input is currently active, reopen on the new port.
+                if self.input_mode != InputMode::Off {
+                    let mode = self.input_mode;
+                    self.start_input(mode, None).await;
+                }
             }
 
             TransportCommand::AudioHost(name) => {
@@ -347,6 +446,174 @@ impl Conductor {
             }
         }
     }
+
+    // ── MIDI input ────────────────────────────────────────────────────────────
+
+    /// Open the MIDI input port and set the input mode.
+    ///
+    /// If an input is already open it is closed first — switching
+    /// from Monitor to Listen (or vice versa) is a single command.
+    /// The autosave path is updated if `path` is `Some`.
+
+    async fn start_input(&mut self, mode: InputMode, path: Option<PathBuf>) {
+        self.midi_input = None;
+
+        if let Some(p) = path {
+            self.pre_roll.set_autosave_path(Some(p));
+        }
+
+        // MidiInputHandle::open reports errors via its Result return value.
+        // The status_tx parameter is used only for async errors that occur
+        // after the connection is established (e.g. callback failures).
+        // We provide a disconnected sender — dropped errors are logged by
+        // the callback via `warn!` in input.rs.
+        let (status_tx, _status_rx) = mpsc::channel::<MidiUpdate>(1);
+
+        let result = match self.state.midi_input_port() {
+            Some(ref name) => MidiInputHandle::open(
+                name,
+                self.input_tx.clone(),
+                Arc::clone(&self.state.playhead),
+                status_tx,
+            )
+            .map(|h| (h, name.clone())),
+            None => MidiInputHandle::open_first(
+                self.input_tx.clone(),
+                Arc::clone(&self.state.playhead),
+                status_tx,
+            ),
+        };
+
+        match result {
+            Err(e) => {
+                warn!(error = %e, "failed to open MIDI input");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                    "failed to open MIDI input: {e}"
+                ))))
+                .await;
+            }
+            Ok((handle, opened_name)) => {
+                self.midi_input = Some(handle);
+                self.input_mode = mode;
+                self.pre_roll_active = mode == InputMode::Listen;
+                info!(port = %opened_name, ?mode, "MIDI input opened");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
+                    opened_name,
+                ))))
+                .await;
+            }
+        }
+    }
+
+    /// Close the MIDI input port and reset input state.
+    ///
+    /// Does not affect the record buffer — a recording in progress
+    /// is left intact and must be stopped explicitly via
+    /// `Record { start: false }`.
+    async fn stop_input(&mut self) {
+        self.midi_input = None;
+        self.input_mode = InputMode::Off;
+        self.pre_roll_active = false;
+        debug!("MIDI input closed");
+        self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
+            .await;
+    }
+
+    /// Handle a single event forwarded from the MIDI input callback.
+    ///
+    /// Pushes to the pre-roll if listening; appends to the record
+    /// buffer if recording.
+    async fn handle_input_event(&mut self, event: InputEvent) {
+        if self.pre_roll_active {
+            self.pre_roll.push(event.clone());
+        }
+
+        if let Some(ref mut buf) = self.record_buffer {
+            buf.push(event);
+        }
+    }
+
+    /// Begin a bounded record capture.
+    ///
+    /// Opens the input port if not already active. If a record is
+    /// already in progress the command is a no-op — does not reset
+    /// the buffer.
+    async fn start_record(&mut self, path: Option<PathBuf>) {
+        if self.record_buffer.is_some() {
+            warn!("Record(start) received but capture already in progress — ignoring");
+            return;
+        }
+
+        // Open input if not already active.
+        if self.midi_input.is_none() {
+            self.start_input(InputMode::Listen, None).await;
+            if self.midi_input.is_none() {
+                // start_input already emitted an error.
+                return;
+            }
+        }
+
+        // Ensure pre-roll is fed during record regardless of prior mode.
+        self.pre_roll_active = true;
+
+        self.record_buffer = Some(Vec::new());
+        self.record_path = path;
+        debug!("record started");
+    }
+
+    /// Stop the bounded record capture and save.
+    ///
+    /// - Emits `RecordSaved(path)` on success.
+    /// - Emits `RecordEmpty` if nothing was captured.
+    /// - Emits `Error` if no record was in progress.
+    async fn stop_record(&mut self, path_override: Option<PathBuf>) {
+        let buffer = match self.record_buffer.take() {
+            Some(b) => b,
+            None => {
+                warn!("Record(stop) received but no capture in progress");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
+                    "Record(stop) called but no capture is in progress".into(),
+                )))
+                .await;
+                return;
+            }
+        };
+
+        if buffer.is_empty() {
+            debug!("record stopped — buffer empty");
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordEmpty))
+                .await;
+            return;
+        }
+
+        let path = path_override
+            .or_else(|| self.record_path.take())
+            .unwrap_or_else(|| {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                PathBuf::from(format!("mush-record-{ts}.mudl"))
+            });
+
+        match crate::midi::preroll::save_events(&buffer, &path) {
+            Ok(()) => {
+                let path_str = path.display().to_string();
+                info!(path = %path_str, events = buffer.len(), "record saved");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordSaved(path_str)))
+                    .await;
+            }
+            Err(e) => {
+                warn!(error = %e, "record save failed");
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                    "record save failed: {e}"
+                ))))
+                .await;
+            }
+        }
+    }
+
+    // ── Clock ─────────────────────────────────────────────────────────────────
 
     /// Start the master clock.
     ///
@@ -389,6 +656,8 @@ impl Conductor {
         debug!("clock stopped");
     }
 
+    // ── MIDI output ───────────────────────────────────────────────────────────
+
     /// Enumerate MIDI ports and emit a formatted `PortList`.
     ///
     /// Always enumerates fresh from the OS — no cache.
@@ -421,7 +690,6 @@ impl Conductor {
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
                     .await;
             }
-
             Some(ref port_name) => match open_midi_port_by_name(port_name) {
                 Ok(conn) => {
                     self.midi_connection = Some(Box::new(conn));
@@ -471,6 +739,10 @@ impl Conductor {
         tl.sort_by_key(|e| e.sample_pos);
     }
 
+    /// Send raw MIDI bytes directly to the open output connection.
+    ///
+    /// Emits `Error` if no port is selected — does not fall back to
+    ///
     /// Send raw MIDI bytes directly to the open output connection.
     ///
     /// Emits `Error` if no port is selected — does not fall back to
@@ -532,6 +804,8 @@ impl Conductor {
     }
 }
 
+// ── free functions ────────────────────────────────────────────────────────────
+
 /// Extract raw MIDI bytes from a `MidiPayload`.
 ///
 /// Passed as a function pointer to `ClockArgs::extract_midi`.
@@ -572,7 +846,6 @@ mod tests {
 
     const SAMPLE_RATE: u32 = 44_100;
 
-    /// Helper — create a Conductor bound on inproc addresses.
     fn make_conductor() -> (
         Conductor,
         Arc<ArrayQueue<[u8; 3]>>,
@@ -605,7 +878,7 @@ mod tests {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         let mut handle = conductor.subscribe();
         conductor.handle_command(TransportCommand::Play).await;
-        let _ = handle.recv().await.unwrap(); // consume TransportStarted
+        let _ = handle.recv().await.unwrap();
         conductor.handle_command(TransportCommand::Stop).await;
         let update = handle.recv().await.unwrap();
         assert_eq!(update, EngineUpdate::Audio(AudioUpdate::TransportStopped));
@@ -625,7 +898,6 @@ mod tests {
         conductor.handle_command(TransportCommand::Play).await;
         let clock_ptr = conductor.clock.as_ref().map(|c| c as *const _);
         conductor.handle_command(TransportCommand::Play).await;
-        // Clock reference unchanged — same instance
         assert_eq!(clock_ptr, conductor.clock.as_ref().map(|c| c as *const _));
     }
 
@@ -662,7 +934,6 @@ mod tests {
         conductor
             .handle_command(TransportCommand::SetBpm(60.0))
             .await;
-        // At 60 BPM, beat 1 = 1 second = 44_100 samples
         conductor.queue_event(MidiEvent {
             beat: 1.0,
             channel: 1,
@@ -778,18 +1049,14 @@ mod tests {
     async fn load_midi_populates_timeline() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         let mut handle = conductor.subscribe();
-
         let path = std::path::PathBuf::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../../tests/fixtures/test.mid"
         ));
-
         conductor
             .handle_command(TransportCommand::LoadMidi(path))
             .await;
-
         assert!(!conductor.timeline.read().unwrap().is_empty());
-
         let update = handle.recv().await.unwrap();
         assert!(matches!(
             update,
@@ -862,5 +1129,112 @@ mod tests {
             .await;
         let update = handle.recv().await.unwrap();
         assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
+    }
+
+    // 8.3.8 — Conductor starts with input mode Off
+    #[tokio::test]
+    async fn input_mode_off_on_construction() {
+        let (conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        assert_eq!(conductor.input_mode, InputMode::Off);
+        assert!(conductor.midi_input.is_none());
+        assert!(!conductor.pre_roll_active);
+        assert!(conductor.record_buffer.is_none());
+    }
+
+    // 8.3.8 — Ignore with no active input is a no-op (no panic)
+    #[tokio::test]
+    async fn ignore_with_no_input_is_noop() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor.handle_command(TransportCommand::Ignore).await;
+        // Emits ActivePort(None) even when already off.
+        let update = handle.recv().await.unwrap();
+        assert_eq!(update, EngineUpdate::Midi(MidiUpdate::ActivePort(None)));
+        assert_eq!(conductor.input_mode, InputMode::Off);
+    }
+
+    // 8.3.8 — Record(stop) with no active capture emits Error
+    #[tokio::test]
+    async fn record_stop_without_start_emits_error() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let mut handle = conductor.subscribe();
+        conductor
+            .handle_command(TransportCommand::Record {
+                start: false,
+                path: None,
+            })
+            .await;
+        let update = handle.recv().await.unwrap();
+        assert!(matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))));
+    }
+
+    // 8.3.8 — SetAutosavePath updates pre-roll path
+    #[tokio::test]
+    async fn set_autosave_path_updates_preroll() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let path = PathBuf::from("/tmp/test-autosave.mudl");
+        conductor
+            .handle_command(TransportCommand::SetAutosavePath(path.clone()))
+            .await;
+        assert_eq!(conductor.pre_roll.next_autosave_path(), path);
+    }
+
+    // 8.3.8 — MidiInputPort updates TransportState
+    #[tokio::test]
+    async fn midi_input_port_updates_state() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor
+            .handle_command(TransportCommand::MidiInputPort(Some("Test Port".into())))
+            .await;
+        assert_eq!(conductor.state.midi_input_port(), Some("Test Port".into()));
+    }
+
+    // 8.3.8 — pre-roll is empty on construction
+    #[tokio::test]
+    async fn pre_roll_empty_on_construction() {
+        let (conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        assert!(conductor.pre_roll.is_empty());
+    }
+
+    // 8.3.8 — handle_input_event feeds pre-roll when pre_roll_active
+    #[tokio::test]
+    async fn handle_input_event_feeds_preroll_when_active() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor.pre_roll_active = true;
+        let event = InputEvent {
+            wall_time: std::time::Instant::now(),
+            sample_pos: 0,
+            bytes: [0x90, 60, 100],
+        };
+        conductor.handle_input_event(event).await;
+        assert_eq!(conductor.pre_roll.len(), 1);
+    }
+
+    // 8.3.8 — handle_input_event does not feed pre-roll when inactive
+    #[tokio::test]
+    async fn handle_input_event_skips_preroll_when_inactive() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor.pre_roll_active = false;
+        let event = InputEvent {
+            wall_time: std::time::Instant::now(),
+            sample_pos: 0,
+            bytes: [0x90, 60, 100],
+        };
+        conductor.handle_input_event(event).await;
+        assert!(conductor.pre_roll.is_empty());
+    }
+
+    // 8.3.8 — handle_input_event feeds record buffer when recording
+    #[tokio::test]
+    async fn handle_input_event_feeds_record_buffer() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        conductor.record_buffer = Some(Vec::new());
+        let event = InputEvent {
+            wall_time: std::time::Instant::now(),
+            sample_pos: 0,
+            bytes: [0x90, 60, 100],
+        };
+        conductor.handle_input_event(event).await;
+        assert_eq!(conductor.record_buffer.as_ref().unwrap().len(), 1);
     }
 }
