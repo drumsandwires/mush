@@ -1,0 +1,21 @@
+[package]
+name    = "mudld"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "mudld"
+path = "src/lib.rs"
+
+[[bin]]
+name = "midi2mudl"
+path = "src/bin/midi2mudl.rs"
+
+[[bin]]
+name = "mudl2midi"
+path = "src/bin/mudl2midi.rs"
+
+[dependencies]
+midly  = { version = "0.5", features = ["std"] }
+kdl    = "6"
+anyhow = "1"
