@@ -443,14 +443,14 @@ This is the critical path. All of 8.1 and 8.2 unblock once this is done.
 
 #### 8.3.8 Add pre-roll buffer to `Conductor`
 
-- [ ] Add `pre_roll: Arc<ArrayQueue<MidiEvent>>`
+- [x] Add `pre_roll: Arc<ArrayQueue<MidiEvent>>`
   — fixed large capacity (e.g. 65_536 events)
-- [ ] Fed by `midi monitor` — every incoming MIDI event pushed here
-- [ ] Autosave to `.mudl` in cwd when buffer wraps
+- [x] Fed by `midi monitor` — every incoming MIDI event pushed here
+- [x] Autosave to `.mudl` in cwd when buffer wraps
   — autosave path overridable via `midi monitor <path>` arg
-- [ ] `handle_command(Record(true))` → begin bounded capture
+- [x] `handle_command(Record(true))` → begin bounded capture
   alongside pre-roll
-- [ ] `handle_command(Record(false))` → stop capture
+- [x] `handle_command(Record(false))` → stop capture
   → emit `MidiUpdate::RecordStopped(events)`
 
 #### 8.3.9 Wire audio device enumeration into `Conductor`

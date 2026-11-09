@@ -19,10 +19,10 @@ pub trait HasSamplePos {
 /// Never accessed from the audio callback.
 #[derive(Debug, Default, Clone)]
 pub struct ProjectMeta {
-    pub title: String,
-    pub artist: String,
-    pub bpm: f64,
-    pub time_sig_num: u8,
+    pub title:         String,
+    pub artist:        String,
+    pub bpm:           f64,
+    pub time_sig_num:  u8,
     pub time_sig_denom: u8,
 }
 
@@ -35,10 +35,10 @@ pub struct ProjectMeta {
 /// to samples using the current BPM and sample rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiEvent {
-    pub beat: f64,
-    pub channel: u8,
-    pub note: u8,
-    pub vel: u8,
+    pub beat:     f64,
+    pub channel:  u8,
+    pub note:     u8,
+    pub vel:      u8,
     pub duration: f64,
 }
 
@@ -53,7 +53,6 @@ pub struct MidiEvent {
 ///   by many components. Multiple readers proceed concurrently.
 ///   Never held across an audio callback boundary.
 pub struct TransportState {
-    // ── RT-safe atomics ───────────────────────────────────────────
     /// Current playhead position in samples from project start.
     /// Written by the audio callback on every buffer.
     /// Read by the Conductor for display.
@@ -70,7 +69,6 @@ pub struct TransportState {
     /// Advanced by the audio callback as events are dispatched.
     pub next_event_idx: Arc<AtomicUsize>,
 
-    // ── Non-RT RwLock fields ──────────────────────────────────────
     /// Project metadata — display only, never read by the RT thread.
     pub meta: Arc<RwLock<ProjectMeta>>,
 
@@ -78,8 +76,16 @@ pub struct TransportState {
     /// `None` — no port selected; Conductor uses the first available.
     /// `Some(name)` — Conductor opens this port by name.
     /// Written by `TransportCommand::MidiPort(Some(name))`.
-    /// Read when opening a midir connection.
+    /// Read when opening a midir output connection.
     pub active_midi_port: Arc<RwLock<Option<String>>>,
+
+    /// The MIDI input port currently selected by the user.
+    /// Independent from `active_midi_port` (output).
+    /// `None` — no port selected; first available input is used.
+    /// `Some(name)` — Conductor opens this input port by name.
+    /// Written by `TransportCommand::MidiInputPort(Some(name))`.
+    /// Read when opening a midir input connection.
+    pub active_midi_input_port: Arc<RwLock<Option<String>>>,
 
     /// The audio host currently selected by the user.
     /// `None` — use the platform default host.
@@ -97,14 +103,15 @@ pub struct TransportState {
 impl TransportState {
     pub fn new(bpm: f64) -> Arc<Self> {
         Arc::new(Self {
-            playhead: Arc::new(AtomicU64::new(0)),
-            is_playing: Arc::new(AtomicBool::new(false)),
-            bpm_milli: Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
-            next_event_idx: Arc::new(AtomicUsize::new(0)),
-            meta: Arc::new(RwLock::new(ProjectMeta::default())),
-            active_midi_port: Arc::new(RwLock::new(None)),
-            active_audio_host: Arc::new(RwLock::new(None)),
-            active_audio_device: Arc::new(RwLock::new(None)),
+            playhead:               Arc::new(AtomicU64::new(0)),
+            is_playing:             Arc::new(AtomicBool::new(false)),
+            bpm_milli:              Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
+            next_event_idx:         Arc::new(AtomicUsize::new(0)),
+            meta:                   Arc::new(RwLock::new(ProjectMeta::default())),
+            active_midi_port:       Arc::new(RwLock::new(None)),
+            active_midi_input_port: Arc::new(RwLock::new(None)),
+            active_audio_host:      Arc::new(RwLock::new(None)),
+            active_audio_device:    Arc::new(RwLock::new(None)),
         })
     }
 
@@ -113,8 +120,7 @@ impl TransportState {
     }
 
     pub fn set_bpm(&self, bpm: f64) {
-        self.bpm_milli
-            .store((bpm * 1000.0) as u64, Ordering::Relaxed);
+        self.bpm_milli.store((bpm * 1000.0) as u64, Ordering::Relaxed);
     }
 
     pub fn play(&self) {
@@ -139,15 +145,26 @@ impl TransportState {
         self.playhead.store(target_sample, Ordering::Release);
     }
 
-    /// Read the active MIDI port name, if one has been selected.
+    /// Read the active MIDI output port name, if one has been selected.
     pub fn midi_port(&self) -> Option<String> {
         self.active_midi_port.read().unwrap().clone()
     }
 
-    /// Set the active MIDI port by name.
+    /// Set the active MIDI output port by name.
     /// Pass `None` to clear the selection and revert to first-available.
     pub fn set_midi_port(&self, name: Option<String>) {
         *self.active_midi_port.write().unwrap() = name;
+    }
+
+    /// Read the active MIDI input port name, if one has been selected.
+    pub fn midi_input_port(&self) -> Option<String> {
+        self.active_midi_input_port.read().unwrap().clone()
+    }
+
+    /// Set the active MIDI input port by name.
+    /// Pass `None` to clear the selection and revert to first-available.
+    pub fn set_midi_input_port(&self, name: Option<String>) {
+        *self.active_midi_input_port.write().unwrap() = name;
     }
 
     /// Read the active audio host name, if one has been selected.
@@ -212,7 +229,8 @@ pub enum TransportCommand {
     // ── Recording ─────────────────────────────────────────────────
     /// Start or stop MIDI capture.
     ///
-    /// `start: true`  — begin capture.
+    /// `start: true`  — begin capture. Opens the input port if not
+    ///   already open. Also enables the pre-roll.
     ///   `path: Some(p)` — pre-specify the save path.
     ///   `path: None`    — path decided at stop time.
     ///
@@ -223,10 +241,34 @@ pub enum TransportCommand {
     ///
     /// Conductor responds with `MidiUpdate::RecordSaved(path)`
     /// or `MidiUpdate::RecordEmpty` if nothing was captured.
+    /// Emits `MidiUpdate::Error` if stop is called with no active capture.
     Record {
         start: bool,
-        path: Option<PathBuf>,
+        path:  Option<PathBuf>,
     },
+
+    /// Open the MIDI input port and forward events to the Conductor.
+    /// Does NOT feed the pre-roll buffer.
+    /// Autosave path is optional — overrides any previously set path.
+    ///
+    /// Alias: `midi monitor` / `midi monitor <path>`
+    Monitor { path: Option<PathBuf> },
+
+    /// Open the MIDI input port, forward events, and feed the pre-roll.
+    /// Autosave path is optional — overrides any previously set path.
+    ///
+    /// Alias: `midi listen` / `midi listen on` / `midi listen enable`
+    Listen { path: Option<PathBuf> },
+
+    /// Stop monitoring or listening. Closes the MIDI input port.
+    /// No-op if neither Monitor nor Listen is active.
+    ///
+    /// Alias: `midi listen off` / `midi listen disable` / `midi ignore`
+    Ignore,
+
+    /// Set the pre-roll autosave path independently of Monitor/Listen.
+    /// Written to when the pre-roll buffer wraps at capacity.
+    SetAutosavePath(PathBuf),
 
     // ── Device selection ──────────────────────────────────────────
     /// Query or set the active MIDI output port.
@@ -234,6 +276,12 @@ pub enum TransportCommand {
     /// `Some(name)` — select port by name; engine confirms with
     ///   `MidiUpdate::ActivePort(Some(name))`.
     MidiPort(Option<String>),
+
+    /// Query or set the active MIDI input port.
+    /// Independent from `MidiPort` (output).
+    /// `None` — query; engine responds with `MidiUpdate::ActiveInputPort`.
+    /// `Some(name)` — select input port by name.
+    MidiInputPort(Option<String>),
 
     /// Query or set the active audio host.
     /// `None` — query; engine responds with `AudioUpdate::ActiveHost`.
@@ -246,7 +294,7 @@ pub enum TransportCommand {
     AudioDevice(Option<String>),
 
     // ── Enumeration ───────────────────────────────────────────────
-    /// Enumerate available MIDI ports.
+    /// Enumerate available MIDI output ports.
     /// Engine responds with `MidiUpdate::PortList`.
     MidiDevices,
 
@@ -295,7 +343,7 @@ mod tests {
 
     #[test]
     fn seek_positions_cursor_correctly() {
-        let ts = TransportState::new(120.0);
+        let ts       = TransportState::new(120.0);
         let timeline = vec![
             TestEvent(0),
             TestEvent(44_100),
@@ -303,23 +351,23 @@ mod tests {
             TestEvent(132_300),
         ];
         ts.seek(44_100, &timeline);
-        assert_eq!(ts.playhead.load(Ordering::Acquire), 44_100);
+        assert_eq!(ts.playhead.load(Ordering::Acquire),       44_100);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 1);
     }
 
     #[test]
     fn seek_to_zero_resets_cursor() {
-        let ts = TransportState::new(120.0);
+        let ts       = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
         ts.seek(44_100, &timeline);
         ts.seek(0, &timeline);
-        assert_eq!(ts.playhead.load(Ordering::Acquire), 0);
+        assert_eq!(ts.playhead.load(Ordering::Acquire),       0);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 0);
     }
 
     #[test]
     fn seek_past_end_positions_cursor_at_len() {
-        let ts = TransportState::new(120.0);
+        let ts       = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
         ts.seek(999_999, &timeline);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), timeline.len());
@@ -349,6 +397,21 @@ mod tests {
     }
 
     #[test]
+    fn active_midi_input_port_defaults_to_none() {
+        let ts = TransportState::new(120.0);
+        assert_eq!(ts.midi_input_port(), None);
+    }
+
+    #[test]
+    fn set_and_clear_midi_input_port() {
+        let ts = TransportState::new(120.0);
+        ts.set_midi_input_port(Some("IAC Driver Bus 1".into()));
+        assert_eq!(ts.midi_input_port(), Some("IAC Driver Bus 1".into()));
+        ts.set_midi_input_port(None);
+        assert_eq!(ts.midi_input_port(), None);
+    }
+
+    #[test]
     fn set_and_clear_audio_host() {
         let ts = TransportState::new(120.0);
         ts.set_audio_host(Some("JACK".into()));
@@ -366,4 +429,3 @@ mod tests {
         assert_eq!(ts.audio_device(), None);
     }
 }
-
