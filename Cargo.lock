@@ -1965,6 +1965,7 @@ dependencies = [
  "libc",
  "midir",
  "midly",
+ "mudld",
  "reedline",
  "rmp-serde",
  "serde",

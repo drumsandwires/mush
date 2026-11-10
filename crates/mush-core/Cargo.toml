@@ -7,6 +7,7 @@ version.workspace = true
 reedline-shell = ["dep:reedline"]
 
 [dependencies]
+mudld     = { workspace = true }
 tokio     = { workspace = true }
 serde     = { workspace = true }
 reedline  = { workspace = true, optional = true }
