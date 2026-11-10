@@ -417,32 +417,24 @@ impl Conductor {
             }
 
             TransportCommand::AudioHost(name) => {
-                // TODO 8.x: set or query active_audio_host on TransportState
-                let _ = name;
-                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveHost(None)))
-                    .await;
+                self.select_audio_host(name).await;
             }
 
             TransportCommand::AudioDevice(name) => {
-                // TODO 8.x: set or query active_audio_device on TransportState
-                let _ = name;
-                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveDevice(None)))
-                    .await;
+                self.select_audio_device(name).await;
             }
 
-            // ── Enumeration ───────────────────────────────────────
             TransportCommand::AudioDevices => {
-                // TODO 8.x: enumerate audio devices, emit DeviceList
-            }
-
-            TransportCommand::MidiDevices => {
-                self.enumerate_midi_devices().await;
+                self.enumerate_audio_devices().await;
             }
 
             TransportCommand::AudioHosts => {
-                // TODO 8.x: enumerate cpal hosts, emit HostList
-                self.emit_all(EngineUpdate::Audio(AudioUpdate::HostList(vec![])))
-                    .await;
+                self.enumerate_audio_hosts().await;
+            }
+
+            // ── Enumeration ───────────────────────────────────────
+            TransportCommand::MidiDevices => {
+                self.enumerate_midi_devices().await;
             }
         }
     }
@@ -784,6 +776,175 @@ impl Conductor {
                         "MIDI send failed: {e}"
                     ))))
                     .await;
+                }
+            },
+        }
+    }
+
+    // ── Audio host / device ───────────────────────────────────────────────────
+
+    /// Enumerate available audio hosts and emit `HostList`.
+    ///
+    /// Always enumerates fresh from cpal — no cache.
+    async fn enumerate_audio_hosts(&mut self) {
+        match crate::audio::enumerate::enumerate_hosts_and_devices() {
+            Err(e) => {
+                warn!(error = %e, "AudioHosts enumeration failed");
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                    "failed to enumerate audio hosts: {e}"
+                ))))
+                .await;
+            }
+            Ok(info) => {
+                let names = info.hosts.iter().map(|h| h.name.clone()).collect();
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::HostList(names)))
+                    .await;
+            }
+        }
+    }
+
+    /// Enumerate available audio devices on the active host and emit `DeviceList`.
+    ///
+    /// If no host has been selected, uses the first available host.
+    /// Always enumerates fresh from cpal — no cache.
+
+    async fn enumerate_audio_devices(&mut self) {
+        match crate::audio::enumerate::enumerate_hosts_and_devices() {
+            Err(e) => {
+                warn!(error = %e, "AudioDevices enumeration failed");
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                    "failed to enumerate audio devices: {e}"
+                ))))
+                .await;
+            }
+            Ok(info) => {
+                let active_host = self.state.audio_host();
+
+                let host_info = match active_host {
+                    Some(ref name) => info.hosts.iter().find(|h| &h.name == name),
+                    None => info.hosts.first(),
+                };
+
+                match host_info {
+                    None => {
+                        self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(
+                            "no audio hosts available".into(),
+                        )))
+                        .await;
+                    }
+                    Some(host) => {
+                        // Build a single-host AudioSystemInfo so we can
+                        // reuse the existing list_hosts_and_devices formatter.
+                        let single = crate::audio::types::AudioSystemInfo {
+                            hosts: vec![host.clone()],
+                        };
+                        let listing = crate::audio::display::list_hosts_and_devices(&single);
+                        self.emit_all(EngineUpdate::Audio(AudioUpdate::DeviceList(listing)))
+                            .await;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Query or set the active audio host.
+    ///
+    /// - `None`       — emit `ActiveHost` with the current selection.
+    /// - `Some(name)` — validate the name exists, set it, emit `ActiveHost`.
+    ///                  Emits `Error` if the name is not a known host.
+    async fn select_audio_host(&mut self, name: Option<String>) {
+        match name {
+            None => {
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveHost(
+                    self.state.audio_host(),
+                )))
+                .await;
+            }
+            Some(ref host_name) => match crate::audio::enumerate::enumerate_hosts_and_devices() {
+                Err(e) => {
+                    warn!(error = %e, "AudioHost enumeration failed during set");
+                    self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                        "failed to enumerate audio hosts: {e}"
+                    ))))
+                    .await;
+                }
+                Ok(info) => {
+                    let known = info.hosts.iter().any(|h| &h.name == host_name);
+                    if known {
+                        self.state.set_audio_host(Some(host_name.clone()));
+                        debug!(host = %host_name, "audio host selected");
+                        self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveHost(Some(
+                            host_name.clone(),
+                        ))))
+                        .await;
+                    } else {
+                        warn!(host = %host_name, "AudioHost: unknown host name");
+                        self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                            "unknown audio host '{host_name}'"
+                        ))))
+                        .await;
+                    }
+                }
+            },
+        }
+    }
+
+    /// Query or set the active audio output device.
+    ///
+    /// - `None`       — emit `ActiveDevice` with the current selection.
+    /// - `Some(name)` — validate the name exists on the active host,
+    ///                  set it, emit `ActiveDevice`.
+    ///                  Emits `Error` if the name is not found.
+    async fn select_audio_device(&mut self, name: Option<String>) {
+        match name {
+            None => {
+                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveDevice(
+                    self.state.audio_device(),
+                )))
+                .await;
+            }
+            Some(ref device_name) => match crate::audio::enumerate::enumerate_hosts_and_devices() {
+                Err(e) => {
+                    warn!(error = %e, "AudioDevice enumeration failed during set");
+                    self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                        "failed to enumerate audio devices: {e}"
+                    ))))
+                    .await;
+                }
+                Ok(info) => {
+                    let active_host = self.state.audio_host();
+
+                    let host_info = match active_host {
+                        Some(ref name) => info.hosts.iter().find(|h| &h.name == name),
+                        None => info.hosts.first(),
+                    };
+
+                    match host_info {
+                        None => {
+                            self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(
+                                "no audio hosts available".into(),
+                            )))
+                            .await;
+                        }
+                        Some(host) => {
+                            let known = host.devices.iter().any(|d| &d.description == device_name);
+
+                            if known {
+                                self.state.set_audio_device(Some(device_name.clone()));
+                                debug!(device = %device_name, "audio device selected");
+                                self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveDevice(
+                                    Some(device_name.clone()),
+                                )))
+                                .await;
+                            } else {
+                                warn!(device = %device_name, "AudioDevice: unknown device");
+                                self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(format!(
+                                    "unknown audio device '{device_name}'"
+                                ))))
+                                .await;
+                            }
+                        }
+                    }
                 }
             },
         }
