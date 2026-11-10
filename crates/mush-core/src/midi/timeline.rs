@@ -1,10 +1,3 @@
-// mush/crates/mish-midi-core/src/midi/timeline.rs
-//
-// Converts a MIDI file into a sorted, sample-accurate event list
-// suitable for linear dispatch from the audio callback.
-//
-// No I/O, no threads, no hardware. Pure transformation logic.
-
 use crate::timeline::TimelineEvent;
 use midly::{MetaMessage, MidiMessage, Smf, Timing, TrackEventKind};
 use std::path::Path;
@@ -31,82 +24,69 @@ pub enum MidiPayload {
 /// - `initial_bpm` — tempo to use before any tempo event is encountered
 ///
 /// # Returns
-/// A sorted `Vec<TimelineEvent>` ready for linear dispatch.
+/// A tuple of:
+/// - sorted `Vec<TimelineEvent>` ready for linear dispatch
+/// - the tick resolution (ticks-per-beat) from the file header,
+///   for use when re-exporting to `.mid` or `.mudl`
 pub fn load_midi_bytes(
     bytes: &[u8],
     sample_rate: u32,
     initial_bpm: f64,
-) -> Result<Vec<TimelineEvent<MidiPayload>>, Box<dyn std::error::Error>> {
+) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
     let smf = Smf::parse(bytes)?;
 
     let ticks_per_beat = match smf.header.timing {
-        Timing::Metrical(tpb) => tpb.as_int() as u64,
+        Timing::Metrical(tpb) => tpb.as_int(),
         Timing::Timecode(fps, subframe) => {
             // Convert SMPTE timecode to an equivalent ticks_per_beat.
-            // Rare in practice — most MIDI files use Metrical timing.
-            (fps.as_f32() * subframe as f32) as u64
+            (fps.as_f32() * subframe as f32) as u16
         }
     };
 
     let mut events: Vec<TimelineEvent<MidiPayload>> = Vec::new();
-
-    // Each track is processed independently.
-    // Tempo events from any track affect all subsequent tracks.
-    // We collect all events first, then sort by sample_pos.
-    let mut tempo_map = TempoMap::new(initial_bpm, ticks_per_beat, sample_rate);
+    let mut tempo_map = TempoMap::new(initial_bpm, ticks_per_beat as u64, sample_rate);
 
     for track in &smf.tracks {
         let mut absolute_tick: u64 = 0;
-
         for event in track {
             absolute_tick += event.delta.as_int() as u64;
-
             match event.kind {
                 TrackEventKind::Midi { channel, message } => {
                     let sample_pos = tempo_map.ticks_to_samples(absolute_tick);
                     let payload = midi_message_to_payload(channel.as_int(), message);
-
                     if let Some(payload) = payload {
-                        events.push(TimelineEvent {
-                            sample_pos,
-                            payload,
-                        });
+                        events.push(TimelineEvent { sample_pos, payload });
                     }
                 }
-
                 TrackEventKind::Meta(MetaMessage::Tempo(us_per_beat)) => {
                     let sample_pos = tempo_map.ticks_to_samples(absolute_tick);
                     let bpm = 60_000_000.0 / us_per_beat.as_int() as f64;
-
-                    // Register the tempo change so subsequent events
-                    // use the new tempo for their sample position calculation.
                     tempo_map.add_change(absolute_tick, us_per_beat.as_int() as u64);
-
                     events.push(TimelineEvent {
                         sample_pos,
                         payload: MidiPayload::TempoChange(bpm),
                     });
                 }
-
-                // All other meta messages (lyrics, markers, etc.)
-                // are ignored at MVP.
                 _ => {}
             }
         }
     }
 
-    // Merge all tracks into a single sorted timeline.
     events.sort_by_key(|e| e.sample_pos);
-
-    Ok(events)
+    Ok((events, ticks_per_beat))
 }
 
 /// Load a MIDI file from disk and build its timeline.
+///
+/// # Returns
+/// A tuple of:
+/// - sorted `Vec<TimelineEvent>` ready for linear dispatch
+/// - the tick resolution (ticks-per-beat) from the file header
 pub fn load_midi(
     path: &Path,
     sample_rate: u32,
     initial_bpm: f64,
-) -> Result<Vec<TimelineEvent<MidiPayload>>, Box<dyn std::error::Error>> {
+) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
     let bytes = std::fs::read(path)?;
     load_midi_bytes(&bytes, sample_rate, initial_bpm)
 }
@@ -137,16 +117,12 @@ impl TempoMap {
 
     /// Register a tempo change at a given absolute tick position.
     fn add_change(&mut self, at_tick: u64, us_per_beat: u64) {
-        // Calculate the sample position at the point of this change
-        // using the current tempo map state.
         let samples_at_change = self.ticks_to_samples(at_tick);
-        self.changes
-            .push((at_tick, us_per_beat, samples_at_change as f64));
+        self.changes.push((at_tick, us_per_beat, samples_at_change as f64));
     }
 
     /// Convert an absolute tick position to an absolute sample position.
     fn ticks_to_samples(&self, absolute_tick: u64) -> u64 {
-        // Find the last tempo change at or before absolute_tick.
         let (base_tick, us_per_beat, base_samples) = self
             .changes
             .iter()
@@ -168,22 +144,17 @@ impl TempoMap {
 fn midi_message_to_payload(channel: u8, message: MidiMessage) -> Option<MidiPayload> {
     let bytes = match message {
         MidiMessage::NoteOn { key, vel } => [0x90 | channel, key.as_int(), vel.as_int()],
-
         MidiMessage::NoteOff { key, vel } => [0x80 | channel, key.as_int(), vel.as_int()],
-
         MidiMessage::Controller { controller, value } => {
             [0xB0 | channel, controller.as_int(), value.as_int()]
         }
-
         MidiMessage::ProgramChange { program } => [0xC0 | channel, program.as_int(), 0],
-
         MidiMessage::PitchBend { bend } => {
             let value = (bend.as_int() + 8192) as u16;
             let lsb = (value & 0x7F) as u8;
             let msb = ((value >> 7) & 0x7F) as u8;
             [0xE0 | channel, lsb, msb]
         }
-
         // Aftertouch, SysEx, etc. — deferred to Phase 2
         _ => return None,
     };
@@ -199,36 +170,32 @@ mod tests {
 
     #[test]
     fn timeline_is_non_empty() {
-        let events = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
+        let (events, _tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
         assert!(!events.is_empty());
     }
 
     #[test]
     fn timeline_is_sorted() {
-        let events = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
+        let (events, _tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
         assert!(
-            events
-                .windows(2)
-                .all(|w| w[0].sample_pos <= w[1].sample_pos),
+            events.windows(2).all(|w| w[0].sample_pos <= w[1].sample_pos),
             "timeline is not sorted by sample_pos"
         );
     }
 
     #[test]
     fn timeline_contains_midi_events() {
-        let events = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
+        let (events, _tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
         assert!(
-            events
-                .iter()
-                .any(|e| matches!(e.payload, MidiPayload::Midi(_))),
+            events.iter().any(|e| matches!(e.payload, MidiPayload::Midi(_))),
             "no MIDI events found in timeline"
         );
     }
 
     #[test]
     fn higher_sample_rate_gives_larger_positions() {
-        let e44 = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
-        let e48 = load_midi_bytes(TEST_MID, 48_000, 120.0).unwrap();
+        let (e44, _) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
+        let (e48, _) = load_midi_bytes(TEST_MID, 48_000, 120.0).unwrap();
         assert!(
             e48.last().unwrap().sample_pos > e44.last().unwrap().sample_pos,
             "48kHz timeline should have larger sample positions than 44.1kHz"
@@ -250,16 +217,21 @@ mod tests {
         // At 120 BPM, 480 ticks = 1 beat = 0.5 seconds = 22050 samples
         assert_eq!(map.ticks_to_samples(480), 22_050);
     }
+
     #[test]
     fn tempo_map_140_bpm() {
         let map = TempoMap::new(140.0, 480, 44_100);
-        // At 140 BPM, 480 ticks = 1 beat = 60/140 seconds
         let expected = (44_100.0 * 60.0 / 140.0) as u64;
         let actual = map.ticks_to_samples(480);
-        // Allow ±1 sample tolerance for floating-point rounding
         assert!(
             actual.abs_diff(expected) <= 1,
             "expected {expected} ±1, got {actual}"
         );
+    }
+
+    #[test]
+    fn load_midi_bytes_returns_ticks_per_beat() {
+        let (_events, tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
+        assert!(tpb > 0, "ticks_per_beat must be non-zero");
     }
 }

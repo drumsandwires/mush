@@ -100,6 +100,11 @@ pub struct Conductor {
     /// `ClockArgs` on `Play`.
     sample_rate: u32,
 
+    /// Tick resolution preserved from the last LoadMidi / LoadMudl call.
+    /// Defaults to 480 if no file has been loaded.
+    /// Used by Save to reconstruct ticks from sample positions.
+    ticks_per_beat: u16,
+
     /// Shared transport state — atomics written by `SetBpm`, `Seek`,
     /// `Play`, and `Stop`; read by the Clock's audio callback.
     state: Arc<TransportState>,
@@ -216,6 +221,7 @@ impl Conductor {
             midi_rx,
             subs: Vec::new(),
             sample_rate,
+            ticks_per_beat: 480,
             state: TransportState::new(INITIAL_BPM),
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
@@ -329,14 +335,15 @@ impl Conductor {
                 let bpm = self.state.bpm();
                 let result = load_midi(&path, self.sample_rate, bpm).map_err(|e| e.to_string());
                 match result {
-                    Ok(events) => {
+                    Ok((events, tpb)) => {
                         let path_str = path.display().to_string();
                         let count = events.len();
                         *self.timeline.write().unwrap() = events;
+                        self.ticks_per_beat = tpb;
                         self.state
                             .next_event_idx
                             .store(0, std::sync::atomic::Ordering::Release);
-                        debug!(path = %path_str, events = count, "timeline loaded");
+                        debug!(path = %path_str, events = count, tpb, "timeline loaded");
                         self.emit_all(EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path_str)))
                             .await;
                     }
@@ -360,12 +367,26 @@ impl Conductor {
             }
 
             TransportCommand::Save(path) => {
-                // TODO 8.x: serialise timeline to .mid or .mudl
-                let _ = path;
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
-                    "Save not yet implemented".into(),
-                )))
-                .await;
+                let timeline = self.timeline.read().unwrap().clone();
+                let bpm = self.state.bpm();
+                let sr = self.sample_rate;
+                let tpb = self.ticks_per_beat;
+
+                match crate::midi::save::save_timeline(&timeline, &path, bpm, sr, tpb) {
+                    Ok(()) => {
+                        let path_str = path.display().to_string();
+                        info!(path = %path_str, "timeline saved");
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::SaveAck(path_str)))
+                            .await;
+                    }
+                    Err(e) => {
+                        warn!(path = %path.display(), error = %e, "Save failed");
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                            "Save failed: {e}"
+                        ))))
+                        .await;
+                    }
+                }
             }
 
             // ── Event streaming ───────────────────────────────────
