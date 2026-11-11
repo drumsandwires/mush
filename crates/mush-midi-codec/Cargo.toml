@@ -1,0 +1,10 @@
+[package]
+name    = "mush-midi-codec"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+
+[dev-dependencies]
+# no extra deps — all tests use only the crate itself

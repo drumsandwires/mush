@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/mush-core",
+    "crates/mush-midi-codec",
     "crates/mish-shell",
     "crates/mash-shell",
     "crates/mush-shell",
@@ -38,6 +39,8 @@ shadow-rs     = "1"
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
+wmidi = "4"
 # internal
 mush-core       = { path = "crates/mush-core" }
+mush-midi-codec       = { path = "crates/mush-midi-codec" }
 mudld           = { path = "crates/mudld" }
