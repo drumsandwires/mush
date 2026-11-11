@@ -455,20 +455,20 @@ This is the critical path. All of 8.1 and 8.2 unblock once this is done.
 
 #### 8.3.9 Wire audio device enumeration into `Conductor`
 
-- [ ] `handle_command(AudioHosts)` → enumerate `cpal` hosts
+- [x] `handle_command(AudioHosts)` → enumerate `cpal` hosts
   → emit `AudioUpdate::HostList`
-- [ ] `handle_command(AudioDevices)` → enumerate devices on active host
+- [x] `handle_command(AudioDevices)` → enumerate devices on active host
   → emit `AudioUpdate::DeviceList`
-- [ ] `handle_command(AudioHost(None))` → emit `AudioUpdate::ActiveHost`
-- [ ] `handle_command(AudioHost(Some(name)))` → set active host
+- [x] `handle_command(AudioHost(None))` → emit `AudioUpdate::ActiveHost`
+- [x] `handle_command(AudioHost(Some(name)))` → set active host
   → emit `AudioUpdate::ActiveHost`
-- [ ] `handle_command(AudioDevice(None))` → emit `AudioUpdate::ActiveDevice`
-- [ ] `handle_command(AudioDevice(Some(name)))` → set active device
+- [x] `handle_command(AudioDevice(None))` → emit `AudioUpdate::ActiveDevice`
+- [x] `handle_command(AudioDevice(Some(name)))` → set active device
   → emit `AudioUpdate::ActiveDevice`
 
 #### 8.3.10 Implement `Save`
 
-- [ ] `handle_command(Save(path))`:
+- [x] `handle_command(Save(path))`:
   — `.mid` extension → write via `midly`
   — `.mudl` extension → write KDL
   — emit `MidiUpdate::SaveAck(path)`
