@@ -478,6 +478,75 @@ This is the critical path. All of 8.1 and 8.2 unblock once this is done.
 - [ ] Add arms for all new `EngineUpdate` variants added in 8.3.4
 - [ ] Add unit tests for each new arm
 
+#### 8.3.12.a — Add mush-midi-codec crate ✅
+
+- [x] Create crates/mush-midi-codec/ with workspace registration
+- [x] error.rs — ParseError, FormatError via thiserror
+- [x] status.rs — StatusKind enum, symbol table, wire encoding
+- [x] note.rs — scientific pitch notation ↔ MIDI note number (C-1…G9)
+- [x] velocity.rs — dynamic marking symbols ↔ MIDI velocity (pppp…ffff, pf)
+- [x] parse.rs — &str → Vec<u8>, numeric + symbolic + mixed + SysEx
+- [x] format.rs — Vec<u8> → String, Style::Long / Style::Short
+- [x] lib.rs — public API, doc examples
+- [x] 87 unit tests + 2 doc tests, all passing
+- [x] Round-trip guarantee: parse(format(bytes, Long)?) == Ok(bytes)
+- [x] No engine, ZMQ, audio, or shell dependencies
+
+
+#### 8.3.12b — Wire MVP command surface
+
+mish-shell
+
+    Rename Devices → Ports (sends MidiDevices)
+    Add Port [<name>] — get/set active MIDI output port (MidiPort)
+    Add Send <msg> — parse via mush-midi-codec, send SendMessage
+    Wire Save <path> — replace stub with SaveMidi(path)
+    Wire Record — replace stub with Record { start: true, path: None }
+    Wire Monitor [<path>] — replace stub with Monitor { path }
+
+mash-shell
+
+    Add Hosts — list audio hosts (AudioHosts)
+    Add Host [<name>] — get/set active audio host (AudioHost)
+    Add Device [<name>] — get/set active audio device (AudioDevice)
+    Wire Save <path> — replace stub
+    Wire Record — replace stub
+    Wire Monitor — replace stub
+
+mush-shell
+
+    Rename midi devices → midi ports (MidiDevices)
+    Add midi port [<name>] — get/set active MIDI output port
+    Add midi send <msg> — parse via mush-midi-codec, send SendMessage
+    Wire midi save <path> — replace stub
+    Wire midi record — replace stub
+    Wire midi monitor [<path>] — replace stub
+    Add audio hosts — list audio hosts (AudioHosts)
+    Add audio host [<name>] — get/set active audio host
+    Add audio device [<name>] — get/set active audio device
+    Wire audio save <path> — replace stub
+    Wire audio record — replace stub
+    Wire audio monitor — replace stub
+
+nu_plugin_midi
+
+    Verify Monitor is not a stub
+    Verify Record is not a stub
+    Add midi load <path> — LoadMidi(path)
+    Add midi save <path> — SaveMidi(path)
+    Add midi ports — MidiDevices
+    Add midi port [<name>] — MidiPort(None/Some)
+    Add midi send <msg> — mush-midi-codec parse → SendMessage
+    Wire pipeline input on midi play — QueueEvent per row
+
+nu_plugin_live_audio
+
+    Create lib.rs, move AudioPlugin struct out of main.rs
+    Verify Play, Stop, Record, Devices, DevicesRefresh are not stubs
+    Add audio hosts — AudioHosts
+    Add audio host [<name>] — AudioHost(None/Some)
+    Add audio device [<name>] — AudioDevice(None/Some)
+
 #### 8.3.12 Confirm MVP command surface end-to-end
 
 - [ ] `midi ports` — returns structured port list

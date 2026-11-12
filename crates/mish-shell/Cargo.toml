@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 mush-core      = { workspace = true, features = ["reedline-shell"] }
+mush-midi-codec = { workspace = true }
 clap           = { workspace = true }
 shlex          = { workspace = true }
 tokio          = { workspace = true }

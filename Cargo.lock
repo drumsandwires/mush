@@ -1934,6 +1934,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "mush-core",
+ "mush-midi-codec",
  "reedline",
  "shadow-rs 1.7.1",
  "shlex 2.0.1",
