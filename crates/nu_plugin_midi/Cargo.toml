@@ -7,8 +7,9 @@ edition.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
-nu-plugin = { workspace = true }
-nu-protocol = { workspace = true }
-mush-core = { workspace = true }
-tokio = { workspace = true }
-anyhow = { workspace = true }
+nu-plugin        = { workspace = true }
+nu-protocol      = { workspace = true }
+mush-core        = { workspace = true }
+mush-midi-codec  = { workspace = true }
+tokio            = { workspace = true }
+anyhow           = { workspace = true }
