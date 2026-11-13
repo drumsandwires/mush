@@ -2382,9 +2382,11 @@ dependencies = [
 name = "nu_plugin_live_audio"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "mush-core",
  "nu-plugin",
  "nu-protocol",
+ "tokio",
 ]
 
 [[package]]
