@@ -1,0 +1,2803 @@
+midi format=0 ticks-per-beat=480{
+track index=0{
+event delta=0{
+tempo us-per-beat=500000
+        }
+event delta=0{
+tempo us-per-beat=580271
+        }
+event delta=0{
+controller channel=0 cc=64 value=0
+        }
+event delta=0{
+controller channel=0 cc=67 value=0
+        }
+event delta=132{
+controller channel=0 cc=67 value=127
+        }
+event delta=227{
+note-on channel=0 key=59 vel=63
+        }
+event delta=236{
+note-on channel=0 key=62 vel=67
+        }
+event delta=235{
+note-on channel=0 key=67 vel=71
+        }
+event delta=234{
+note-on channel=0 key=71 vel=64
+        }
+event delta=252{
+note-on channel=0 key=64 vel=76
+        }
+event delta=47{
+note-off channel=0 key=59 vel=63
+        }
+event delta=65{
+note-off channel=0 key=67 vel=71
+        }
+event delta=116{
+note-on channel=0 key=67 vel=66
+        }
+event delta=167{
+note-off channel=0 key=62 vel=67
+        }
+event delta=67{
+note-on channel=0 key=62 vel=71
+        }
+event delta=187{
+note-off channel=0 key=67 vel=66
+        }
+event delta=56{
+note-on channel=0 key=67 vel=67
+        }
+event delta=253{
+note-on channel=0 key=59 vel=75
+        }
+event delta=1{
+note-off channel=0 key=64 vel=76
+        }
+event delta=188{
+note-off channel=0 key=62 vel=71
+        }
+event delta=43{
+note-on channel=0 key=62 vel=65
+        }
+event delta=155{
+note-off channel=0 key=67 vel=67
+        }
+event delta=85{
+note-on channel=0 key=67 vel=75
+        }
+event delta=108{
+note-off channel=0 key=71 vel=64
+        }
+event delta=116{
+note-on channel=0 key=71 vel=76
+        }
+event delta=236{
+note-on channel=0 key=64 vel=73
+        }
+event delta=85{
+note-off channel=0 key=59 vel=75
+        }
+event delta=85{
+note-off channel=0 key=67 vel=75
+        }
+event delta=68{
+note-on channel=0 key=67 vel=70
+        }
+event delta=167{
+note-off channel=0 key=62 vel=65
+        }
+event delta=74{
+note-on channel=0 key=62 vel=68
+        }
+event delta=189{
+note-off channel=0 key=67 vel=70
+        }
+event delta=52{
+note-on channel=0 key=67 vel=69
+        }
+event delta=253{
+note-on channel=0 key=59 vel=72
+        }
+event delta=53{
+note-off channel=0 key=64 vel=73
+        }
+event delta=103{
+note-off channel=0 key=62 vel=68
+        }
+event delta=102{
+note-on channel=0 key=62 vel=71
+        }
+event delta=171{
+note-off channel=0 key=67 vel=69
+        }
+event delta=95{
+note-on channel=0 key=67 vel=75
+        }
+event delta=150{
+note-off channel=0 key=71 vel=76
+        }
+event delta=143{
+note-on channel=0 key=71 vel=77
+        }
+event delta=321{
+note-on channel=0 key=43 vel=77
+        }
+event delta=10{
+controller channel=0 cc=67 value=0
+        }
+event delta=90{
+note-off channel=0 key=62 vel=71
+        }
+event delta=0{
+controller channel=0 cc=64 value=127
+        }
+event delta=8{
+note-off channel=0 key=71 vel=77
+        }
+event delta=11{
+note-off channel=0 key=59 vel=72
+        }
+event delta=19{
+note-off channel=0 key=67 vel=75
+        }
+event delta=104{
+note-on channel=0 key=50 vel=73
+        }
+event delta=250{
+note-on channel=0 key=59 vel=80
+        }
+event delta=90{
+tempo us-per-beat=612245
+        }
+event delta=95{
+note-off channel=0 key=59 vel=80
+        }
+event delta=29{
+note-on channel=0 key=57 vel=73
+        }
+event delta=64{
+note-off channel=0 key=50 vel=73
+        }
+event delta=38{
+note-off channel=0 key=57 vel=73
+        }
+event delta=106{
+note-on channel=0 key=59 vel=86
+        }
+event delta=131{
+note-off channel=0 key=59 vel=86
+        }
+event delta=65{
+note-on channel=0 key=50 vel=78
+        }
+event delta=215{
+note-on channel=0 key=59 vel=91
+        }
+event delta=120{
+note-off channel=0 key=59 vel=91
+        }
+event delta=34{
+note-off channel=0 key=50 vel=78
+        }
+event delta=21{
+note-off channel=0 key=43 vel=77
+        }
+event delta=25{
+note-on channel=0 key=55 vel=76
+        }
+event delta=215{
+note-on channel=0 key=43 vel=86
+        }
+event delta=70{
+controller channel=0 cc=64 value=0
+        }
+event delta=141{
+note-on channel=0 key=50 vel=73
+        }
+event delta=51{
+controller channel=0 cc=64 value=127
+        }
+event delta=79{
+note-off channel=0 key=55 vel=76
+        }
+event delta=94{
+note-on channel=0 key=59 vel=89
+        }
+event delta=117{
+note-off channel=0 key=59 vel=89
+        }
+event delta=81{
+note-on channel=0 key=57 vel=73
+        }
+event delta=69{
+note-off channel=0 key=50 vel=73
+        }
+event delta=22{
+note-off channel=0 key=57 vel=73
+        }
+event delta=116{
+note-on channel=0 key=59 vel=91
+        }
+event delta=105{
+note-off channel=0 key=59 vel=91
+        }
+event delta=73{
+note-on channel=0 key=50 vel=69
+        }
+event delta=180{
+note-off channel=0 key=43 vel=86
+        }
+event delta=38{
+note-on channel=0 key=59 vel=86
+        }
+event delta=127{
+note-off channel=0 key=59 vel=86
+        }
+event delta=17{
+note-off channel=0 key=50 vel=69
+        }
+event delta=56{
+note-on channel=0 key=55 vel=75
+        }
+event delta=193{
+note-off channel=0 key=55 vel=75
+        }
+event delta=11{
+note-on channel=0 key=45 vel=86
+        }
+event delta=62{
+controller channel=0 cc=64 value=0
+        }
+event delta=142{
+note-on channel=0 key=52 vel=81
+        }
+event delta=79{
+controller channel=0 cc=64 value=127
+        }
+event delta=130{
+note-on channel=0 key=57 vel=84
+        }
+event delta=12{
+note-on channel=0 key=60 vel=84
+        }
+event delta=131{
+note-off channel=0 key=60 vel=84
+        }
+event delta=5{
+note-off channel=0 key=45 vel=86
+        }
+event delta=40{
+note-off channel=0 key=57 vel=84
+        }
+event delta=14{
+note-on channel=0 key=59 vel=78
+        }
+event delta=96{
+note-off channel=0 key=52 vel=81
+        }
+event delta=78{
+note-off channel=0 key=59 vel=78
+        }
+event delta=49{
+note-on channel=0 key=43 vel=84
+        }
+event delta=0{
+note-on channel=0 key=60 vel=83
+        }
+event delta=19{
+controller channel=0 cc=64 value=0
+        }
+event delta=137{
+controller channel=0 cc=64 value=127
+        }
+event delta=36{
+note-on channel=0 key=52 vel=74
+        }
+event delta=70{
+note-off channel=0 key=60 vel=83
+        }
+event delta=105{
+note-off channel=0 key=43 vel=84
+        }
+event delta=29{
+note-off channel=0 key=52 vel=74
+        }
+event delta=28{
+note-on channel=0 key=60 vel=86
+        }
+event delta=181{
+note-on channel=0 key=40 vel=82
+        }
+event delta=193{
+note-off channel=0 key=40 vel=82
+        }
+event delta=20{
+controller channel=0 cc=64 value=0
+        }
+event delta=15{
+note-on channel=0 key=42 vel=82
+        }
+event delta=15{
+note-off channel=0 key=60 vel=86
+        }
+event delta=191{
+controller channel=0 cc=64 value=127
+        }
+event delta=8{
+note-on channel=0 key=50 vel=76
+        }
+event delta=156{
+controller channel=0 cc=64 value=0
+        }
+event delta=76{
+note-on channel=0 key=57 vel=75
+        }
+event delta=7{
+note-on channel=0 key=60 vel=86
+        }
+event delta=32{
+controller channel=0 cc=64 value=127
+        }
+event delta=98{
+note-off channel=0 key=42 vel=82
+        }
+event delta=46{
+note-off channel=0 key=60 vel=86
+        }
+event delta=32{
+note-off channel=0 key=57 vel=75
+        }
+event delta=10{
+note-on channel=0 key=59 vel=77
+        }
+event delta=80{
+note-off channel=0 key=50 vel=76
+        }
+event delta=71{
+note-off channel=0 key=59 vel=77
+        }
+event delta=66{
+controller channel=0 cc=64 value=0
+        }
+event delta=27{
+note-on channel=0 key=43 vel=74
+        }
+event delta=28{
+note-on channel=0 key=59 vel=84
+        }
+event delta=128{
+controller channel=0 cc=64 value=127
+        }
+event delta=3{
+tempo us-per-beat=580271
+        }
+event delta=101{
+note-on channel=0 key=50 vel=59
+        }
+event delta=162{
+note-off channel=0 key=59 vel=84
+        }
+event delta=35{
+note-off channel=0 key=50 vel=59
+        }
+event delta=11{
+note-on channel=0 key=57 vel=77
+        }
+event delta=152{
+note-off channel=0 key=57 vel=77
+        }
+event delta=44{
+note-on channel=0 key=50 vel=62
+        }
+event delta=185{
+note-off channel=0 key=50 vel=62
+        }
+event delta=31{
+note-on channel=0 key=59 vel=75
+        }
+event delta=92{
+note-off channel=0 key=59 vel=75
+        }
+event delta=98{
+note-on channel=0 key=50 vel=75
+        }
+event delta=127{
+note-off channel=0 key=50 vel=75
+        }
+event delta=93{
+note-on channel=0 key=64 vel=85
+        }
+event delta=119{
+note-off channel=0 key=64 vel=85
+        }
+event delta=66{
+note-on channel=0 key=50 vel=67
+        }
+event delta=22{
+note-off channel=0 key=43 vel=74
+        }
+event delta=122{
+note-off channel=0 key=50 vel=67
+        }
+event delta=87{
+note-on channel=0 key=62 vel=83
+        }
+event delta=3{
+note-on channel=0 key=42 vel=67
+        }
+event delta=30{
+controller channel=0 cc=64 value=0
+        }
+event delta=192{
+controller channel=0 cc=64 value=127
+        }
+event delta=4{
+note-on channel=0 key=50 vel=60
+        }
+event delta=212{
+note-off channel=0 key=62 vel=83
+        }
+event delta=16{
+note-off channel=0 key=50 vel=60
+        }
+event delta=10{
+note-on channel=0 key=57 vel=83
+        }
+event delta=200{
+note-off channel=0 key=57 vel=83
+        }
+event delta=19{
+note-on channel=0 key=50 vel=54
+        }
+event delta=104{
+note-off channel=0 key=42 vel=67
+        }
+event delta=65{
+note-off channel=0 key=50 vel=54
+        }
+event delta=106{
+note-on channel=0 key=57 vel=69
+        }
+event delta=5{
+note-on channel=0 key=60 vel=70
+        }
+event delta=85{
+controller channel=0 cc=64 value=0
+        }
+event delta=352{
+note-off channel=0 key=57 vel=69
+        }
+event delta=78{
+note-on channel=0 key=55 vel=58
+        }
+event delta=15{
+note-on channel=0 key=59 vel=71
+        }
+event delta=14{
+note-off channel=0 key=60 vel=70
+        }
+event delta=123{
+tempo us-per-beat=495868
+        }
+event delta=272{
+controller channel=0 cc=64 value=127
+        }
+event delta=844{
+note-off channel=0 key=59 vel=71
+        }
+event delta=2{
+note-off channel=0 key=55 vel=58
+        }
+event delta=4{
+note-on channel=0 key=43 vel=71
+        }
+event delta=6{
+tempo us-per-beat=655738
+        }
+event delta=223{
+note-on channel=0 key=50 vel=70
+        }
+event delta=194{
+note-on channel=0 key=59 vel=80
+        }
+event delta=162{
+note-off channel=0 key=59 vel=80
+        }
+event delta=23{
+note-off channel=0 key=50 vel=70
+        }
+event delta=14{
+note-on channel=0 key=57 vel=75
+        }
+event delta=101{
+note-off channel=0 key=57 vel=75
+        }
+event delta=100{
+note-on channel=0 key=59 vel=83
+        }
+event delta=115{
+note-off channel=0 key=59 vel=83
+        }
+event delta=67{
+note-on channel=0 key=50 vel=72
+        }
+event delta=190{
+note-on channel=0 key=59 vel=84
+        }
+event delta=4{
+note-off channel=0 key=43 vel=71
+        }
+event delta=68{
+note-off channel=0 key=50 vel=72
+        }
+event delta=54{
+note-off channel=0 key=59 vel=84
+        }
+event delta=61{
+note-on channel=0 key=55 vel=77
+        }
+event delta=194{
+note-on channel=0 key=43 vel=76
+        }
+event delta=70{
+controller channel=0 cc=64 value=0
+        }
+event delta=96{
+controller channel=0 cc=64 value=127
+        }
+event delta=28{
+note-on channel=0 key=50 vel=73
+        }
+event delta=97{
+note-off channel=0 key=55 vel=77
+        }
+event delta=103{
+note-on channel=0 key=59 vel=85
+        }
+event delta=115{
+note-off channel=0 key=59 vel=85
+        }
+event delta=61{
+note-on channel=0 key=57 vel=67
+        }
+event delta=34{
+note-off channel=0 key=50 vel=73
+        }
+event delta=56{
+note-off channel=0 key=57 vel=67
+        }
+event delta=112{
+note-on channel=0 key=59 vel=86
+        }
+event delta=125{
+note-off channel=0 key=59 vel=86
+        }
+event delta=58{
+note-on channel=0 key=50 vel=70
+        }
+event delta=172{
+note-off channel=0 key=43 vel=76
+        }
+event delta=32{
+note-on channel=0 key=59 vel=89
+        }
+event delta=116{
+note-off channel=0 key=59 vel=89
+        }
+event delta=79{
+note-on channel=0 key=55 vel=78
+        }
+event delta=17{
+note-off channel=0 key=50 vel=70
+        }
+event delta=142{
+note-off channel=0 key=55 vel=78
+        }
+event delta=34{
+tempo us-per-beat=616016
+        }
+event delta=8{
+note-on channel=0 key=45 vel=86
+        }
+event delta=51{
+controller channel=0 cc=64 value=0
+        }
+event delta=144{
+controller channel=0 cc=64 value=127
+        }
+event delta=10{
+note-on channel=0 key=52 vel=78
+        }
+event delta=224{
+note-on channel=0 key=57 vel=80
+        }
+event delta=4{
+note-on channel=0 key=60 vel=71
+        }
+event delta=126{
+note-off channel=0 key=45 vel=86
+        }
+event delta=11{
+note-off channel=0 key=60 vel=71
+        }
+event delta=52{
+note-on channel=0 key=59 vel=83
+        }
+event delta=28{
+note-off channel=0 key=52 vel=78
+        }
+event delta=56{
+note-off channel=0 key=57 vel=80
+        }
+event delta=77{
+note-off channel=0 key=59 vel=83
+        }
+event delta=53{
+note-on channel=0 key=60 vel=83
+        }
+event delta=3{
+note-on channel=0 key=43 vel=79
+        }
+event delta=57{
+controller channel=0 cc=64 value=0
+        }
+event delta=77{
+controller channel=0 cc=64 value=127
+        }
+event delta=65{
+note-on channel=0 key=52 vel=71
+        }
+event delta=90{
+note-off channel=0 key=60 vel=83
+        }
+event delta=44{
+note-off channel=0 key=43 vel=79
+        }
+event delta=39{
+note-off channel=0 key=52 vel=71
+        }
+event delta=50{
+note-on channel=0 key=60 vel=86
+        }
+event delta=198{
+note-on channel=0 key=40 vel=73
+        }
+event delta=203{
+note-off channel=0 key=40 vel=73
+        }
+event delta=23{
+note-on channel=0 key=42 vel=74
+        }
+event delta=34{
+tempo us-per-beat=580271
+        }
+event delta=4{
+note-off channel=0 key=60 vel=86
+        }
+event delta=31{
+controller channel=0 cc=64 value=0
+        }
+event delta=165{
+note-on channel=0 key=50 vel=62
+        }
+event delta=63{
+controller channel=0 cc=64 value=127
+        }
+event delta=191{
+note-on channel=0 key=57 vel=75
+        }
+event delta=1{
+note-on channel=0 key=60 vel=79
+        }
+event delta=214{
+note-off channel=0 key=57 vel=75
+        }
+event delta=1{
+note-off channel=0 key=42 vel=74
+        }
+event delta=17{
+note-off channel=0 key=60 vel=79
+        }
+event delta=14{
+note-on channel=0 key=59 vel=66
+        }
+event delta=82{
+note-off channel=0 key=50 vel=62
+        }
+event delta=38{
+note-off channel=0 key=59 vel=66
+        }
+event delta=148{
+note-on channel=0 key=43 vel=58
+        }
+event delta=3{
+controller channel=0 cc=64 value=0
+        }
+event delta=4{
+note-on channel=0 key=59 vel=78
+        }
+event delta=119{
+tempo us-per-beat=600000
+        }
+event delta=48{
+controller channel=0 cc=64 value=127
+        }
+event delta=53{
+note-on channel=0 key=50 vel=55
+        }
+event delta=147{
+note-off channel=0 key=59 vel=78
+        }
+event delta=58{
+note-on channel=0 key=57 vel=77
+        }
+event delta=39{
+note-off channel=0 key=50 vel=55
+        }
+event delta=95{
+note-off channel=0 key=57 vel=77
+        }
+event delta=65{
+note-on channel=0 key=50 vel=63
+        }
+event delta=151{
+note-off channel=0 key=50 vel=63
+        }
+event delta=51{
+note-on channel=0 key=59 vel=85
+        }
+event delta=78{
+note-off channel=0 key=59 vel=85
+        }
+event delta=105{
+note-on channel=0 key=50 vel=64
+        }
+event delta=196{
+note-off channel=0 key=50 vel=64
+        }
+event delta=24{
+note-on channel=0 key=64 vel=87
+        }
+event delta=164{
+note-off channel=0 key=64 vel=87
+        }
+event delta=33{
+note-on channel=0 key=50 vel=68
+        }
+event delta=33{
+note-off channel=0 key=43 vel=58
+        }
+event delta=172{
+note-on channel=0 key=42 vel=65
+        }
+event delta=24{
+note-on channel=0 key=62 vel=78
+        }
+event delta=5{
+note-off channel=0 key=50 vel=68
+        }
+event delta=5{
+tempo us-per-beat=580271
+        }
+event delta=38{
+controller channel=0 cc=64 value=0
+        }
+event delta=169{
+note-on channel=0 key=50 vel=58
+        }
+event delta=10{
+controller channel=0 cc=64 value=127
+        }
+event delta=224{
+note-off channel=0 key=62 vel=78
+        }
+event delta=10{
+note-on channel=0 key=57 vel=71
+        }
+event delta=42{
+note-off channel=0 key=50 vel=58
+        }
+event delta=193{
+note-off channel=0 key=57 vel=71
+        }
+event delta=5{
+note-on channel=0 key=50 vel=58
+        }
+event delta=210{
+note-off channel=0 key=42 vel=65
+        }
+event delta=75{
+note-on channel=0 key=57 vel=68
+        }
+event delta=2{
+note-on channel=0 key=60 vel=71
+        }
+event delta=1{
+note-off channel=0 key=50 vel=58
+        }
+event delta=88{
+controller channel=0 cc=64 value=0
+        }
+event delta=386{
+note-off channel=0 key=57 vel=68
+        }
+event delta=75{
+note-on channel=0 key=55 vel=61
+        }
+event delta=7{
+note-on channel=0 key=59 vel=67
+        }
+event delta=6{
+note-off channel=0 key=60 vel=71
+        }
+event delta=264{
+controller channel=0 cc=64 value=127
+        }
+event delta=393{
+note-off channel=0 key=59 vel=67
+        }
+event delta=49{
+note-off channel=0 key=55 vel=61
+        }
+event delta=290{
+note-on channel=0 key=48 vel=79
+        }
+event delta=3{
+note-on channel=0 key=64 vel=73
+        }
+event delta=14{
+controller channel=0 cc=64 value=0
+        }
+event delta=87{
+controller channel=0 cc=64 value=127
+        }
+event delta=131{
+note-on channel=0 key=55 vel=66
+        }
+event delta=105{
+note-off channel=0 key=55 vel=66
+        }
+event delta=22{
+note-off channel=0 key=64 vel=73
+        }
+event delta=48{
+note-off channel=0 key=48 vel=79
+        }
+event delta=56{
+note-on channel=0 key=42 vel=67
+        }
+event delta=9{
+note-on channel=0 key=62 vel=85
+        }
+event delta=1{
+note-on channel=0 key=57 vel=62
+        }
+event delta=12{
+controller channel=0 cc=64 value=0
+        }
+event delta=95{
+note-off channel=0 key=57 vel=62
+        }
+event delta=1{
+controller channel=0 cc=64 value=127
+        }
+event delta=88{
+note-on channel=0 key=50 vel=77
+        }
+event delta=13{
+note-off channel=0 key=62 vel=85
+        }
+event delta=159{
+note-off channel=0 key=50 vel=77
+        }
+event delta=68{
+note-on channel=0 key=66 vel=92
+        }
+event delta=0{
+note-on channel=0 key=62 vel=75
+        }
+event delta=93{
+note-off channel=0 key=62 vel=75
+        }
+event delta=119{
+note-on channel=0 key=55 vel=62
+        }
+event delta=0{
+note-off channel=0 key=66 vel=92
+        }
+event delta=88{
+note-off channel=0 key=55 vel=62
+        }
+event delta=86{
+note-off channel=0 key=42 vel=67
+        }
+event delta=44{
+note-on channel=0 key=67 vel=96
+        }
+event delta=4{
+note-on channel=0 key=62 vel=85
+        }
+event delta=8{
+note-on channel=0 key=47 vel=93
+        }
+event delta=46{
+controller channel=0 cc=64 value=0
+        }
+event delta=73{
+controller channel=0 cc=64 value=127
+        }
+event delta=73{
+note-off channel=0 key=67 vel=96
+        }
+event delta=9{
+note-on channel=0 key=55 vel=76
+        }
+event delta=56{
+note-off channel=0 key=62 vel=85
+        }
+event delta=34{
+note-off channel=0 key=55 vel=76
+        }
+event delta=114{
+note-off channel=0 key=47 vel=93
+        }
+event delta=10{
+note-on channel=0 key=69 vel=99
+        }
+event delta=2{
+note-on channel=0 key=64 vel=87
+        }
+event delta=1{
+note-on channel=0 key=48 vel=98
+        }
+event delta=32{
+controller channel=0 cc=64 value=0
+        }
+event delta=96{
+controller channel=0 cc=64 value=127
+        }
+event delta=8{
+note-off channel=0 key=64 vel=87
+        }
+event delta=41{
+note-off channel=0 key=69 vel=99
+        }
+event delta=211{
+note-off channel=0 key=48 vel=98
+        }
+event delta=9{
+controller channel=0 cc=64 value=0
+        }
+event delta=16{
+note-on channel=0 key=50 vel=95
+        }
+event delta=18{
+note-on channel=0 key=62 vel=95
+        }
+event delta=37{
+note-on channel=0 key=67 vel=91
+        }
+event delta=38{
+note-on channel=0 key=71 vel=83
+        }
+event delta=92{
+controller channel=0 cc=64 value=127
+        }
+event delta=187{
+note-off channel=0 key=71 vel=83
+        }
+event delta=75{
+note-off channel=0 key=62 vel=95
+        }
+event delta=16{
+note-off channel=0 key=67 vel=91
+        }
+event delta=37{
+note-on channel=0 key=74 vel=97
+        }
+event delta=64{
+note-off channel=0 key=74 vel=97
+        }
+event delta=137{
+note-off channel=0 key=50 vel=95
+        }
+event delta=241{
+note-on channel=0 key=51 vel=85
+        }
+event delta=13{
+note-on channel=0 key=66 vel=75
+        }
+event delta=2{
+note-on channel=0 key=71 vel=91
+        }
+event delta=6{
+controller channel=0 cc=64 value=0
+        }
+event delta=125{
+controller channel=0 cc=64 value=127
+        }
+event delta=62{
+note-on channel=0 key=52 vel=67
+        }
+event delta=28{
+note-off channel=0 key=51 vel=85
+        }
+event delta=29{
+note-off channel=0 key=71 vel=91
+        }
+event delta=150{
+note-off channel=0 key=52 vel=67
+        }
+event delta=13{
+note-on channel=0 key=69 vel=89
+        }
+event delta=6{
+note-on channel=0 key=54 vel=85
+        }
+event delta=24{
+note-off channel=0 key=66 vel=75
+        }
+event delta=5{
+controller channel=0 cc=64 value=0
+        }
+event delta=67{
+controller channel=0 cc=64 value=127
+        }
+event delta=107{
+note-on channel=0 key=63 vel=71
+        }
+event delta=0{
+note-off channel=0 key=69 vel=89
+        }
+event delta=18{
+note-off channel=0 key=54 vel=85
+        }
+event delta=152{
+note-off channel=0 key=63 vel=71
+        }
+event delta=57{
+note-on channel=0 key=40 vel=72
+        }
+event delta=22{
+note-on channel=0 key=67 vel=81
+        }
+event delta=9{
+controller channel=0 cc=64 value=0
+        }
+event delta=134{
+controller channel=0 cc=64 value=127
+        }
+event delta=28{
+note-off channel=0 key=67 vel=81
+        }
+event delta=34{
+note-on channel=0 key=59 vel=69
+        }
+event delta=117{
+note-off channel=0 key=59 vel=69
+        }
+event delta=78{
+note-off channel=0 key=40 vel=72
+        }
+event delta=14{
+note-on channel=0 key=67 vel=73
+        }
+event delta=183{
+note-off channel=0 key=67 vel=73
+        }
+event delta=25{
+note-on channel=0 key=59 vel=74
+        }
+event delta=138{
+note-off channel=0 key=59 vel=74
+        }
+event delta=78{
+note-on channel=0 key=55 vel=72
+        }
+event delta=25{
+note-on channel=0 key=64 vel=78
+        }
+event delta=176{
+note-off channel=0 key=64 vel=78
+        }
+event delta=10{
+note-on channel=0 key=71 vel=93
+        }
+event delta=109{
+note-off channel=0 key=55 vel=72
+        }
+event delta=4{
+note-off channel=0 key=71 vel=93
+        }
+event delta=86{
+note-on channel=0 key=50 vel=92
+        }
+event delta=11{
+note-on channel=0 key=69 vel=87
+        }
+event delta=27{
+controller channel=0 cc=64 value=0
+        }
+event delta=71{
+note-on channel=0 key=67 vel=76
+        }
+event delta=16{
+controller channel=0 cc=64 value=127
+        }
+event delta=37{
+note-off channel=0 key=69 vel=87
+        }
+event delta=39{
+note-off channel=0 key=50 vel=92
+        }
+event delta=7{
+note-off channel=0 key=67 vel=76
+        }
+event delta=7{
+note-on channel=0 key=66 vel=95
+        }
+event delta=74{
+note-off channel=0 key=66 vel=95
+        }
+event delta=176{
+note-on channel=0 key=48 vel=89
+        }
+event delta=3{
+note-on channel=0 key=64 vel=87
+        }
+event delta=41{
+controller channel=0 cc=64 value=0
+        }
+event delta=131{
+controller channel=0 cc=64 value=127
+        }
+event delta=27{
+note-off channel=0 key=64 vel=87
+        }
+event delta=1{
+note-on channel=0 key=59 vel=84
+        }
+event delta=218{
+note-off channel=0 key=59 vel=84
+        }
+event delta=12{
+note-on channel=0 key=64 vel=81
+        }
+event delta=169{
+note-off channel=0 key=64 vel=81
+        }
+event delta=51{
+note-on channel=0 key=55 vel=77
+        }
+event delta=15{
+note-off channel=0 key=48 vel=89
+        }
+event delta=93{
+note-off channel=0 key=55 vel=77
+        }
+event delta=93{
+note-on channel=0 key=59 vel=90
+        }
+event delta=187{
+note-off channel=0 key=59 vel=90
+        }
+event delta=46{
+note-on channel=0 key=52 vel=81
+        }
+event delta=4{
+controller channel=0 cc=64 value=0
+        }
+event delta=86{
+controller channel=0 cc=64 value=127
+        }
+event delta=41{
+note-off channel=0 key=52 vel=81
+        }
+event delta=71{
+note-on channel=0 key=52 vel=83
+        }
+event delta=114{
+note-on channel=0 key=54 vel=79
+        }
+event delta=50{
+note-off channel=0 key=52 vel=83
+        }
+event delta=2{
+controller channel=0 cc=64 value=0
+        }
+event delta=23{
+note-on channel=0 key=55 vel=75
+        }
+event delta=22{
+note-off channel=0 key=54 vel=79
+        }
+event delta=33{
+note-on channel=0 key=59 vel=82
+        }
+event delta=19{
+controller channel=0 cc=64 value=127
+        }
+event delta=33{
+note-off channel=0 key=55 vel=75
+        }
+event delta=21{
+note-on channel=0 key=64 vel=93
+        }
+event delta=1{
+tempo us-per-beat=521739
+        }
+event delta=43{
+note-off channel=0 key=59 vel=82
+        }
+event delta=150{
+controller channel=0 cc=64 value=0
+        }
+event delta=51{
+tempo us-per-beat=580271
+        }
+event delta=24{
+note-off channel=0 key=64 vel=93
+        }
+event delta=16{
+note-on channel=0 key=67 vel=106
+        }
+event delta=14{
+controller channel=0 cc=64 value=127
+        }
+event delta=265{
+note-off channel=0 key=67 vel=106
+        }
+event delta=2{
+note-on channel=0 key=46 vel=79
+        }
+event delta=25{
+note-on channel=0 key=66 vel=95
+        }
+event delta=54{
+controller channel=0 cc=64 value=0
+        }
+event delta=115{
+controller channel=0 cc=64 value=127
+        }
+event delta=104{
+note-off channel=0 key=66 vel=95
+        }
+event delta=2{
+note-on channel=0 key=61 vel=64
+        }
+event delta=187{
+note-off channel=0 key=61 vel=64
+        }
+event delta=51{
+note-on channel=0 key=66 vel=82
+        }
+event delta=32{
+note-off channel=0 key=46 vel=79
+        }
+event delta=156{
+note-off channel=0 key=66 vel=82
+        }
+event delta=42{
+note-on channel=0 key=61 vel=68
+        }
+event delta=152{
+note-off channel=0 key=61 vel=68
+        }
+event delta=111{
+note-on channel=0 key=66 vel=85
+        }
+event delta=6{
+note-on channel=0 key=47 vel=64
+        }
+event delta=12{
+controller channel=0 cc=64 value=0
+        }
+event delta=222{
+note-off channel=0 key=66 vel=85
+        }
+event delta=8{
+controller channel=0 cc=64 value=127
+        }
+event delta=3{
+note-on channel=0 key=62 vel=66
+        }
+event delta=199{
+note-off channel=0 key=62 vel=66
+        }
+event delta=67{
+note-on channel=0 key=67 vel=85
+        }
+event delta=9{
+note-on channel=0 key=55 vel=63
+        }
+event delta=7{
+note-off channel=0 key=47 vel=64
+        }
+event delta=127{
+note-off channel=0 key=67 vel=85
+        }
+event delta=101{
+note-on channel=0 key=62 vel=79
+        }
+event delta=89{
+note-off channel=0 key=62 vel=79
+        }
+event delta=71{
+note-off channel=0 key=55 vel=63
+        }
+event delta=80{
+note-on channel=0 key=47 vel=62
+        }
+event delta=7{
+note-on channel=0 key=66 vel=83
+        }
+event delta=190{
+note-off channel=0 key=66 vel=83
+        }
+event delta=33{
+note-on channel=0 key=62 vel=74
+        }
+event delta=117{
+note-off channel=0 key=62 vel=74
+        }
+event delta=104{
+note-on channel=0 key=55 vel=70
+        }
+event delta=4{
+note-on channel=0 key=67 vel=91
+        }
+event delta=11{
+note-off channel=0 key=47 vel=62
+        }
+event delta=90{
+note-off channel=0 key=67 vel=91
+        }
+event delta=112{
+note-on channel=0 key=62 vel=61
+        }
+event delta=69{
+note-off channel=0 key=62 vel=61
+        }
+event delta=39{
+note-on channel=0 key=66 vel=80
+        }
+event delta=14{
+note-off channel=0 key=55 vel=70
+        }
+event delta=42{
+note-off channel=0 key=66 vel=80
+        }
+event delta=78{
+note-on channel=0 key=46 vel=62
+        }
+event delta=6{
+note-on channel=0 key=66 vel=95
+        }
+event delta=31{
+controller channel=0 cc=64 value=0
+        }
+event delta=153{
+controller channel=0 cc=64 value=127
+        }
+event delta=13{
+note-off channel=0 key=66 vel=95
+        }
+event delta=26{
+note-on channel=0 key=61 vel=60
+        }
+event delta=99{
+note-off channel=0 key=61 vel=60
+        }
+event delta=132{
+note-on channel=0 key=55 vel=54
+        }
+event delta=8{
+note-on channel=0 key=67 vel=84
+        }
+event delta=47{
+note-off channel=0 key=46 vel=62
+        }
+event delta=38{
+note-off channel=0 key=67 vel=84
+        }
+event delta=137{
+note-on channel=0 key=61 vel=50
+        }
+event delta=19{
+note-off channel=0 key=55 vel=54
+        }
+event delta=59{
+note-off channel=0 key=61 vel=50
+        }
+event delta=141{
+note-on channel=0 key=46 vel=67
+        }
+event delta=10{
+note-on channel=0 key=66 vel=89
+        }
+event delta=108{
+note-off channel=0 key=66 vel=89
+        }
+event delta=107{
+note-on channel=0 key=61 vel=60
+        }
+event delta=92{
+note-off channel=0 key=61 vel=60
+        }
+event delta=140{
+note-on channel=0 key=67 vel=87
+        }
+event delta=4{
+note-on channel=0 key=55 vel=59
+        }
+event delta=68{
+note-off channel=0 key=46 vel=67
+        }
+event delta=4{
+note-off channel=0 key=67 vel=87
+        }
+event delta=161{
+note-on channel=0 key=61 vel=59
+        }
+event delta=28{
+note-off channel=0 key=55 vel=59
+        }
+event delta=63{
+note-off channel=0 key=61 vel=59
+        }
+event delta=154{
+note-on channel=0 key=47 vel=67
+        }
+event delta=7{
+note-on channel=0 key=66 vel=83
+        }
+event delta=36{
+controller channel=0 cc=64 value=0
+        }
+event delta=115{
+controller channel=0 cc=64 value=127
+        }
+event delta=84{
+note-off channel=0 key=66 vel=83
+        }
+event delta=11{
+note-on channel=0 key=62 vel=66
+        }
+event delta=194{
+note-off channel=0 key=62 vel=66
+        }
+event delta=59{
+note-on channel=0 key=67 vel=81
+        }
+event delta=9{
+note-on channel=0 key=55 vel=59
+        }
+event delta=8{
+note-off channel=0 key=47 vel=67
+        }
+event delta=123{
+note-off channel=0 key=67 vel=81
+        }
+event delta=100{
+note-on channel=0 key=62 vel=61
+        }
+event delta=93{
+note-off channel=0 key=62 vel=61
+        }
+event delta=85{
+note-off channel=0 key=55 vel=59
+        }
+event delta=69{
+note-on channel=0 key=66 vel=77
+        }
+event delta=9{
+note-on channel=0 key=47 vel=65
+        }
+event delta=185{
+note-off channel=0 key=66 vel=77
+        }
+event delta=59{
+note-on channel=0 key=62 vel=53
+        }
+event delta=169{
+note-off channel=0 key=62 vel=53
+        }
+event delta=58{
+note-on channel=0 key=55 vel=54
+        }
+event delta=7{
+note-on channel=0 key=67 vel=84
+        }
+event delta=141{
+note-off channel=0 key=67 vel=84
+        }
+event delta=14{
+note-off channel=0 key=47 vel=65
+        }
+event delta=90{
+note-on channel=0 key=62 vel=53
+        }
+event delta=91{
+note-off channel=0 key=62 vel=53
+        }
+event delta=10{
+tempo us-per-beat=476190
+        }
+event delta=28{
+note-off channel=0 key=55 vel=54
+        }
+event delta=9{
+note-on channel=0 key=66 vel=77
+        }
+event delta=111{
+note-off channel=0 key=66 vel=77
+        }
+event delta=104{
+tempo us-per-beat=588235
+        }
+event delta=6{
+note-on channel=0 key=46 vel=65
+        }
+event delta=7{
+controller channel=0 cc=64 value=0
+        }
+event delta=22{
+note-on channel=0 key=66 vel=83
+        }
+event delta=172{
+controller channel=0 cc=64 value=127
+        }
+event delta=72{
+note-off channel=0 key=66 vel=83
+        }
+event delta=18{
+note-on channel=0 key=61 vel=64
+        }
+event delta=110{
+note-off channel=0 key=61 vel=64
+        }
+event delta=126{
+note-on channel=0 key=55 vel=58
+        }
+event delta=9{
+note-on channel=0 key=67 vel=74
+        }
+event delta=51{
+note-off channel=0 key=46 vel=65
+        }
+event delta=80{
+note-off channel=0 key=67 vel=74
+        }
+event delta=99{
+note-on channel=0 key=61 vel=42
+        }
+event delta=120{
+note-off channel=0 key=61 vel=42
+        }
+event delta=60{
+note-off channel=0 key=55 vel=58
+        }
+event delta=81{
+note-on channel=0 key=46 vel=58
+        }
+event delta=13{
+note-on channel=0 key=66 vel=75
+        }
+event delta=171{
+tempo us-per-beat=560748
+        }
+event delta=76{
+note-off channel=0 key=66 vel=75
+        }
+event delta=8{
+note-off channel=0 key=46 vel=58
+        }
+event delta=226{
+controller channel=0 cc=64 value=0
+        }
+event delta=105{
+note-on channel=0 key=44 vel=73
+        }
+event delta=11{
+note-on channel=0 key=64 vel=78
+        }
+event delta=17{
+tempo us-per-beat=580271
+        }
+event delta=56{
+controller channel=0 cc=64 value=127
+        }
+event delta=158{
+note-off channel=0 key=44 vel=73
+        }
+event delta=21{
+note-off channel=0 key=64 vel=78
+        }
+event delta=0{
+note-on channel=0 key=59 vel=74
+        }
+event delta=194{
+note-off channel=0 key=59 vel=74
+        }
+event delta=76{
+note-on channel=0 key=45 vel=73
+        }
+event delta=12{
+note-on channel=0 key=60 vel=73
+        }
+event delta=6{
+note-on channel=0 key=57 vel=70
+        }
+event delta=23{
+controller channel=0 cc=64 value=0
+        }
+event delta=111{
+controller channel=0 cc=64 value=127
+        }
+event delta=107{
+note-on channel=0 key=52 vel=67
+        }
+event delta=38{
+note-off channel=0 key=57 vel=70
+        }
+event delta=147{
+note-off channel=0 key=60 vel=73
+        }
+event delta=48{
+note-on channel=0 key=57 vel=74
+        }
+event delta=8{
+note-off channel=0 key=45 vel=73
+        }
+event delta=33{
+note-off channel=0 key=52 vel=67
+        }
+event delta=153{
+note-off channel=0 key=57 vel=74
+        }
+event delta=5{
+note-on channel=0 key=59 vel=78
+        }
+event delta=202{
+note-off channel=0 key=59 vel=78
+        }
+event delta=3{
+note-on channel=0 key=42 vel=69
+        }
+event delta=26{
+note-on channel=0 key=60 vel=84
+        }
+event delta=50{
+controller channel=0 cc=64 value=0
+        }
+event delta=125{
+controller channel=0 cc=64 value=127
+        }
+event delta=7{
+note-on channel=0 key=50 vel=71
+        }
+event delta=99{
+note-off channel=0 key=60 vel=84
+        }
+event delta=119{
+note-off channel=0 key=42 vel=69
+        }
+event delta=12{
+note-on channel=0 key=62 vel=75
+        }
+event delta=158{
+note-off channel=0 key=50 vel=71
+        }
+event delta=1{
+note-off channel=0 key=62 vel=75
+        }
+event delta=23{
+note-on channel=0 key=57 vel=80
+        }
+event delta=136{
+note-off channel=0 key=57 vel=80
+        }
+event delta=69{
+controller channel=0 cc=64 value=0
+        }
+event delta=9{
+note-on channel=0 key=59 vel=80
+        }
+event delta=3{
+note-on channel=0 key=43 vel=76
+        }
+event delta=0{
+note-on channel=0 key=55 vel=71
+        }
+event delta=188{
+note-on channel=0 key=50 vel=64
+        }
+event delta=2{
+controller channel=0 cc=64 value=127
+        }
+event delta=62{
+note-off channel=0 key=55 vel=71
+        }
+event delta=128{
+note-off channel=0 key=43 vel=76
+        }
+event delta=6{
+note-off channel=0 key=59 vel=80
+        }
+event delta=21{
+note-on channel=0 key=55 vel=84
+        }
+event delta=125{
+note-off channel=0 key=55 vel=84
+        }
+event delta=56{
+note-on channel=0 key=57 vel=84
+        }
+event delta=67{
+note-off channel=0 key=50 vel=64
+        }
+event delta=31{
+note-off channel=0 key=57 vel=84
+        }
+event delta=61{
+controller channel=0 cc=64 value=0
+        }
+event delta=37{
+note-on channel=0 key=41 vel=78
+        }
+event delta=15{
+note-on channel=0 key=59 vel=91
+        }
+event delta=63{
+controller channel=0 cc=64 value=127
+        }
+event delta=117{
+note-on channel=0 key=45 vel=78
+        }
+event delta=3{
+note-off channel=0 key=41 vel=78
+        }
+event delta=149{
+controller channel=0 cc=64 value=0
+        }
+event delta=24{
+note-off channel=0 key=45 vel=78
+        }
+event delta=7{
+note-off channel=0 key=59 vel=91
+        }
+event delta=33{
+note-on channel=0 key=44 vel=86
+        }
+event delta=11{
+note-on channel=0 key=64 vel=94
+        }
+event delta=31{
+controller channel=0 cc=64 value=127
+        }
+event delta=143{
+note-off channel=0 key=44 vel=86
+        }
+event delta=7{
+note-on channel=0 key=59 vel=83
+        }
+event delta=7{
+note-off channel=0 key=64 vel=94
+        }
+event delta=158{
+note-off channel=0 key=59 vel=83
+        }
+event delta=11{
+controller channel=0 cc=64 value=0
+        }
+event delta=44{
+note-on channel=0 key=57 vel=79
+        }
+event delta=6{
+note-on channel=0 key=60 vel=89
+        }
+event delta=5{
+note-on channel=0 key=45 vel=71
+        }
+event delta=69{
+controller channel=0 cc=64 value=127
+        }
+event delta=101{
+note-on channel=0 key=52 vel=72
+        }
+event delta=60{
+note-off channel=0 key=57 vel=79
+        }
+event delta=92{
+note-off channel=0 key=60 vel=89
+        }
+event delta=56{
+note-on channel=0 key=57 vel=94
+        }
+event delta=1{
+note-off channel=0 key=45 vel=71
+        }
+event delta=41{
+note-off channel=0 key=52 vel=72
+        }
+event delta=126{
+note-off channel=0 key=57 vel=94
+        }
+event delta=9{
+note-on channel=0 key=59 vel=77
+        }
+event delta=122{
+note-off channel=0 key=59 vel=77
+        }
+event delta=61{
+note-on channel=0 key=42 vel=67
+        }
+event delta=4{
+controller channel=0 cc=64 value=0
+        }
+event delta=6{
+note-on channel=0 key=60 vel=90
+        }
+event delta=80{
+controller channel=0 cc=64 value=127
+        }
+event delta=96{
+note-on channel=0 key=50 vel=71
+        }
+event delta=189{
+note-off channel=0 key=60 vel=90
+        }
+event delta=2{
+note-off channel=0 key=42 vel=67
+        }
+event delta=23{
+note-on channel=0 key=62 vel=84
+        }
+event delta=148{
+note-off channel=0 key=62 vel=84
+        }
+event delta=20{
+note-on channel=0 key=57 vel=75
+        }
+event delta=79{
+note-off channel=0 key=50 vel=71
+        }
+event delta=63{
+note-off channel=0 key=57 vel=75
+        }
+event delta=57{
+note-on channel=0 key=43 vel=78
+        }
+event delta=1{
+note-on channel=0 key=59 vel=83
+        }
+event delta=3{
+note-on channel=0 key=55 vel=83
+        }
+event delta=2{
+controller channel=0 cc=64 value=0
+        }
+event delta=124{
+controller channel=0 cc=64 value=127
+        }
+event delta=36{
+note-on channel=0 key=50 vel=73
+        }
+event delta=49{
+note-off channel=0 key=55 vel=83
+        }
+event delta=137{
+note-off channel=0 key=59 vel=83
+        }
+event delta=25{
+note-on channel=0 key=55 vel=86
+        }
+event delta=97{
+note-off channel=0 key=55 vel=86
+        }
+event delta=85{
+note-on channel=0 key=57 vel=93
+        }
+event delta=80{
+note-off channel=0 key=57 vel=93
+        }
+event delta=124{
+note-on channel=0 key=59 vel=98
+        }
+event delta=93{
+note-off channel=0 key=59 vel=98
+        }
+event delta=25{
+note-off channel=0 key=43 vel=78
+        }
+event delta=60{
+note-on channel=0 key=55 vel=96
+        }
+event delta=89{
+note-off channel=0 key=50 vel=73
+        }
+event delta=37{
+note-off channel=0 key=55 vel=96
+        }
+event delta=62{
+controller channel=0 cc=64 value=0
+        }
+event delta=26{
+note-on channel=0 key=64 vel=104
+        }
+event delta=1{
+note-on channel=0 key=48 vel=102
+        }
+event delta=50{
+controller channel=0 cc=64 value=127
+        }
+event delta=125{
+note-on channel=0 key=55 vel=65
+        }
+event delta=14{
+note-off channel=0 key=64 vel=104
+        }
+event delta=67{
+note-off channel=0 key=55 vel=65
+        }
+event delta=73{
+controller channel=0 cc=64 value=0
+        }
+event delta=17{
+note-off channel=0 key=48 vel=102
+        }
+event delta=29{
+note-on channel=0 key=42 vel=71
+        }
+event delta=9{
+note-on channel=0 key=57 vel=89
+        }
+event delta=5{
+note-on channel=0 key=62 vel=99
+        }
+event delta=45{
+controller channel=0 cc=64 value=127
+        }
+event delta=126{
+note-off channel=0 key=62 vel=99
+        }
+event delta=6{
+note-on channel=0 key=50 vel=76
+        }
+event delta=100{
+note-off channel=0 key=50 vel=76
+        }
+event delta=11{
+note-off channel=0 key=57 vel=89
+        }
+event delta=115{
+note-on channel=0 key=66 vel=108
+        }
+event delta=3{
+note-on channel=0 key=62 vel=93
+        }
+event delta=169{
+note-off channel=0 key=66 vel=108
+        }
+event delta=4{
+note-on channel=0 key=55 vel=61
+        }
+event delta=15{
+note-off channel=0 key=62 vel=93
+        }
+event delta=45{
+note-off channel=0 key=42 vel=71
+        }
+event delta=48{
+note-off channel=0 key=55 vel=61
+        }
+event delta=84{
+controller channel=0 cc=64 value=0
+        }
+event delta=33{
+note-on channel=0 key=67 vel=102
+        }
+event delta=10{
+note-on channel=0 key=62 vel=96
+        }
+event delta=0{
+note-on channel=0 key=47 vel=93
+        }
+event delta=97{
+controller channel=0 cc=64 value=127
+        }
+event delta=103{
+note-on channel=0 key=55 vel=66
+        }
+event delta=6{
+note-off channel=0 key=67 vel=102
+        }
+event delta=52{
+note-off channel=0 key=62 vel=96
+        }
+event delta=48{
+note-off channel=0 key=55 vel=66
+        }
+event delta=65{
+controller channel=0 cc=64 value=0
+        }
+event delta=14{
+note-off channel=0 key=47 vel=93
+        }
+event delta=35{
+note-on channel=0 key=48 vel=84
+        }
+event delta=2{
+note-on channel=0 key=69 vel=104
+        }
+event delta=3{
+note-on channel=0 key=64 vel=101
+        }
+event delta=55{
+controller channel=0 cc=64 value=127
+        }
+event delta=85{
+note-off channel=0 key=64 vel=101
+        }
+event delta=16{
+note-off channel=0 key=69 vel=104
+        }
+event delta=80{
+controller channel=0 cc=64 value=0
+        }
+event delta=23{
+note-off channel=0 key=48 vel=84
+        }
+event delta=162{
+note-on channel=0 key=50 vel=80
+        }
+event delta=51{
+note-on channel=0 key=62 vel=79
+        }
+event delta=8{
+note-on channel=0 key=67 vel=88
+        }
+event delta=22{
+note-on channel=0 key=71 vel=94
+        }
+event delta=200{
+controller channel=0 cc=64 value=127
+        }
+event delta=52{
+note-off channel=0 key=62 vel=79
+        }
+event delta=12{
+note-off channel=0 key=67 vel=88
+        }
+event delta=6{
+note-off channel=0 key=50 vel=80
+        }
+event delta=9{
+note-off channel=0 key=71 vel=94
+        }
+event delta=31{
+controller channel=0 cc=67 value=127
+        }
+event delta=62{
+controller channel=0 cc=64 value=0
+        }
+event delta=73{
+note-on channel=0 key=74 vel=84
+        }
+event delta=193{
+controller channel=0 cc=67 value=0
+        }
+event delta=109{
+note-off channel=0 key=74 vel=84
+        }
+event delta=126{
+note-on channel=0 key=50 vel=78
+        }
+event delta=13{
+note-on channel=0 key=60 vel=76
+        }
+event delta=3{
+controller channel=0 cc=64 value=127
+        }
+event delta=18{
+note-on channel=0 key=64 vel=75
+        }
+event delta=31{
+note-on channel=0 key=69 vel=86
+        }
+event delta=191{
+note-off channel=0 key=64 vel=75
+        }
+event delta=5{
+note-off channel=0 key=60 vel=76
+        }
+event delta=2{
+note-off channel=0 key=50 vel=78
+        }
+event delta=5{
+note-off channel=0 key=69 vel=86
+        }
+event delta=104{
+controller channel=0 cc=67 value=127
+        }
+event delta=36{
+controller channel=0 cc=64 value=0
+        }
+event delta=84{
+note-on channel=0 key=74 vel=81
+        }
+event delta=137{
+controller channel=0 cc=67 value=0
+        }
+event delta=155{
+note-off channel=0 key=74 vel=81
+        }
+event delta=135{
+note-on channel=0 key=50 vel=72
+        }
+event delta=27{
+note-on channel=0 key=59 vel=75
+        }
+event delta=3{
+controller channel=0 cc=64 value=127
+        }
+event delta=33{
+note-on channel=0 key=62 vel=72
+        }
+event delta=50{
+note-on channel=0 key=67 vel=75
+        }
+event delta=141{
+note-off channel=0 key=59 vel=75
+        }
+event delta=4{
+note-off channel=0 key=62 vel=72
+        }
+event delta=10{
+note-off channel=0 key=67 vel=75
+        }
+event delta=2{
+note-off channel=0 key=50 vel=72
+        }
+event delta=79{
+controller channel=0 cc=67 value=127
+        }
+event delta=100{
+controller channel=0 cc=64 value=0
+        }
+event delta=60{
+note-on channel=0 key=74 vel=82
+        }
+event delta=239{
+controller channel=0 cc=67 value=0
+        }
+event delta=58{
+note-off channel=0 key=74 vel=82
+        }
+event delta=124{
+note-on channel=0 key=50 vel=69
+        }
+event delta=22{
+note-on channel=0 key=60 vel=70
+        }
+event delta=2{
+controller channel=0 cc=64 value=127
+        }
+event delta=64{
+note-on channel=0 key=64 vel=64
+        }
+event delta=62{
+note-on channel=0 key=69 vel=80
+        }
+event delta=478{
+note-off channel=0 key=60 vel=70
+        }
+event delta=17{
+note-off channel=0 key=64 vel=64
+        }
+event delta=24{
+note-off channel=0 key=69 vel=80
+        }
+event delta=48{
+note-off channel=0 key=50 vel=69
+        }
+event delta=119{
+controller channel=0 cc=64 value=0
+        }
+event delta=130{
+note-on channel=0 key=55 vel=54
+        }
+event delta=2{
+note-on channel=0 key=71 vel=75
+        }
+event delta=190{
+note-off channel=0 key=71 vel=75
+        }
+event delta=8{
+note-on channel=0 key=72 vel=76
+        }
+event delta=216{
+note-on channel=0 key=74 vel=78
+        }
+event delta=19{
+note-off channel=0 key=72 vel=76
+        }
+event delta=385{
+note-on channel=0 key=69 vel=75
+        }
+event delta=26{
+note-off channel=0 key=74 vel=78
+        }
+event delta=374{
+note-on channel=0 key=74 vel=80
+        }
+event delta=25{
+note-off channel=0 key=69 vel=75
+        }
+event delta=123{
+note-off channel=0 key=74 vel=80
+        }
+event delta=37{
+note-on channel=0 key=74 vel=61
+        }
+event delta=211{
+note-off channel=0 key=74 vel=61
+        }
+event delta=24{
+note-on channel=0 key=67 vel=76
+        }
+event delta=425{
+note-on channel=0 key=74 vel=71
+        }
+event delta=80{
+note-off channel=0 key=67 vel=76
+        }
+event delta=359{
+note-on channel=0 key=69 vel=76
+        }
+event delta=10{
+note-off channel=0 key=74 vel=71
+        }
+event delta=831{
+controller channel=0 cc=67 value=127
+        }
+event delta=2{
+note-off channel=0 key=69 vel=76
+        }
+event delta=28{
+note-off channel=0 key=55 vel=54
+        }
+event delta=61{
+note-on channel=0 key=71 vel=68
+        }
+event delta=624{
+note-on channel=0 key=74 vel=64
+        }
+event delta=236{
+note-on channel=0 key=69 vel=68
+        }
+event delta=349{
+note-off channel=0 key=74 vel=64
+        }
+event delta=64{
+note-on channel=0 key=74 vel=70
+        }
+event delta=391{
+note-off channel=0 key=74 vel=70
+        }
+event delta=25{
+note-on channel=0 key=67 vel=75
+        }
+event delta=15{
+note-off channel=0 key=71 vel=68
+        }
+event delta=388{
+note-on channel=0 key=74 vel=72
+        }
+event delta=11{
+note-off channel=0 key=67 vel=75
+        }
+event delta=367{
+note-off channel=0 key=69 vel=68
+        }
+event delta=43{
+note-on channel=0 key=69 vel=64
+        }
+event delta=372{
+note-off channel=0 key=74 vel=72
+        }
+event delta=52{
+note-on channel=0 key=74 vel=76
+        }
+event delta=387{
+note-off channel=0 key=69 vel=64
+        }
+event delta=8{
+note-off channel=0 key=74 vel=76
+        }
+event delta=56{
+note-on channel=0 key=59 vel=70
+        }
+event delta=219{
+note-on channel=0 key=62 vel=65
+        }
+event delta=225{
+note-on channel=0 key=67 vel=79
+        }
+event delta=237{
+note-on channel=0 key=71 vel=67
+        }
+event delta=177{
+note-off channel=0 key=59 vel=70
+        }
+event delta=47{
+note-on channel=0 key=64 vel=75
+        }
+event delta=148{
+note-off channel=0 key=67 vel=79
+        }
+event delta=82{
+note-on channel=0 key=67 vel=70
+        }
+event delta=151{
+note-off channel=0 key=62 vel=65
+        }
+event delta=76{
+note-on channel=0 key=62 vel=69
+        }
+event delta=177{
+note-off channel=0 key=67 vel=70
+        }
+event delta=47{
+note-on channel=0 key=67 vel=79
+        }
+event delta=215{
+note-off channel=0 key=64 vel=75
+        }
+event delta=32{
+note-on channel=0 key=59 vel=71
+        }
+event delta=134{
+note-off channel=0 key=62 vel=69
+        }
+event delta=87{
+note-on channel=0 key=62 vel=71
+        }
+event delta=194{
+note-off channel=0 key=67 vel=79
+        }
+event delta=41{
+note-on channel=0 key=67 vel=74
+        }
+event delta=97{
+note-off channel=0 key=71 vel=67
+        }
+event delta=116{
+note-on channel=0 key=71 vel=72
+        }
+event delta=174{
+note-off channel=0 key=59 vel=71
+        }
+event delta=59{
+note-on channel=0 key=64 vel=69
+        }
+event delta=155{
+note-off channel=0 key=67 vel=74
+        }
+event delta=82{
+note-on channel=0 key=67 vel=70
+        }
+event delta=142{
+note-off channel=0 key=62 vel=71
+        }
+event delta=83{
+note-on channel=0 key=62 vel=66
+        }
+event delta=179{
+note-off channel=0 key=67 vel=70
+        }
+event delta=59{
+note-on channel=0 key=67 vel=69
+        }
+event delta=175{
+note-off channel=0 key=64 vel=69
+        }
+event delta=85{
+note-on channel=0 key=59 vel=69
+        }
+event delta=148{
+note-off channel=0 key=62 vel=66
+        }
+event delta=99{
+note-on channel=0 key=62 vel=67
+        }
+event delta=224{
+note-off channel=0 key=67 vel=69
+        }
+event delta=71{
+note-on channel=0 key=67 vel=68
+        }
+event delta=208{
+note-off channel=0 key=71 vel=72
+        }
+event delta=99{
+note-on channel=0 key=71 vel=65
+        }
+event delta=280{
+controller channel=0 cc=67 value=1
+        }
+event delta=81{
+note-on channel=0 key=43 vel=65
+        }
+event delta=91{
+controller channel=0 cc=64 value=127
+        }
+event delta=52{
+note-off channel=0 key=67 vel=68
+        }
+event delta=10{
+note-off channel=0 key=59 vel=69
+        }
+event delta=0{
+note-off channel=0 key=62 vel=67
+        }
+event delta=23{
+note-off channel=0 key=71 vel=65
+        }
+event delta=87{
+note-on channel=0 key=50 vel=69
+        }
+event delta=236{
+note-on channel=0 key=59 vel=74
+        }
+event delta=176{
+note-off channel=0 key=59 vel=74
+        }
+event delta=40{
+note-on channel=0 key=57 vel=80
+        }
+event delta=51{
+note-off channel=0 key=50 vel=69
+        }
+event delta=62{
+note-off channel=0 key=57 vel=80
+        }
+event delta=89{
+note-on channel=0 key=59 vel=94
+        }
+event delta=103{
+note-off channel=0 key=59 vel=94
+        }
+event delta=101{
+note-on channel=0 key=50 vel=71
+        }
+event delta=202{
+note-on channel=0 key=59 vel=85
+        }
+event delta=21{
+note-off channel=0 key=50 vel=71
+        }
+event delta=64{
+note-off channel=0 key=43 vel=65
+        }
+event delta=49{
+note-off channel=0 key=59 vel=85
+        }
+event delta=61{
+note-on channel=0 key=55 vel=86
+        }
+event delta=206{
+note-on channel=0 key=43 vel=82
+        }
+event delta=16{
+controller channel=0 cc=64 value=0
+        }
+event delta=89{
+controller channel=0 cc=64 value=127
+        }
+event delta=106{
+note-on channel=0 key=50 vel=78
+        }
+event delta=108{
+note-off channel=0 key=55 vel=86
+        }
+event delta=110{
+note-on channel=0 key=59 vel=83
+        }
+event delta=111{
+note-off channel=0 key=59 vel=83
+        }
+event delta=92{
+note-on channel=0 key=57 vel=77
+        }
+event delta=5{
+note-off channel=0 key=50 vel=78
+        }
+event delta=80{
+note-off channel=0 key=57 vel=77
+        }
+event delta=108{
+note-on channel=0 key=59 vel=93
+        }
+event delta=97{
+note-off channel=0 key=59 vel=93
+        }
+event delta=100{
+note-on channel=0 key=50 vel=73
+        }
+event delta=189{
+note-off channel=0 key=43 vel=82
+        }
+event delta=26{
+note-on channel=0 key=59 vel=89
+        }
+event delta=123{
+note-off channel=0 key=59 vel=89
+        }
+event delta=57{
+note-off channel=0 key=50 vel=73
+        }
+event delta=11{
+note-on channel=0 key=55 vel=78
+        }
+event delta=160{
+controller channel=0 cc=64 value=0
+        }
+event delta=6{
+note-off channel=0 key=55 vel=78
+        }
+event delta=42{
+note-on channel=0 key=45 vel=89
+        }
+event delta=91{
+controller channel=0 cc=64 value=127
+        }
+event delta=117{
+note-on channel=0 key=52 vel=80
+        }
+event delta=216{
+note-on channel=0 key=57 vel=80
+        }
+event delta=9{
+note-on channel=0 key=60 vel=73
+        }
+event delta=140{
+note-off channel=0 key=60 vel=73
+        }
+event delta=7{
+note-off channel=0 key=45 vel=89
+        }
+event delta=61{
+note-on channel=0 key=59 vel=85
+        }
+event delta=39{
+note-off channel=0 key=57 vel=80
+        }
+event delta=75{
+note-off channel=0 key=52 vel=80
+        }
+event delta=54{
+note-off channel=0 key=59 vel=85
+        }
+event delta=1{
+controller channel=0 cc=64 value=0
+        }
+event delta=51{
+note-on channel=0 key=43 vel=72
+        }
+event delta=7{
+note-on channel=0 key=60 vel=85
+        }
+event delta=46{
+controller channel=0 cc=64 value=127
+        }
+event delta=166{
+note-on channel=0 key=52 vel=66
+        }
+event delta=35{
+note-off channel=0 key=60 vel=85
+        }
+event delta=97{
+note-off channel=0 key=43 vel=72
+        }
+event delta=34{
+note-off channel=0 key=52 vel=66
+        }
+event delta=48{
+note-on channel=0 key=60 vel=84
+        }
+event delta=197{
+note-on channel=0 key=40 vel=71
+        }
+event delta=143{
+note-off channel=0 key=40 vel=71
+        }
+event delta=21{
+controller channel=0 cc=64 value=0
+        }
+event delta=88{
+note-on channel=0 key=42 vel=73
+        }
+event delta=17{
+note-off channel=0 key=60 vel=84
+        }
+event delta=64{
+controller channel=0 cc=64 value=127
+        }
+event delta=137{
+note-on channel=0 key=50 vel=58
+        }
+event delta=279{
+note-on channel=0 key=57 vel=64
+        }
+event delta=6{
+note-on channel=0 key=60 vel=72
+        }
+event delta=111{
+note-off channel=0 key=57 vel=64
+        }
+event delta=14{
+note-off channel=0 key=42 vel=73
+        }
+event delta=35{
+note-off channel=0 key=60 vel=72
+        }
+event delta=69{
+note-off channel=0 key=50 vel=58
+        }
+event delta=14{
+note-on channel=0 key=59 vel=75
+        }
+event delta=84{
+controller channel=0 cc=67 value=127
+        }
+event delta=62{
+controller channel=0 cc=64 value=0
+        }
+event delta=38{
+note-off channel=0 key=59 vel=75
+        }
+event delta=144{
+note-on channel=0 key=59 vel=74
+        }
+event delta=235{
+note-on channel=0 key=62 vel=72
+        }
+event delta=242{
+note-on channel=0 key=67 vel=74
+        }
+event delta=241{
+note-on channel=0 key=71 vel=66
+        }
+event delta=179{
+note-off channel=0 key=59 vel=74
+        }
+event delta=61{
+note-on channel=0 key=64 vel=60
+        }
+event delta=163{
+note-off channel=0 key=67 vel=74
+        }
+event delta=59{
+note-on channel=0 key=67 vel=64
+        }
+event delta=143{
+note-off channel=0 key=62 vel=72
+        }
+event delta=78{
+note-on channel=0 key=62 vel=61
+        }
+event delta=207{
+note-off channel=0 key=67 vel=64
+        }
+event delta=31{
+note-on channel=0 key=67 vel=75
+        }
+event delta=222{
+note-off channel=0 key=64 vel=60
+        }
+event delta=23{
+note-on channel=0 key=59 vel=64
+        }
+event delta=184{
+note-off channel=0 key=62 vel=61
+        }
+event delta=33{
+note-on channel=0 key=62 vel=57
+        }
+event delta=181{
+note-off channel=0 key=67 vel=75
+        }
+event delta=54{
+note-on channel=0 key=67 vel=68
+        }
+event delta=177{
+note-off channel=0 key=71 vel=66
+        }
+event delta=50{
+note-on channel=0 key=71 vel=58
+        }
+event delta=195{
+note-off channel=0 key=59 vel=64
+        }
+event delta=50{
+note-on channel=0 key=64 vel=60
+        }
+event delta=182{
+note-off channel=0 key=67 vel=68
+        }
+event delta=68{
+note-on channel=0 key=67 vel=70
+        }
+event delta=195{
+note-off channel=0 key=62 vel=57
+        }
+event delta=56{
+note-on channel=0 key=62 vel=57
+        }
+event delta=191{
+note-off channel=0 key=67 vel=70
+        }
+event delta=63{
+note-on channel=0 key=67 vel=66
+        }
+event delta=249{
+note-off channel=0 key=64 vel=60
+        }
+event delta=41{
+note-on channel=0 key=59 vel=61
+        }
+event delta=207{
+note-off channel=0 key=62 vel=57
+        }
+event delta=69{
+note-on channel=0 key=62 vel=55
+        }
+event delta=260{
+note-off channel=0 key=67 vel=66
+        }
+event delta=88{
+note-on channel=0 key=67 vel=56
+        }
+event delta=323{
+note-off channel=0 key=71 vel=58
+        }
+event delta=70{
+note-on channel=0 key=71 vel=62
+        }
+event delta=309{
+controller channel=0 cc=67 value=0
+        }
+event delta=373{
+note-on channel=0 key=43 vel=62
+        }
+event delta=548{
+controller channel=0 cc=64 value=127
+        }
+event delta=3217{
+controller channel=0 cc=64 value=0
+        }
+event delta=161{
+note-off channel=0 key=43 vel=62
+        }
+event delta=21{
+note-off channel=0 key=59 vel=61
+        }
+event delta=2{
+note-off channel=0 key=62 vel=55
+        }
+event delta=0{
+note-off channel=0 key=67 vel=56
+        }
+event delta=15{
+note-off channel=0 key=71 vel=62
+        }
+event delta=0{
+end-of-track
+        }
+    }
+}
