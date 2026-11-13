@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crossbeam_queue::ArrayQueue;
 use midir::MidiOutput as MidirOutput;
 use tokio::sync::mpsc;
+use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
 
 use crate::clock::{Clock, ClockArgs};
@@ -272,6 +273,9 @@ impl Conductor {
     /// arrives or an update is ready to fan out. Returns when the
     /// ZMQ transport is closed or all senders are dropped.
     pub async fn run(mut self) {
+        let mut drain_interval = time::interval(Duration::from_millis(1));
+        drain_interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
+
         loop {
             tokio::select! {
                 cmd = self.transport.recv_command() => {
@@ -298,10 +302,31 @@ impl Conductor {
                         None        => break,
                     }
                 }
+                _ = drain_interval.tick() => {
+                    self.drain_midi_queue();
+                }
             }
         }
     }
 
+    /// Drain the RT midi_queue into the open MIDI output connection.
+    ///
+    /// Called on every conductor tick (~1 ms). No-op if no port is
+    /// selected or the queue is empty.
+    fn drain_midi_queue(&mut self) {
+        let Some(conn) = self.midi_connection.as_mut() else {
+            // Drain and discard — don't let the queue fill up with
+            // stale events if no port is selected.
+            while self.midi_queue.pop().is_some() {}
+            return;
+        };
+
+        while let Some(bytes) = self.midi_queue.pop() {
+            if let Err(e) = conn.send(&bytes) {
+                warn!(error = %e, "drain_midi_queue: send failed");
+            }
+        }
+    }
     /// Dispatch a `TransportCommand` to the appropriate handler.
     async fn handle_command(&mut self, cmd: TransportCommand) {
         debug!(?cmd, "handle_command");
