@@ -1,10 +1,8 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-
+use mush_core::Response;
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
-use mush_core::Response;
-
 use crate::version;
 
 #[derive(Parser, Debug)]
@@ -22,16 +20,32 @@ enum MashCommand {
         #[arg(long)]
         long: bool,
     },
-    /// List available audio devices
+    /// List available audio hosts
+    Hosts,
+    /// Get or set the active audio host
+    Host {
+        /// Host name to select; omit to query the current host
+        name: Option<String>,
+    },
+    /// List available audio devices on the active host
     Devices,
+    /// Get or set the active audio output device
+    Device {
+        /// Device name to select; omit to query the current device
+        name: Option<String>,
+    },
     /// Load an audio file
     Load { path: PathBuf },
-    /// Save current session
+    /// Save the current session
     Save { path: PathBuf },
     /// Start audio playback
     Play,
     /// Start recording
-    Record,
+    Record {
+        /// Optional path to save the recording when stopped
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+    },
     /// Monitor live audio
     Monitor,
     /// Stop playback or recording
@@ -61,21 +75,51 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
                     Response::Output(version::short())
                 }
             }
+
+            MashCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
+
+            MashCommand::Host { name } => {
+                send(client, TransportCommand::AudioHost(name)).await
+            }
+
             MashCommand::Devices => send(client, TransportCommand::AudioDevices).await,
-            MashCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
-            MashCommand::Save { .. } => Response::Output("save: not yet implemented".into()),
+
+            MashCommand::Device { name } => {
+                send(client, TransportCommand::AudioDevice(name)).await
+            }
+
+            MashCommand::Load { path } => {
+                send(client, TransportCommand::LoadMidi(path)).await
+            }
+
+            MashCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
+
             MashCommand::Play => send(client, TransportCommand::Play).await,
+
             MashCommand::Stop => send(client, TransportCommand::Stop).await,
-            MashCommand::Record => Response::Output("record: not yet implemented".into()),
-            MashCommand::Monitor => Response::Output("monitor: not yet implemented".into()),
+
+            MashCommand::Record { path: _ } => {
+                Response::Output("record: not yet implemented".into())
+            }
+
+            MashCommand::Monitor => {
+                Response::Output("monitor: not yet implemented".into())
+            }
         },
         Err(e) => Response::Output(e.render().to_string()),
     }
 }
 
 async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
-    if let Err(e) = client.send_command(&cmd).await {
-        return Response::Output(format!("error: {e}"));
+    tracing::debug!(?cmd, "send_command called");
+    match client.send_command(&cmd).await {
+        Ok(()) => {
+            tracing::debug!(?cmd, "send_command ok");
+            Response::Empty
+        }
+        Err(ref e) => {
+            tracing::error!(?cmd, error = e, "send_command failed");
+            Response::Output(format!("error: {e}"))
+        }
     }
-    Response::Empty
 }

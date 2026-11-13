@@ -1,5 +1,5 @@
 use crate::AudioPlugin;
-use mush_core::audio::engine::AudioResponse;
+use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, Type, Value};
 
@@ -8,16 +8,12 @@ pub struct DevicesRefresh;
 impl SimplePluginCommand for DevicesRefresh {
     type Plugin = AudioPlugin;
 
-    fn name(&self) -> &str {
-        "audio devices-refresh"
-    }
-
-    fn description(&self) -> &str {
-        "Refresh and list available audio hosts and devices"
-    }
+    fn name(&self) -> &str { "audio devices-refresh" }
+    fn description(&self) -> &str { "Refresh and list available audio hosts and devices" }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name())
+            .input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
@@ -27,9 +23,20 @@ impl SimplePluginCommand for DevicesRefresh {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
-        Ok(match plugin.engine.devices_refresh() {
-            AudioResponse::Output(s) => Value::string(s, Span::unknown()),
-            _ => Value::nothing(Span::unknown()),
-        })
+        let mut client = plugin.client.lock().expect("client lock poisoned");
+        // Refresh = invalidate then re-enumerate; reuse AudioDevices command
+        // which the conductor handles by re-enumerating unconditionally when
+        // the cache is stale. A dedicated RefreshDevices command can be added
+        // to TransportCommand in a follow-up if needed.
+        plugin.rt
+            .block_on(client.send_command(&TransportCommand::AudioDevices))
+            .map_err(|e| LabeledError::new(e.to_string()))?;
+
+        let update = plugin.rt.block_on(client.recv_update());
+        let s = update
+            .and_then(|u| mush_core::format::format_update(&u))
+            .unwrap_or_else(|| "no response".to_string());
+
+        Ok(Value::string(s, Span::unknown()))
     }
 }

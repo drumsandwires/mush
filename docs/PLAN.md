@@ -478,6 +478,92 @@ This is the critical path. All of 8.1 and 8.2 unblock once this is done.
 - [ ] Add arms for all new `EngineUpdate` variants added in 8.3.4
 - [ ] Add unit tests for each new arm
 
+#### 8.3.12.a — Add mush-midi-codec crate ✅
+
+- [x] Create crates/mush-midi-codec/ with workspace registration
+- [x] error.rs — ParseError, FormatError via thiserror
+- [x] status.rs — StatusKind enum, symbol table, wire encoding
+- [x] note.rs — scientific pitch notation ↔ MIDI note number (C-1…G9)
+- [x] velocity.rs — dynamic marking symbols ↔ MIDI velocity (pppp…ffff, pf)
+- [x] parse.rs — &str → Vec<u8>, numeric + symbolic + mixed + SysEx
+- [x] format.rs — Vec<u8> → String, Style::Long / Style::Short
+- [x] lib.rs — public API, doc examples
+- [x] 87 unit tests + 2 doc tests, all passing
+- [x] Round-trip guarantee: parse(format(bytes, Long)?) == Ok(bytes)
+- [x] No engine, ZMQ, audio, or shell dependencies
+
+#### 8.3.12b — Wire MVP command surface ✅
+
+mish-shell
+
+- [x] Rename Devices → Ports (sends MidiDevices)
+- [x] qAdd Port [<name>] — get/set active MIDI output port (MidiPort)
+- [x] Send <msg> — parse via mush-midi-codec, send SendMessage
+- [x] Wire Save <path> — Save(path)
+- [x] Wire Record [--path] — Record { start: true, path }
+- [x] Wire Monitor [<path>] — Monitor { path }
+- [x] Fix Load — .mudl → LoadMudl, else LoadMidi
+
+mash-shell
+
+- [x] Add Hosts — AudioHosts
+- [x] Add Host [<name>] — AudioHost
+- [x] Add Device [<name>] — AudioDevice
+- [x] Wire Save <path> — Save(path)
+- [x] Record, Monitor — deferred to 8.3.12c (no audio-specific TransportCommand variants yet)
+
+mush-shell
+
+- [x] Rename midi devices → midi ports
+- [x] Add midi port [<name>]
+- [x] Add midi send <msg>
+- [x] Wire midi save <path>
+- [x] Wire midi record [--path]
+- [x] Wire midi monitor [<path>]
+- [x] Fix midi load — .mudl → LoadMudl, else LoadMidi
+- [x] Add audio hosts
+- [x] Add audio host [<name>]
+- [x] Add audio device [<name>]
+- [x] Wire audio save <path>
+- [x] audio record, audio monitor — deferred to 8.3.12c
+
+nu_plugin_midi
+
+- [x] Replace Devices with Ports + Port
+- [x] Add Load — .mudl → LoadMudl, else LoadMidi
+- [x] Add Save
+- [x] Add Send — mush-midi-codec parse → SendMessage
+- [x] Wire Record — replace stub
+- [x] Wire Monitor — replace stub
+- [x] Wire pipeline input on Play — QueueEvent per row
+
+nu_plugin_live_audio
+
+- [x] Extract AudioPlugin into lib.rs
+- [x] Refactor to ZMQ → Conductor architecture (mirrors nu_plugin_midi)
+- [x] Add Hosts — AudioHosts
+- [x] Add Host [<name>] — AudioHost
+- [x] Add Device [<name>] — AudioDevice
+- [x] Wire Play, Stop, Record via TransportCommand
+- [x] Wire Devices, DevicesRefresh via TransportCommand
+
+#### 8.3.12c — Audio host/device selection in mush-core (new)
+
+Unblocked by 8.3.12b. mash-shell Record/Monitor and nu_plugin_live_audio Host/Device are fully wired to TransportCommand — the conductor just needs to act on them properly.
+
+- [ ] Add active_host: Option<String> state to Conductor
+- [ ] Add active_device: Option<String> state to Conductor
+- [ ] Handle AudioHost(Some(name)) — set active host, emit ActiveHost
+- [ ] Handle AudioHost(None) — query, emit ActiveHost
+- [ ] Handle AudioDevice(Some(name)) — set active device, emit ActiveDevice
+- [ ] Handle AudioDevice(None) — query, emit ActiveDevice
+- [ ] Wire active host/device into AudioEngine on Play
+- [ ] Add TransportCommand::AudioRecord { path } and AudioMonitor variants
+- [ ] Handle AudioRecord in conductor — start capture on audio stream
+- [ ] Handle AudioMonitor in conductor — stream metering updates
+- [ ] Wire mash-shell Record and Monitor
+- [ ] Wire mush-shell audio record and audio monitor
+
 #### 8.3.12 Confirm MVP command surface end-to-end
 
 - [ ] `midi ports` — returns structured port list
