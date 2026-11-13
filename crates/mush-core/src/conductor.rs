@@ -652,10 +652,16 @@ impl Conductor {
             status_tx: self.audio_tx.clone(),
             sample_rate: self.sample_rate,
             extract_midi: extract_midi_payload,
+            host_name: self.state.audio_host(),
+            device_name: self.state.audio_device(),
         };
 
         self.clock = Some(Clock::start(args));
-        debug!("clock started");
+        debug!(
+            host   = ?self.state.audio_host(),
+            device = ?self.state.audio_device(),
+            "clock started",
+        );
     }
 
     /// Stop the master clock.
