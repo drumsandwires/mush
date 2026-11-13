@@ -14,8 +14,6 @@ use tracing::{error, info, warn};
 use crate::timeline::TimelineEvent;
 use crate::update::AudioUpdate;
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 /// Number of frames per software clock tick.
 /// Matches a typical hardware buffer size.
 const BUFFER_SIZE: u64 = 512;
@@ -24,19 +22,21 @@ const BUFFER_SIZE: u64 = 512;
 /// 4_410 samples ≈ 100ms at 44.1kHz — avoids flooding the channel.
 const REPORT_INTERVAL: u64 = 4_410;
 
-// ── Error type ────────────────────────────────────────────────────────────────
-
 /// Errors that can occur when starting the clock.
 #[derive(Debug, Error)]
 pub enum ClockError {
     #[error("no default audio output device available")]
     NoDevice,
 
+    #[error("requested audio host '{0}' is not available on this system")]
+    UnknownHost(String),
+
+    #[error("requested audio device '{0}' is not available on host '{1}'")]
+    UnknownDevice(String, String),
+
     #[error("cpal error: {0}")]
     Cpal(#[from] cpal::Error),
 }
-
-// ── ClockArgs ─────────────────────────────────────────────────────────────────
 
 /// Arguments shared between `Clock::start`, `try_cpal`,
 /// and `start_software`.
@@ -65,9 +65,15 @@ where
     /// Returns `None` for non-MIDI payloads (e.g. `TempoChange`).
     /// Called on the RT path — must not allocate or block.
     pub extract_midi: fn(&P) -> Option<[u8; 3]>,
+    /// CPAL host name to use for playback.
+    /// `None` — use `cpal::default_host()`.
+    /// `Some(name)` — resolve via `cpal::available_hosts()`.
+    pub host_name: Option<String>,
+    /// CPAL output device name to use for playback.
+    /// `None` — use the host's default output device.
+    /// `Some(name)` — resolve via `host.output_devices()`.
+    pub device_name: Option<String>,
 }
-
-// ── Clock ─────────────────────────────────────────────────────────────────────
 
 /// The master clock. Drives MIDI dispatch and playhead advancement.
 ///
@@ -97,9 +103,6 @@ impl Clock {
     where
         P: Clone + Send + Sync + 'static,
     {
-        // Clone all Arc fields before consuming `args` in `try_cpal`.
-        // If cpal succeeds these clones are dropped cheaply.
-        // If cpal fails they are moved into the software clock.
         let fallback = ClockArgs {
             playhead: Arc::clone(&args.playhead),
             is_playing: Arc::clone(&args.is_playing),
@@ -109,6 +112,8 @@ impl Clock {
             status_tx: args.status_tx.clone(),
             sample_rate: args.sample_rate,
             extract_midi: args.extract_midi,
+            host_name: args.host_name.clone(),
+            device_name: args.device_name.clone(),
         };
 
         match Self::try_cpal(args) {
@@ -137,11 +142,43 @@ impl Clock {
             midi_queue,
             status_tx,
             extract_midi,
+            host_name,
+            device_name,
             ..
         } = args;
 
-        let host = cpal::default_host();
-        let device = host.default_output_device().ok_or(ClockError::NoDevice)?;
+        // ── Host resolution ───────────────────────────────────────────────────
+        let host = match host_name {
+            None => cpal::default_host(),
+            Some(ref name) => cpal::available_hosts()
+                .into_iter()
+                .find_map(|id| {
+                    let h = cpal::host_from_id(id).ok()?;
+                    if h.id().name() == name.as_str() {
+                        Some(h)
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| ClockError::UnknownHost(name.clone()))?,
+        };
+
+        // ── Device resolution ─────────────────────────────────────────────────
+        let device = match device_name {
+            None => host.default_output_device().ok_or(ClockError::NoDevice)?,
+            Some(ref name) => host
+                .output_devices()
+                .map_err(cpal::Error::from)?
+                .find(|d| {
+                    d.description()
+                        .map(|desc| desc.name() == name.as_str())
+                        .unwrap_or(false)
+                })
+                .ok_or_else(|| {
+                    ClockError::UnknownDevice(name.clone(), host.id().name().to_string())
+                })?,
+        };
+
         let config: StreamConfig = device.default_output_config()?.into();
         let channels = config.channels as usize;
 
@@ -207,6 +244,8 @@ impl Clock {
     where
         P: Clone + Send + Sync + 'static,
     {
+        // Destructure with `..` — `host_name` and `device_name` are not
+        // used by the software clock; it has no audio device to open.
         let ClockArgs {
             playhead,
             is_playing,
@@ -216,6 +255,7 @@ impl Clock {
             status_tx,
             sample_rate,
             extract_midi,
+            ..
         } = args;
 
         let tick_duration = Duration::from_secs_f64(BUFFER_SIZE as f64 / sample_rate as f64);
