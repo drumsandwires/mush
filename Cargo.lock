@@ -2401,6 +2401,7 @@ dependencies = [
  "nu-plugin",
  "nu-protocol",
  "shadow-rs 1.7.1",
+ "tmq",
  "tokio",
 ]
 

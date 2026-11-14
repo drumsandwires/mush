@@ -236,6 +236,36 @@ cargo fmt --all
 cargo fmt --all -- --check
 ```
 
+## plugin-add (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+cargo build --package nu_plugin_${plugin} --release
+nu -c "plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
+```
+
+## plugin-rm (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+nu -c "do -i {plugin rm $plugin}; plugin list | where name == $plugin"
+```
+
+## plugin-ls (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+nu -c "plugin list | where name == $plugin"
+```
+
+
+
 ## plugin-test (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
