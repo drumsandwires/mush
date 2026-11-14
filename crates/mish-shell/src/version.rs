@@ -1,18 +1,2 @@
-use shadow_rs::shadow;
+mush_core::version_module!("mish");
 
-shadow!(build);
-
-pub fn short() -> String {
-    mush_core::version::short("mish", build::PKG_VERSION)
-}
-
-pub fn long() -> String {
-    mush_core::version::long(
-        "mish",
-        build::PKG_VERSION,
-        build::BRANCH,
-        build::SHORT_COMMIT,
-        build::BUILD_TIME,
-        build::RUST_VERSION,
-    )
-}

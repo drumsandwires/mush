@@ -1970,6 +1970,7 @@ dependencies = [
  "reedline",
  "rmp-serde",
  "serde",
+ "shadow-rs 1.7.1",
  "tempfile",
  "thiserror 2.0.21",
  "tmq",
@@ -2386,6 +2387,7 @@ dependencies = [
  "mush-core",
  "nu-plugin",
  "nu-protocol",
+ "shadow-rs 1.7.1",
  "tokio",
 ]
 
@@ -2398,6 +2400,7 @@ dependencies = [
  "mush-midi-codec",
  "nu-plugin",
  "nu-protocol",
+ "shadow-rs 1.7.1",
  "tokio",
 ]
 

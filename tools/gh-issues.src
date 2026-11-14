@@ -1,0 +1,71 @@
+# Bugs
+gh issue create \
+  --title "BUG-3: midi stop — no All Notes Off sent on all 16 channels" \
+  --body "midi stop does not send CC 123 (All Notes Off) on all 16 channels before halting the clock. Notes may hang on the synth after stop." \
+  --label "bug,midi,shell"
+
+gh issue create \
+  --title "BUG-4: midi load <file>.mudl — LoadMudl not yet implemented" \
+  --body "Loading a .mudl file via \`midi load\` returns: \`MIDI error: LoadMudl not yet implemented\`. Stub only." \
+  --label "bug,midi,codec,shell"
+
+gh issue create \
+  --title "BUG-5: midi monitor — returns immediately instead of streaming" \
+  --body "\`midi monitor\` returns immediately with the port name instead of streaming live MIDI input events to the terminal." \
+  --label "bug,midi,shell"
+
+gh issue create \
+  --title "BUG-6: midi record — returns immediately with no output" \
+  --body "\`midi record\` returns immediately with no output or confirmation. Recording does not start." \
+  --label "bug,midi,shell"
+
+gh issue create \
+  --title "BUG-7: audio host — case-sensitive, requires exact title case" \
+  --body "\`audio host <name>\` is case-sensitive and requires exact title case (e.g. \`Alsa\`). Should match case-insensitively." \
+  --label "bug,audio,shell"
+
+gh issue create \
+  --title "BUG-8: audio hosts — shows current host instead of listing all hosts" \
+  --body "\`audio hosts\` should print a numbered list of all available hosts (like \`midi ports\` does). Currently shows the currently selected host instead." \
+  --label "bug,audio,shell"
+
+gh issue create \
+  --title "BUG-10: nu_plugin_midi / nu_plugin_live_audio — all commands hang indefinitely" \
+  --body "All \`nu_plugin_midi\` and \`nu_plugin_live_audio\` plugin commands hang indefinitely in Nushell and are uninterruptible via Ctrl+C, requiring shell restart. Hard blocker for all Nushell plugin testing." \
+  --label "bug,midi,audio,nushell,blocked"
+
+# Enhancements
+gh issue create \
+  --title "ENHANCE-1: midi port — accept index or substring match" \
+  --body "\`midi port <name>\` should accept an integer index or substring match in addition to the full port name." \
+  --label "enhancement,midi,shell"
+
+gh issue create \
+  --title "ENHANCE-2: mush-shell — spacebar maps to stop" \
+  --body "During playback, recording, or monitoring, pressing spacebar should trigger stop without requiring the user to type \`midi stop\`." \
+  --label "enhancement,shell"
+
+gh issue create \
+  --title "ENHANCE-3: mush-midi-codec — symbolic CC names not supported" \
+  --body "\`mush_midi_codec\` only accepts numeric or hex CC values. Symbolic names (e.g. \`sustain\`, \`modwheel\`) are not supported." \
+  --label "enhancement,midi,codec"
+
+gh issue create \
+  --title "ENHANCE-4: All shells — suppress ALSA stderr noise" \
+  --body "ALSA emits verbose stderr noise during device enumeration. Should be suppressed by default, with an opt-in via flag or environment variable." \
+  --label "enhancement,audio,shell"
+
+gh issue create \
+  --title "ENHANCE-5: audio host / audio device — show resolved default name" \
+  --body "\`audio host\` and \`audio device\` should display the actual resolved device name alongside the \`(default)\` indicator." \
+  --label "enhancement,audio,shell"
+
+gh issue create \
+  --title "ENHANCE-6: mush-shell — add top-level stop command" \
+  --body "Add a top-level \`stop\` command that stops all active MIDI and audio playback/recording in one shot, without requiring \`midi stop\` and \`audio stop\` separately." \
+  --label "enhancement,midi,audio,shell"
+
+gh issue create \
+  --title "ENHANCE-8: nu_plugin_midi — help midi not found; add top-level midi command" \
+  --body "\`help midi\` returns not found in Nushell despite the plugin being loaded. Add a top-level \`midi\` command that prints usage, matching the shell UX." \
+  --label "enhancement,midi,nushell"

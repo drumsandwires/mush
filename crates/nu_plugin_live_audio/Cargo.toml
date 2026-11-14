@@ -16,3 +16,6 @@ nu-protocol = { workspace = true }
 mush-core   = { workspace = true }
 tokio       = { workspace = true }
 anyhow      = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }
