@@ -1,0 +1,6 @@
+gh label create "midi" --description "MIDI engine, codec, or transport" --color "#5e60ce"
+gh label create "audio" --description "Audio host, device, or stream" --color "#48cae4"
+gh label create "nushell" --description "Nu plugin or Nushell integration" --color "#56cfe1"
+gh label create "shell" --description "mash-shell, mush-shell, or mish-shell" --color "#80b918"
+gh label create "codec" --description "MUDL or MIDI codec" --color "#f77f00"
+gh label create "blocked" --description "Blocked on another issue" --color "#e63946"

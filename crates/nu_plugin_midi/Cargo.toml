@@ -13,3 +13,6 @@ mush-core        = { workspace = true }
 mush-midi-codec  = { workspace = true }
 tokio            = { workspace = true }
 anyhow           = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }
