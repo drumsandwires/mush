@@ -34,11 +34,12 @@ impl SimplePluginCommand for Record {
         let path = path.map(PathBuf::from);
 
         let mut client = plugin.client.lock().expect("client lock poisoned");
+        let mut handle = plugin.handle.lock().expect("handle lock poisoned");
         plugin.rt
             .block_on(client.send_command(&TransportCommand::Record { start: true, path }))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
-        let update = plugin.rt.block_on(client.recv_update());
+        let update = plugin.rt.block_on(handle.recv());
         let s = update
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "ok".to_string());
