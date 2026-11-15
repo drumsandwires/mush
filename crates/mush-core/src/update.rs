@@ -1,7 +1,9 @@
+use crate::audio::types::AudioSystemInfo;
+use crate::midi::types::MidiPortInfo;
 use serde::{Deserialize, Serialize};
 
 /// Updates emitted by the audio engine or Conductor.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AudioUpdate {
     /// Playhead advanced to this sample position.
     /// Emitted periodically — not on every buffer.
@@ -15,7 +17,7 @@ pub enum AudioUpdate {
 
     /// Response to `TransportCommand::AudioDevices`.
     /// Formatted string at MVP — retire when frontends use `DeviceList`.
-    DeviceList(String),
+    DeviceList(AudioSystemInfo),
 
     /// Response to `TransportCommand::AudioHosts`.
     /// Structured list of host names available on this platform.
@@ -36,14 +38,14 @@ pub enum AudioUpdate {
 }
 
 /// Updates emitted by the MIDI engine or Conductor.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MidiUpdate {
     /// A MIDI event was dispatched to the output port.
     EventDispatched { channel: u8, note: u8, vel: u8 },
 
     /// Response to `TransportCommand::MidiDevices`.
     /// Formatted string at MVP — retire when frontends use `ActivePort`.
-    PortList(String),
+    PortList(Vec<MidiPortInfo>),
 
     /// Response to `TransportCommand::MidiPort(None/Some)`.
     /// `None` — no port selected; first available is in use.
@@ -72,9 +74,8 @@ pub enum MidiUpdate {
 /// The top-level update type flowing from engine to frontends.
 /// Wraps `AudioUpdate` and `MidiUpdate` so frontends receive a
 /// single stream of updates regardless of source.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EngineUpdate {
     Audio(AudioUpdate),
     Midi(MidiUpdate),
 }
-

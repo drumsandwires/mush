@@ -1,4 +1,8 @@
-use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
+use crate::{
+    audio::display::list_hosts_and_devices,
+    midi::display::list_enumerated_devices,
+    update::{AudioUpdate, EngineUpdate, MidiUpdate},
+};
 
 /// Convert an [`EngineUpdate`] into a display string.
 ///
@@ -10,16 +14,10 @@ use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 /// in future, but for MVP the output is identical across shells.
 pub fn format_update(update: &EngineUpdate) -> Option<String> {
     match update {
-        EngineUpdate::Audio(AudioUpdate::TransportStarted) => {
-            Some("▶ transport started".into())
-        }
-        EngineUpdate::Audio(AudioUpdate::TransportStopped) => {
-            Some("■ transport stopped".into())
-        }
+        EngineUpdate::Audio(AudioUpdate::TransportStarted) => Some("▶ transport started".into()),
+        EngineUpdate::Audio(AudioUpdate::TransportStopped) => Some("■ transport stopped".into()),
         EngineUpdate::Audio(AudioUpdate::PlayheadMoved(_)) => None,
-        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => {
-            Some(format!("audio devices:\n{s}"))
-        }
+        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => Some(list_hosts_and_devices(&s)),
         EngineUpdate::Audio(AudioUpdate::HostList(hosts)) => {
             if hosts.is_empty() {
                 Some("audio hosts: none found".into())
@@ -29,40 +27,30 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
         }
         EngineUpdate::Audio(AudioUpdate::ActiveHost(name)) => Some(match name {
             Some(n) => format!("audio host: {n}"),
-            None    => "audio host: (default)".into(),
+            None => "audio host: (default)".into(),
         }),
         EngineUpdate::Audio(AudioUpdate::ActiveDevice(name)) => Some(match name {
             Some(n) => format!("audio device: {n}"),
-            None    => "audio device: (default)".into(),
+            None => "audio device: (default)".into(),
         }),
-        EngineUpdate::Audio(AudioUpdate::Error(e)) => {
-            Some(format!("✗ audio error: {e}"))
-        }
-        EngineUpdate::Midi(MidiUpdate::PortList(s)) => {
-            Some(format!("MIDI ports:\n{s}"))
-        }
+        EngineUpdate::Audio(AudioUpdate::Error(e)) => Some(format!("✗ audio error: {e}")),
+        EngineUpdate::Midi(MidiUpdate::PortList(s)) => list_enumerated_devices(&s),
         EngineUpdate::Midi(MidiUpdate::EventDispatched { channel, note, vel }) => {
             Some(format!("▶ MIDI event — ch:{channel} note:{note} vel:{vel}"))
         }
         EngineUpdate::Midi(MidiUpdate::ActivePort(name)) => Some(match name {
             Some(n) => format!("MIDI port: {n}"),
-            None    => "MIDI port: (none selected)".into(),
+            None => "MIDI port: (none selected)".into(),
         }),
-        EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => {
-            Some(format!("✓ loaded {path}"))
-        }
-        EngineUpdate::Midi(MidiUpdate::SaveAck(path)) => {
-            Some(format!("✓ saved {path}"))
-        }
+        EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => Some(format!("✓ loaded {path}")),
+        EngineUpdate::Midi(MidiUpdate::SaveAck(path)) => Some(format!("✓ saved {path}")),
         EngineUpdate::Midi(MidiUpdate::RecordSaved(path)) => {
             Some(format!("✓ recording saved to {path}"))
         }
         EngineUpdate::Midi(MidiUpdate::RecordEmpty) => {
             Some("recording stopped — no events captured".into())
         }
-        EngineUpdate::Midi(MidiUpdate::Error(e)) => {
-            Some(format!("✗ MIDI error: {e}"))
-        }
+        EngineUpdate::Midi(MidiUpdate::Error(e)) => Some(format!("✗ MIDI error: {e}")),
     }
 }
 
@@ -111,14 +99,8 @@ mod tests {
 
     #[test]
     fn host_list_multiple_formats() {
-        let u = EngineUpdate::Audio(AudioUpdate::HostList(vec![
-            "ALSA".into(),
-            "JACK".into(),
-        ]));
-        assert_eq!(
-            format_update(&u),
-            Some("audio hosts:\nALSA\nJACK".into())
-        );
+        let u = EngineUpdate::Audio(AudioUpdate::HostList(vec!["ALSA".into(), "JACK".into()]));
+        assert_eq!(format_update(&u), Some("audio hosts:\nALSA\nJACK".into()));
     }
 
     #[test]
@@ -169,8 +151,8 @@ mod tests {
     fn event_dispatched_formats() {
         let u = EngineUpdate::Midi(MidiUpdate::EventDispatched {
             channel: 1,
-            note:    60,
-            vel:     100,
+            note: 60,
+            vel: 100,
         });
         assert_eq!(
             format_update(&u),
@@ -190,10 +172,7 @@ mod tests {
     #[test]
     fn active_port_none_formats() {
         let u = EngineUpdate::Midi(MidiUpdate::ActivePort(None));
-        assert_eq!(
-            format_update(&u),
-            Some("MIDI port: (none selected)".into())
-        );
+        assert_eq!(format_update(&u), Some("MIDI port: (none selected)".into()));
     }
 
     #[test]
@@ -205,10 +184,7 @@ mod tests {
     #[test]
     fn save_ack_formats() {
         let u = EngineUpdate::Midi(MidiUpdate::SaveAck("output/song.mid".into()));
-        assert_eq!(
-            format_update(&u),
-            Some("✓ saved output/song.mid".into())
-        );
+        assert_eq!(format_update(&u), Some("✓ saved output/song.mid".into()));
     }
 
     #[test]
@@ -235,3 +211,4 @@ mod tests {
         assert_eq!(format_update(&u), Some("✗ MIDI error: no device".into()));
     }
 }
+
