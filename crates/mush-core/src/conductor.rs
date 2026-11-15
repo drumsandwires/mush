@@ -382,12 +382,31 @@ impl Conductor {
             }
 
             TransportCommand::LoadMudl(path) => {
-                // TODO 8.x: parse KDL via mudld::kdl_to_smf, build timeline
-                let _ = path;
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
-                    "LoadMudl not yet implemented".into(),
-                )))
-                .await;
+                let bpm = self.state.bpm();
+                let sr = self.sample_rate;
+                let result =
+                    crate::midi::timeline::load_mudl(&path, sr, bpm).map_err(|e| e.to_string());
+                match result {
+                    Ok((events, tpb)) => {
+                        let path_str = path.display().to_string();
+                        let count = events.len();
+                        *self.timeline.write().unwrap() = events;
+                        self.ticks_per_beat = tpb;
+                        self.state
+                            .next_event_idx
+                            .store(0, std::sync::atomic::Ordering::Release);
+                        debug!(path = %path_str, events = count, tpb, "mudl timeline loaded");
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path_str)))
+                            .await;
+                    }
+                    Err(e) => {
+                        warn!(path = %path.display(), error = %e, "LoadMudl failed");
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                            "LoadMudl failed: {e}"
+                        ))))
+                        .await;
+                    }
+                }
             }
 
             TransportCommand::Save(path) => {

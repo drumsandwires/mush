@@ -16,31 +16,31 @@ pub enum MidiPayload {
     TempoChange(f64),
 }
 
-/// Build a sample-accurate timeline from raw MIDI bytes.
-///
-/// # Arguments
-/// - `bytes`       — raw contents of a .mid file
-/// - `sample_rate` — audio device sample rate in Hz (e.g. 44_100)
-/// - `initial_bpm` — tempo to use before any tempo event is encountered
+/// Load a MIDI file from disk and build its timeline.
 ///
 /// # Returns
 /// A tuple of:
 /// - sorted `Vec<TimelineEvent>` ready for linear dispatch
-/// - the tick resolution (ticks-per-beat) from the file header,
-///   for use when re-exporting to `.mid` or `.mudl`
-pub fn load_midi_bytes(
-    bytes: &[u8],
+/// - the tick resolution (ticks-per-beat) from the file header
+pub fn load_midi(
+    path: &Path,
     sample_rate: u32,
     initial_bpm: f64,
 ) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
-    let smf = Smf::parse(bytes)?;
+    let bytes = std::fs::read(path)?;
+    load_midi_bytes(&bytes, sample_rate, initial_bpm)
+}
 
+/// Convert an already-parsed `Smf` into a sorted timeline.
+/// Shared by `load_midi_bytes` and `load_mudl`.
+fn smf_to_timeline(
+    smf: Smf,
+    sample_rate: u32,
+    initial_bpm: f64,
+) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
     let ticks_per_beat = match smf.header.timing {
         Timing::Metrical(tpb) => tpb.as_int(),
-        Timing::Timecode(fps, subframe) => {
-            // Convert SMPTE timecode to an equivalent ticks_per_beat.
-            (fps.as_f32() * subframe as f32) as u16
-        }
+        Timing::Timecode(fps, subframe) => (fps.as_f32() * subframe as f32) as u16,
     };
 
     let mut events: Vec<TimelineEvent<MidiPayload>> = Vec::new();
@@ -55,7 +55,10 @@ pub fn load_midi_bytes(
                     let sample_pos = tempo_map.ticks_to_samples(absolute_tick);
                     let payload = midi_message_to_payload(channel.as_int(), message);
                     if let Some(payload) = payload {
-                        events.push(TimelineEvent { sample_pos, payload });
+                        events.push(TimelineEvent {
+                            sample_pos,
+                            payload,
+                        });
                     }
                 }
                 TrackEventKind::Meta(MetaMessage::Tempo(us_per_beat)) => {
@@ -76,19 +79,39 @@ pub fn load_midi_bytes(
     Ok((events, ticks_per_beat))
 }
 
-/// Load a MIDI file from disk and build its timeline.
+//// Build a sample-accurate timeline from raw MIDI bytes.
+///
+/// # Arguments
+/// - `bytes`       — raw contents of a .mid file
+/// - `sample_rate` — audio device sample rate in Hz (e.g. 44_100)
+/// - `initial_bpm` — tempo to use before any tempo event is encountered
 ///
 /// # Returns
 /// A tuple of:
 /// - sorted `Vec<TimelineEvent>` ready for linear dispatch
-/// - the tick resolution (ticks-per-beat) from the file header
-pub fn load_midi(
+/// - the tick resolution (ticks-per-beat) from the file header,
+///   for use when re-exporting to `.mid` or `.mudl`
+
+// Refactor `load_midi_bytes` to delegate to `smf_to_timeline`.
+pub fn load_midi_bytes(
+    bytes: &[u8],
+    sample_rate: u32,
+    initial_bpm: f64,
+) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
+    let smf = Smf::parse(bytes)?;
+    smf_to_timeline(smf, sample_rate, initial_bpm)
+}
+
+/// Load a `.mudl` KDL file and build its timeline.
+pub fn load_mudl(
     path: &Path,
     sample_rate: u32,
     initial_bpm: f64,
 ) -> Result<(Vec<TimelineEvent<MidiPayload>>, u16), Box<dyn std::error::Error>> {
-    let bytes = std::fs::read(path)?;
-    load_midi_bytes(&bytes, sample_rate, initial_bpm)
+    let text = std::fs::read_to_string(path)?;
+    let doc: kdl::KdlDocument = text.parse()?;
+    let smf = mudld::kdl_to_smf(&doc)?;
+    smf_to_timeline(smf, sample_rate, initial_bpm)
 }
 
 /// Tracks tempo changes and converts tick positions to sample positions.
@@ -118,7 +141,8 @@ impl TempoMap {
     /// Register a tempo change at a given absolute tick position.
     fn add_change(&mut self, at_tick: u64, us_per_beat: u64) {
         let samples_at_change = self.ticks_to_samples(at_tick);
-        self.changes.push((at_tick, us_per_beat, samples_at_change as f64));
+        self.changes
+            .push((at_tick, us_per_beat, samples_at_change as f64));
     }
 
     /// Convert an absolute tick position to an absolute sample position.
@@ -178,7 +202,9 @@ mod tests {
     fn timeline_is_sorted() {
         let (events, _tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
         assert!(
-            events.windows(2).all(|w| w[0].sample_pos <= w[1].sample_pos),
+            events
+                .windows(2)
+                .all(|w| w[0].sample_pos <= w[1].sample_pos),
             "timeline is not sorted by sample_pos"
         );
     }
@@ -187,7 +213,9 @@ mod tests {
     fn timeline_contains_midi_events() {
         let (events, _tpb) = load_midi_bytes(TEST_MID, 44_100, 120.0).unwrap();
         assert!(
-            events.iter().any(|e| matches!(e.payload, MidiPayload::Midi(_))),
+            events
+                .iter()
+                .any(|e| matches!(e.payload, MidiPayload::Midi(_))),
             "no MIDI events found in timeline"
         );
     }
@@ -235,3 +263,4 @@ mod tests {
         assert!(tpb > 0, "ticks_per_beat must be non-zero");
     }
 }
+
