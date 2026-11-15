@@ -3,7 +3,7 @@ use crate::midi::types::MidiPortInfo;
 use serde::{Deserialize, Serialize};
 
 /// Updates emitted by the audio engine or Conductor.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AudioUpdate {
     /// Playhead advanced to this sample position.
     /// Emitted periodically — not on every buffer.
@@ -38,7 +38,7 @@ pub enum AudioUpdate {
 }
 
 /// Updates emitted by the MIDI engine or Conductor.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MidiUpdate {
     /// A MIDI event was dispatched to the output port.
     EventDispatched { channel: u8, note: u8, vel: u8 },
@@ -74,7 +74,7 @@ pub enum MidiUpdate {
 /// The top-level update type flowing from engine to frontends.
 /// Wraps `AudioUpdate` and `MidiUpdate` so frontends receive a
 /// single stream of updates regardless of source.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EngineUpdate {
     Audio(AudioUpdate),
     Midi(MidiUpdate),

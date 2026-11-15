@@ -7,7 +7,7 @@ pub enum MidiPortDirection {
     Output,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiPortInfo {
     pub index: usize,
     pub name: String,

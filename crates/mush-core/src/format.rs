@@ -59,6 +59,9 @@ mod tests {
     use super::*;
     use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 
+    use crate::audio::types::{AudioDeviceInfo, AudioHostInfo, AudioSystemInfo};
+
+    use crate::midi::types::{MidiPortDirection, MidiPortInfo};
     // ── AudioUpdate ───────────────────────────────────────────────────────────
 
     #[test]
@@ -81,8 +84,20 @@ mod tests {
 
     #[test]
     fn device_list_formats() {
-        let u = EngineUpdate::Audio(AudioUpdate::DeviceList("ALSA: hw:0".into()));
-        assert_eq!(format_update(&u), Some("audio devices:\nALSA: hw:0".into()));
+        let u = EngineUpdate::Audio(AudioUpdate::DeviceList(AudioSystemInfo {
+            hosts: vec![AudioHostInfo {
+                name: "ALSA".into(),
+                devices: vec![AudioDeviceInfo {
+                    description: "hw:0".into(),
+                    is_default_input: false,
+                    is_default_output: false,
+                    input_channels: None,
+                    output_channels: None,
+                    supported_rates: None,
+                }],
+            }],
+        }));
+        assert_eq!(format_update(&u), Some("Host: ALSA\n  • hw:0\n".into()));
     }
 
     #[test]
@@ -140,11 +155,12 @@ mod tests {
 
     #[test]
     fn port_list_formats() {
-        let u = EngineUpdate::Midi(MidiUpdate::PortList("port 0: IAC Driver".into()));
-        assert_eq!(
-            format_update(&u),
-            Some("MIDI ports:\nport 0: IAC Driver".into())
-        );
+        let u = EngineUpdate::Midi(MidiUpdate::PortList(vec![MidiPortInfo {
+            index: 0,
+            name: "IAC Driver".into(),
+            direction: MidiPortDirection::Output,
+        }]));
+        assert_eq!(format_update(&u), Some("OUT 0: IAC Driver".into()));
     }
 
     #[test]
