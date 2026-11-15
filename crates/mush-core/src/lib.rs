@@ -9,6 +9,8 @@ pub mod rt_priority;
 pub mod shell;
 pub mod sink;
 pub mod subscription;
+#[cfg(test)]
+pub mod test_utils;
 pub mod timeline;
 pub mod transport;
 pub mod update;

@@ -695,8 +695,21 @@ impl Conductor {
     /// before the stream is dropped.
     fn stop_clock(&mut self) {
         self.state.stop();
+        self.send_all_notes_off();
         self.clock = None;
         debug!("clock stopped");
+    }
+
+    pub fn send_all_notes_off(&mut self) {
+        match self.midi_connection.as_mut() {
+            None => warn!("stop_clock: no MIDI connection — cannot send All Notes Off"),
+            Some(out) => {
+                for ch in 0u8..16 {
+                    let _ = out.send(&[0xB0 | ch, 120, 0]); // All Sound Off
+                    let _ = out.send(&[0xB0 | ch, 123, 0]); // All Notes Off
+                }
+            }
+        }
     }
 
     // ── MIDI output ───────────────────────────────────────────────────────────
@@ -1049,6 +1062,7 @@ fn open_midi_port_by_name(name: &str) -> Result<DesktopMidiOutput, String> {
 mod tests {
     use super::*;
     use crate::addrs;
+    use crate::test_utils::MockMidiOutput;
     use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 
     const SAMPLE_RATE: u32 = 44_100;
@@ -1443,5 +1457,20 @@ mod tests {
         };
         conductor.handle_input_event(event).await;
         assert_eq!(conductor.record_buffer.as_ref().unwrap().len(), 1);
+    }
+    #[tokio::test]
+    async fn stop_sends_all_notes_off_on_all_channels() {
+        let mock = MockMidiOutput::new();
+        let messages = Arc::clone(&mock.messages);
+        let (mut conductor, ..) = make_conductor();
+        conductor.midi_connection = Some(Box::new(mock));
+        conductor.send_all_notes_off();
+
+        let msgs = messages.lock().unwrap();
+        assert_eq!(msgs.len(), 32);
+        for ch in 0u8..16 {
+            assert_eq!(msgs[ch as usize * 2], vec![0xB0 | ch, 120, 0]);
+            assert_eq!(msgs[ch as usize * 2 + 1], vec![0xB0 | ch, 123, 0]);
+        }
     }
 }
