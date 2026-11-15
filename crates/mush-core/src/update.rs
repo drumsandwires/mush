@@ -1,3 +1,5 @@
+use crate::audio::types::AudioSystemInfo;
+use crate::midi::types::MidiPortInfo;
 use serde::{Deserialize, Serialize};
 
 /// Updates emitted by the audio engine or Conductor.
@@ -15,7 +17,7 @@ pub enum AudioUpdate {
 
     /// Response to `TransportCommand::AudioDevices`.
     /// Formatted string at MVP — retire when frontends use `DeviceList`.
-    DeviceList(String),
+    DeviceList(AudioSystemInfo),
 
     /// Response to `TransportCommand::AudioHosts`.
     /// Structured list of host names available on this platform.
@@ -43,7 +45,7 @@ pub enum MidiUpdate {
 
     /// Response to `TransportCommand::MidiDevices`.
     /// Formatted string at MVP — retire when frontends use `ActivePort`.
-    PortList(String),
+    PortList(Vec<MidiPortInfo>),
 
     /// Response to `TransportCommand::MidiPort(None/Some)`.
     /// `None` — no port selected; first available is in use.
@@ -77,4 +79,3 @@ pub enum EngineUpdate {
     Audio(AudioUpdate),
     Midi(MidiUpdate),
 }
-

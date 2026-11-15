@@ -1,3 +1,4 @@
+use mush_core::midi::types::MidiPortDirection;
 use mush_core::transport::TransportCommand;
 use mush_core::update::{EngineUpdate, MidiUpdate};
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
@@ -32,34 +33,23 @@ impl SimplePluginCommand for Ports {
 
         let update = plugin.rt.block_on(handle.recv());
 
-        let port_list = match update {
-            Some(EngineUpdate::Midi(MidiUpdate::PortList(s))) => s,
+        let ports = match update {
+            Some(EngineUpdate::Midi(MidiUpdate::PortList(ports))) => ports,
             _ => return Err(LabeledError::new("unexpected or missing response from conductor")),
         };
 
         let span = Span::unknown();
-        let rows = port_list
-            .lines()
-            .filter(|l| !l.trim().is_empty())
-            .map(|line| {
-                // Format: "IN  0: Name" or "OUT 0: Name"
-                let (direction, rest) = if line.starts_with("IN") {
-                    ("IN", line.trim_start_matches("IN").trim())
-                } else if line.starts_with("OUT") {
-                    ("OUT", line.trim_start_matches("OUT").trim())
-                } else {
-                    ("?", line.trim())
+        let rows = ports
+            .into_iter()
+            .map(|port| {
+                let direction = match port.direction {
+                    MidiPortDirection::Input => "IN",
+                    MidiPortDirection::Output => "OUT",
                 };
-
-                // rest is "0: Port Name"
-                let (index, name) = rest.split_once(':')
-                    .map(|(i, n)| (i.trim(), n.trim()))
-                    .unwrap_or(("?", rest));
-
                 let mut record = Record::new();
                 record.push("direction", Value::string(direction, span));
-                record.push("index", Value::int(index.parse().unwrap_or(-1), span));
-                record.push("name", Value::string(name, span));
+                record.push("index", Value::int(port.index as i64, span));
+                record.push("name", Value::string(port.name, span));
                 Value::record(record, span)
             })
             .collect::<Vec<_>>();

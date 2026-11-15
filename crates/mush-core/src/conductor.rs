@@ -8,7 +8,6 @@ use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
 
 use crate::clock::{Clock, ClockArgs};
-use crate::midi::display::list_enumerated_devices;
 use crate::midi::engine::DesktopMidiOutput;
 use crate::midi::enumerate::list_midi_ports;
 use crate::midi::input::{InputEvent, MidiInputHandle};
@@ -712,11 +711,7 @@ impl Conductor {
                 warn!(error = %e, "MidiDevices enumeration failed");
                 MidiUpdate::Error(format!("failed to enumerate MIDI ports: {e}"))
             }
-            Ok(ref ports) => {
-                let listing = list_enumerated_devices(ports)
-                    .unwrap_or_else(|| "no MIDI devices found".into());
-                MidiUpdate::PortList(listing)
-            }
+            Ok(ref ports) => MidiUpdate::PortList(ports.clone()),
         };
         self.emit_all(EngineUpdate::Midi(update)).await;
     }
@@ -890,8 +885,7 @@ impl Conductor {
                         let single = crate::audio::types::AudioSystemInfo {
                             hosts: vec![host.clone()],
                         };
-                        let listing = crate::audio::display::list_hosts_and_devices(&single);
-                        self.emit_all(EngineUpdate::Audio(AudioUpdate::DeviceList(listing)))
+                        self.emit_all(EngineUpdate::Audio(AudioUpdate::DeviceList(single)))
                             .await;
                     }
                 }
