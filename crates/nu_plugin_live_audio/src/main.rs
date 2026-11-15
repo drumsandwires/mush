@@ -7,7 +7,7 @@ fn main() -> anyhow::Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     let rt_handle = rt.handle().clone();
 
-    let (mut conductor, midi_queue, audio_tx, midi_tx, ctx, sub_handle) =
+    let (conductor, midi_queue, audio_tx, midi_tx, ctx, sub_handle) =
         rt_handle.block_on(async {
             let (mut conductor, midi_queue, audio_tx, midi_tx) = Conductor::new(
                 mush_core::addrs::CMD_INPROC,

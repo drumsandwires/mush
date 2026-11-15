@@ -1,6 +1,6 @@
 use crate::AudioPlugin;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
+use nu_protocol::{LabeledError, Signature, SyntaxShape, Type, Value};
 
 pub struct Record;
 
