@@ -1,5 +1,4 @@
 use mush_core::conductor::Conductor;
-use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
 use nu_plugin::{MsgPackSerializer, serve_plugin};
 use nu_plugin_midi::MidiPlugin;
@@ -8,7 +7,7 @@ fn main() -> anyhow::Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     let rt_handle = rt.handle().clone();
 
-    let (mut conductor, midi_queue, audio_tx, midi_tx, ctx, mut sub_handle) =
+    let (conductor, midi_queue, audio_tx, midi_tx, ctx, sub_handle) =
         rt_handle.block_on(async {
             let (mut conductor, midi_queue, audio_tx, midi_tx) = Conductor::new(
                 mush_core::addrs::CMD_INPROC,
@@ -20,7 +19,7 @@ fn main() -> anyhow::Result<()> {
             Ok::<_, anyhow::Error>((conductor, midi_queue, audio_tx, midi_tx, ctx, sub_handle))
         })?;
 
-    let mut client = rt_handle.block_on(async {
+    let client = rt_handle.block_on(async {
         Ok::<_, anyhow::Error>(ZmqClient::connect(
             &ctx,
             mush_core::addrs::CMD_INPROC,
@@ -46,4 +45,3 @@ fn main() -> anyhow::Result<()> {
     serve_plugin(&plugin, MsgPackSerializer);
     Ok(())
 }
-
