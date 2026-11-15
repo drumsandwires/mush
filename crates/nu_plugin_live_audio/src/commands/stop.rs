@@ -13,7 +13,7 @@ impl SimplePluginCommand for Stop {
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
-            .input_output_type(Type::Nothing, Type::String)
+            .input_output_type(Type::Nothing, Type::Nothing)
     }
 
     fn run(
@@ -24,15 +24,11 @@ impl SimplePluginCommand for Stop {
         _input: &Value,
     ) -> Result<Value, LabeledError> {
         let mut client = plugin.client.lock().expect("client lock poisoned");
+        let mut handle = plugin.handle.lock().expect("handle lock poisoned");
         plugin.rt
             .block_on(client.send_command(&TransportCommand::Stop))
             .map_err(|e| LabeledError::new(e.to_string()))?;
-
-        let update = plugin.rt.block_on(client.recv_update());
-        let s = update
-            .and_then(|u| mush_core::format::format_update(&u))
-            .unwrap_or_else(|| "ok".to_string());
-
-        Ok(Value::string(s, Span::unknown()))
+        let _ = plugin.rt.block_on(handle.recv());
+        Ok(Value::nothing(Span::unknown()))
     }
 }
