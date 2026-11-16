@@ -22,7 +22,12 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
             if hosts.is_empty() {
                 Some("audio hosts: none found".into())
             } else {
-                Some(format!("audio hosts:\n{}", hosts.join("\n")))
+                let lines: Vec<String> = hosts
+                    .iter()
+                    .enumerate()
+                    .map(|(i, h)| format!("{i}: {h}"))
+                    .collect();
+                Some(format!("audio hosts:\n{}", lines.join("\n")))
             }
         }
         EngineUpdate::Audio(AudioUpdate::ActiveHost(name)) => Some(match name {
@@ -102,21 +107,24 @@ mod tests {
     }
 
     #[test]
-    fn host_list_empty_formats() {
+    fn host_list_empty() {
         let u = EngineUpdate::Audio(AudioUpdate::HostList(vec![]));
         assert_eq!(format_update(&u), Some("audio hosts: none found".into()));
     }
 
     #[test]
-    fn host_list_single_formats() {
+    fn host_list_single() {
         let u = EngineUpdate::Audio(AudioUpdate::HostList(vec!["ALSA".into()]));
-        assert_eq!(format_update(&u), Some("audio hosts:\nALSA".into()));
+        assert_eq!(format_update(&u), Some("audio hosts:\n0: ALSA".into()));
     }
 
     #[test]
-    fn host_list_multiple_formats() {
+    fn host_list_multiple() {
         let u = EngineUpdate::Audio(AudioUpdate::HostList(vec!["ALSA".into(), "JACK".into()]));
-        assert_eq!(format_update(&u), Some("audio hosts:\nALSA\nJACK".into()));
+        assert_eq!(
+            format_update(&u),
+            Some("audio hosts:\n0: ALSA\n1: JACK".into())
+        );
     }
 
     #[test]
