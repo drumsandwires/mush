@@ -338,6 +338,10 @@ impl Conductor {
             }
 
             TransportCommand::Stop => {
+                // If a recording is in progress, save it before stopping.
+                if self.record_buffer.is_some() {
+                    self.stop_record(None).await;
+                }
                 self.stop_clock();
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStopped))
                     .await;
@@ -611,10 +615,11 @@ impl Conductor {
 
         // Ensure pre-roll is fed during record regardless of prior mode.
         self.pre_roll_active = true;
-
         self.record_buffer = Some(Vec::new());
         self.record_path = path;
         debug!("record started");
+        self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordStarted))
+            .await;
     }
 
     /// Stop the bounded record capture and save.
@@ -655,8 +660,9 @@ impl Conductor {
         match crate::midi::preroll::save_events(&buffer, &path) {
             Ok(()) => {
                 let path_str = path.display().to_string();
+                let count = buffer.len();
                 info!(path = %path_str, events = buffer.len(), "record saved");
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordSaved(path_str)))
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordSaved(path_str, count)))
                     .await;
             }
             Err(e) => {

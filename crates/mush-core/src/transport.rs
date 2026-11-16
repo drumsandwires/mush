@@ -19,10 +19,10 @@ pub trait HasSamplePos {
 /// Never accessed from the audio callback.
 #[derive(Debug, Default, Clone)]
 pub struct ProjectMeta {
-    pub title:         String,
-    pub artist:        String,
-    pub bpm:           f64,
-    pub time_sig_num:  u8,
+    pub title: String,
+    pub artist: String,
+    pub bpm: f64,
+    pub time_sig_num: u8,
     pub time_sig_denom: u8,
 }
 
@@ -35,10 +35,10 @@ pub struct ProjectMeta {
 /// to samples using the current BPM and sample rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiEvent {
-    pub beat:     f64,
-    pub channel:  u8,
-    pub note:     u8,
-    pub vel:      u8,
+    pub beat: f64,
+    pub channel: u8,
+    pub note: u8,
+    pub vel: u8,
     pub duration: f64,
 }
 
@@ -103,15 +103,15 @@ pub struct TransportState {
 impl TransportState {
     pub fn new(bpm: f64) -> Arc<Self> {
         Arc::new(Self {
-            playhead:               Arc::new(AtomicU64::new(0)),
-            is_playing:             Arc::new(AtomicBool::new(false)),
-            bpm_milli:              Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
-            next_event_idx:         Arc::new(AtomicUsize::new(0)),
-            meta:                   Arc::new(RwLock::new(ProjectMeta::default())),
-            active_midi_port:       Arc::new(RwLock::new(None)),
+            playhead: Arc::new(AtomicU64::new(0)),
+            is_playing: Arc::new(AtomicBool::new(false)),
+            bpm_milli: Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
+            next_event_idx: Arc::new(AtomicUsize::new(0)),
+            meta: Arc::new(RwLock::new(ProjectMeta::default())),
+            active_midi_port: Arc::new(RwLock::new(None)),
             active_midi_input_port: Arc::new(RwLock::new(None)),
-            active_audio_host:      Arc::new(RwLock::new(None)),
-            active_audio_device:    Arc::new(RwLock::new(None)),
+            active_audio_host: Arc::new(RwLock::new(None)),
+            active_audio_device: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -120,7 +120,8 @@ impl TransportState {
     }
 
     pub fn set_bpm(&self, bpm: f64) {
-        self.bpm_milli.store((bpm * 1000.0) as u64, Ordering::Relaxed);
+        self.bpm_milli
+            .store((bpm * 1000.0) as u64, Ordering::Relaxed);
     }
 
     pub fn play(&self) {
@@ -239,12 +240,12 @@ pub enum TransportCommand {
     ///   `path: None`    — use pre-specified path, or generate a
     ///                     timestamped default if none was given.
     ///
-    /// Conductor responds with `MidiUpdate::RecordSaved(path)`
+    /// Conductor responds with `MidiUpdate::RecordSaved(path, count)`
     /// or `MidiUpdate::RecordEmpty` if nothing was captured.
     /// Emits `MidiUpdate::Error` if stop is called with no active capture.
     Record {
         start: bool,
-        path:  Option<PathBuf>,
+        path: Option<PathBuf>,
     },
 
     /// Open the MIDI input port and forward events to the Conductor.
@@ -252,13 +253,17 @@ pub enum TransportCommand {
     /// Autosave path is optional — overrides any previously set path.
     ///
     /// Alias: `midi monitor` / `midi monitor <path>`
-    Monitor { path: Option<PathBuf> },
+    Monitor {
+        path: Option<PathBuf>,
+    },
 
     /// Open the MIDI input port, forward events, and feed the pre-roll.
     /// Autosave path is optional — overrides any previously set path.
     ///
     /// Alias: `midi listen` / `midi listen on` / `midi listen enable`
-    Listen { path: Option<PathBuf> },
+    Listen {
+        path: Option<PathBuf>,
+    },
 
     /// Stop monitoring or listening. Closes the MIDI input port.
     /// No-op if neither Monitor nor Listen is active.
@@ -343,7 +348,7 @@ mod tests {
 
     #[test]
     fn seek_positions_cursor_correctly() {
-        let ts       = TransportState::new(120.0);
+        let ts = TransportState::new(120.0);
         let timeline = vec![
             TestEvent(0),
             TestEvent(44_100),
@@ -351,23 +356,23 @@ mod tests {
             TestEvent(132_300),
         ];
         ts.seek(44_100, &timeline);
-        assert_eq!(ts.playhead.load(Ordering::Acquire),       44_100);
+        assert_eq!(ts.playhead.load(Ordering::Acquire), 44_100);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 1);
     }
 
     #[test]
     fn seek_to_zero_resets_cursor() {
-        let ts       = TransportState::new(120.0);
+        let ts = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
         ts.seek(44_100, &timeline);
         ts.seek(0, &timeline);
-        assert_eq!(ts.playhead.load(Ordering::Acquire),       0);
+        assert_eq!(ts.playhead.load(Ordering::Acquire), 0);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), 0);
     }
 
     #[test]
     fn seek_past_end_positions_cursor_at_len() {
-        let ts       = TransportState::new(120.0);
+        let ts = TransportState::new(120.0);
         let timeline = vec![TestEvent(0), TestEvent(44_100)];
         ts.seek(999_999, &timeline);
         assert_eq!(ts.next_event_idx.load(Ordering::Acquire), timeline.len());
@@ -429,3 +434,4 @@ mod tests {
         assert_eq!(ts.audio_device(), None);
     }
 }
+

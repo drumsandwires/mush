@@ -44,11 +44,12 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
         }),
         EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => Some(format!("✓ loaded {path}")),
         EngineUpdate::Midi(MidiUpdate::SaveAck(path)) => Some(format!("✓ saved {path}")),
-        EngineUpdate::Midi(MidiUpdate::RecordSaved(path)) => {
-            Some(format!("✓ recording saved to {path}"))
+        EngineUpdate::Midi(MidiUpdate::RecordStarted) => Some("⏺ recording started".into()),
+        EngineUpdate::Midi(MidiUpdate::RecordSaved(path, count)) => {
+            Some(format!("✓ {count} events saved to {path}"))
         }
         EngineUpdate::Midi(MidiUpdate::RecordEmpty) => {
-            Some("recording stopped — no events captured".into())
+            Some("recording stopped — 0 events captured".into())
         }
         EngineUpdate::Midi(MidiUpdate::Error(e)) => Some(format!("✗ MIDI error: {e}")),
     }
@@ -205,10 +206,10 @@ mod tests {
 
     #[test]
     fn record_saved_formats() {
-        let u = EngineUpdate::Midi(MidiUpdate::RecordSaved("/tmp/take-1.mudl".into()));
+        let u = EngineUpdate::Midi(MidiUpdate::RecordSaved("/tmp/take-1.mudl".into(), 42));
         assert_eq!(
             format_update(&u),
-            Some("✓ recording saved to /tmp/take-1.mudl".into())
+            Some("✓ 42 events saved to /tmp/take-1.mudl".into())
         );
     }
 
@@ -217,7 +218,7 @@ mod tests {
         let u = EngineUpdate::Midi(MidiUpdate::RecordEmpty);
         assert_eq!(
             format_update(&u),
-            Some("recording stopped — no events captured".into())
+            Some("recording stopped — 0 events captured".into())
         );
     }
 
@@ -227,4 +228,3 @@ mod tests {
         assert_eq!(format_update(&u), Some("✗ MIDI error: no device".into()));
     }
 }
-
