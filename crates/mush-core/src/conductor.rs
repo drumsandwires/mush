@@ -905,11 +905,14 @@ impl Conductor {
             Ok(info) => {
                 let active_host = self.state.audio_host();
 
+                // line 909 — AudioDevices host lookup
                 let host_info = match active_host {
-                    Some(ref name) => info.hosts.iter().find(|h| &h.name == name),
+                    Some(ref name) => info
+                        .hosts
+                        .iter()
+                        .find(|h| h.name.eq_ignore_ascii_case(name)),
                     None => info.hosts.first(),
                 };
-
                 match host_info {
                     None => {
                         self.emit_all(EngineUpdate::Audio(AudioUpdate::Error(
@@ -953,12 +956,16 @@ impl Conductor {
                     .await;
                 }
                 Ok(info) => {
-                    let known = info.hosts.iter().any(|h| &h.name == host_name);
-                    if known {
-                        self.state.set_audio_host(Some(host_name.clone()));
-                        debug!(host = %host_name, "audio host selected");
+                    let matched = info
+                        .hosts
+                        .iter()
+                        .find(|h| h.name.eq_ignore_ascii_case(host_name.as_str()));
+                    if let Some(host) = matched {
+                        let canonical = host.name.clone();
+                        self.state.set_audio_host(Some(canonical.clone()));
+                        debug!(host = %canonical, "audio host selected");
                         self.emit_all(EngineUpdate::Audio(AudioUpdate::ActiveHost(Some(
-                            host_name.clone(),
+                            canonical,
                         ))))
                         .await;
                     } else {
