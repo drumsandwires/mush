@@ -60,9 +60,12 @@ pub enum MidiUpdate {
     /// Payload is the path as a display string.
     LoadMudlAck(String),
 
+    /// Capture started successfully — MIDI input is now open and recording.
+    RecordStarted,
+
     /// Capture stopped and the recording was saved successfully.
     /// Payload is the absolute path as a display string.
-    RecordSaved(String),
+    RecordSaved(String, usize),
 
     /// Capture stopped but no events were recorded — nothing written.
     RecordEmpty,
