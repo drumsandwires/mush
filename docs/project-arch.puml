@@ -1,0 +1,74 @@
+@startuml mush_crate_map
+
+skinparam defaultFontName "JetBrains Mono"
+skinparam defaultFontSize 12
+top to bottom direction
+
+title mush — Crate Map (MVP)
+
+package "MIDI UIs" {
+    component [mish-shell\nREPL · Reedline] as MISH
+    component [nu_plugin_midi\nNushell plugin] as NUMIDI
+}
+
+package "Audio UIs" {
+    component [mash-shell\nREPL · Reedline] as MASH
+    component [nu_plugin_live_audio\nNushell plugin] as NUAUDIO
+}
+
+package "Combined UI" {
+    component [mush-shell\nREPL · Reedline\nMIDI + Audio + DAW] as MUSH
+}
+
+package "Codec / IO" {
+    component [mush-midi-codec\nMIDI message CLI parser/formatter] as CODEC
+    component [mudld\n.mid ↔ .mudl (KDL) codec] as MUDLD
+}
+
+package "mush-core (embedded at MVP)" {
+    component [Conductor\nTokio · ZMQ inproc] as CORE
+    component [TransportState\nArc · atomics] as TS
+    component [Clock\ncpal callback · software fallback] as CLK
+    component [MidiEngine\nhi-pri thread · SCHED_FIFO] as ME
+    component [AudioEngine\nTBD] as AE
+}
+
+package "Hardware" {
+    component [Audio Interface\ncpal] as AI
+    component [MIDI Interface\nmidir] as MI
+}
+
+' MIDI UI → codec
+MISH   -d-> CODEC
+NUMIDI -d-> CODEC
+MUSH   -d-> CODEC
+
+' All UIs → core
+MISH    -d-> CORE
+NUMIDI  -d-> CORE
+MASH    -d-> CORE
+NUAUDIO -d-> CORE
+MUSH    -d-> CORE
+
+' core → codec/io
+CORE -d-> MUDLD
+
+' core internals
+CORE -d-> TS
+CORE -d-> CLK
+CORE -d-> ME
+CORE -d-> AE
+CLK  -r-> ME : crossbeam\nArrayQueue
+
+' RT → hardware
+CLK -d-> AI
+ME  -d-> MI
+AE  -d-> AI
+
+note bottom of CORE
+  Post-MVP: extract mush-core into mush-server binary.
+  Change ZMQ inproc:// → tcp://5252/5253.
+  No other code changes required.
+end note
+
+@enduml
