@@ -237,6 +237,8 @@ impl Conductor {
             input_mode: InputMode::Off,
         };
 
+        info!(sample_rate, "conductor created");
+
         Ok((conductor, midi_queue, audio_tx, midi_tx))
     }
 
@@ -271,7 +273,9 @@ impl Conductor {
     /// Suspends on `tokio::select!` — wakes only when a command
     /// arrives or an update is ready to fan out. Returns when the
     /// ZMQ transport is closed or all senders are dropped.
+    #[tracing::instrument(skip(self), name = "conductor")]
     pub async fn run(mut self) {
+        info!("conductor running");
         let mut drain_interval = time::interval(Duration::from_millis(1));
         drain_interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
 
@@ -306,6 +310,7 @@ impl Conductor {
                 }
             }
         }
+        info!("conductor stopped");
     }
 
     /// Drain the RT midi_queue into the open MIDI output connection.
@@ -327,17 +332,20 @@ impl Conductor {
         }
     }
     /// Dispatch a `TransportCommand` to the appropriate handler.
+    #[tracing::instrument(skip(self), fields(cmd = ?cmd))]
     async fn handle_command(&mut self, cmd: TransportCommand) {
         debug!(?cmd, "handle_command");
         match cmd {
             // ── Transport ─────────────────────────────────────────
             TransportCommand::Play => {
+                info!("Play");
                 self.start_clock();
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStarted))
                     .await;
             }
 
             TransportCommand::Stop => {
+                info!("Play");
                 // If a recording is in progress, save it before stopping.
                 if self.record_buffer.is_some() {
                     self.stop_record(None).await;
@@ -814,6 +822,12 @@ impl Conductor {
         tl.push(note_on);
         tl.push(note_off);
         tl.sort_by_key(|e| e.sample_pos);
+        debug!(
+            beat = event.beat,
+            note = event.note,
+            vel = event.vel,
+            "event queued"
+        );
     }
 
     /// Send raw MIDI bytes directly to the open output connection.
@@ -848,6 +862,7 @@ impl Conductor {
                     let channel = bytes[0] & 0x0F;
                     let note = bytes.get(1).copied().unwrap_or(0);
                     let vel = bytes.get(2).copied().unwrap_or(0);
+                    debug!(channel, note, vel, "MIDI message sent");
                     self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
                         channel,
                         note,
