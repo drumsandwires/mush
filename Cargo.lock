@@ -2716,6 +2716,7 @@ dependencies = [
  "nu-protocol",
  "shadow-rs 1.7.1",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2732,6 +2733,7 @@ dependencies = [
  "shadow-rs 1.7.1",
  "tmq",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

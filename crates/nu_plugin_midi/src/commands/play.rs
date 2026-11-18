@@ -30,6 +30,8 @@ impl SimplePluginCommand for Play {
         _call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "play").entered();
+        tracing::debug!("play: run");
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
 
@@ -95,6 +97,7 @@ fn midi_event_from_value(val: &Value) -> Result<MidiEvent, LabeledError> {
         })
     };
 
+        tracing::debug!("play: done");
     Ok(MidiEvent {
         beat:     get_f64("beat")?,
         channel:  get_u8("channel")?,

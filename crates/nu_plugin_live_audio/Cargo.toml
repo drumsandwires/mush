@@ -16,6 +16,7 @@ nu-protocol = { workspace = true }
 tokio       = { workspace = true }
 anyhow      = { workspace = true }
 shadow-rs      = { workspace = true }
+tracing     = { workspace = true } 
 mush-core   = { workspace = true }
 mush-tracing = { workspace = true }
 

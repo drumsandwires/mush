@@ -26,6 +26,8 @@ impl SimplePluginCommand for Load {
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "load").entered();
+        tracing::debug!("load: run");
         let path: String = call.req(0)?;
         let path = PathBuf::from(&path);
 
@@ -44,6 +46,7 @@ impl SimplePluginCommand for Load {
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "no response".to_string());
 
+        tracing::debug!(result = %s, "load: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }

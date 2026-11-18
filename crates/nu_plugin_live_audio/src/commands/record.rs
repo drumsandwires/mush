@@ -27,6 +27,9 @@ impl SimplePluginCommand for Record {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "record").entered();
+        tracing::debug!("record: run");
+        tracing::debug!("record: not implemented");
         Err(LabeledError::new("audio record is not yet implemented"))
     }
 }

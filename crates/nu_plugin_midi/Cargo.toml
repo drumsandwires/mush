@@ -13,6 +13,7 @@ tokio            = { workspace = true }
 anyhow           = { workspace = true }
 tmq              = { workspace = true }
 shadow-rs        = { workspace = true }
+tracing     = { workspace = true } 
 mush-core        = { workspace = true }
 mush-midi-codec  = { workspace = true }
 mush-tracing     = { workspace = true }
