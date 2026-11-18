@@ -9,7 +9,7 @@ use cpal::StreamConfig;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crossbeam::queue::ArrayQueue;
 use thiserror::Error;
-use tracing::{error, info, warn};
+use tracing::{debug, error, warn};
 
 use crate::timeline::TimelineEvent;
 use crate::update::AudioUpdate;
@@ -118,7 +118,7 @@ impl Clock {
 
         match Self::try_cpal(args) {
             Ok(stream) => {
-                info!("clock: cpal audio callback (sample-accurate)");
+                debug!("clock: cpal audio callback (sample-accurate)");
                 Clock::Cpal(stream)
             }
             Err(e) => {

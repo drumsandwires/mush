@@ -602,10 +602,14 @@ Deferred to post-MVP:
 
 ##### Stage 3 — Conductor, transport instrumentation, and command-level spans
 
-- [ ] Instrument port set/get
-- [ ] Instrument transport state writes
-- [ ] Instrument command dispatch in Conductor
-- [ ] Add command-level spans in each shell REPL
+- [x] Instrument Conductor::new
+- [x] Instrument run() loop lifetime
+- [x] Upgrade Play/Stop to info!
+- [x] Add debug! to queue_event
+- [x] Add debug! to send_raw_message success path
+- [x] Add command-level spans via #[tracing::instrument] on dispatch()
+- [x] Command-level spans in nu_plugin_midi and nu_plugin_live_audio
+- [ ] Log/prompt interleaving (deferred — gh issue #96)
 
 ##### Stage 4 — RT diagnostic buffer
 
