@@ -1,0 +1,16 @@
+[package]
+name = "mush-tracing"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tracing             = { workspace = true }
+tracing-subscriber  = { workspace = true }
+tracing-appender    = { workspace = true }
+
+[dependencies.console-subscriber]
+workspace = true
+optional  = true
+
+[features]
+tokio-console = ["dep:console-subscriber"]
