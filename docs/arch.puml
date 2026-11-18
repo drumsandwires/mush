@@ -1,0 +1,94 @@
+@startuml mush_architecture
+
+skinparam defaultFontName "JetBrains Mono"
+skinparam defaultFontSize 12
+top to bottom direction
+
+title mush — Architecture (MVP · single binary pattern)
+
+package "UI Layer" {
+    component [Shell REPL\nReedline · or Nushell plugin interface] as SHELL
+}
+
+package "Codec / IO" {
+    component [mush-midi-codec\nMIDI message CLI parser/formatter] as CODEC
+    component [mudld\n.mid ↔ .mudl (KDL) codec] as MUDLD
+}
+
+package "Transport Layer — ZMQ inproc" {
+    component [ZmqClient\nDEALER · SUB\ninproc://mush-cmd · mush-pub] as ZMQC
+    component [ZmqTransport\nROUTER · PUB\ninproc://mush-cmd · mush-pub] as ZMQS
+}
+
+package "Conductor Layer — Tokio Runtime" {
+    component [Conductor\ntokio::select! loop] as COND
+    component [Subscription · SubscriptionHandle\nmpsc — in-process] as SUB
+}
+
+package "Transport State — Arc<TransportState>" {
+    component [playhead · is_playing\nbpm · timeline · next_event_idx] as TS
+}
+
+package "RT Layer" {
+    component [Clock\ncpal callback · software fallback] as CLK
+    component [MidiEngine\nhi-pri thread] as ME
+    component [MidiEngineRt\nSCHED_FIFO] as MERT
+    component [AudioEngine\nTBD] as AE
+    component [crossbeam::ArrayQueue\nMidiEvent] as LFQ
+}
+
+package "Hardware" {
+    component [Audio Interface\ncpal] as AI
+    component [MIDI Interface\nmidir] as MI
+}
+
+note as N1
+  Pattern shown for mish-shell (MIDI).
+  mash-shell substitutes AudioEngine commands for MIDI commands.
+  mush-shell exposes both.
+  nu_plugin_midi and nu_plugin_live_audio follow the same pattern
+  with Nushell plugin interface in place of Reedline REPL.
+end note
+
+' send command path
+SHELL -d-> CODEC : raw input
+CODEC -d-> ZMQC  : MidiEvent
+
+' Command path — downward
+SHELL -d-> ZMQC : TransportCommand
+ZMQC  -d-> ZMQS : DEALER→ROUTER inproc
+ZMQS  -d-> COND : TransportCommand
+
+' Conductor dispatch
+COND -d-> TS    : write atomics
+COND -d-> ME    : LoadMidi · QueueEvent
+COND -d-> CLK   : Play · Stop · Seek · SetBpm
+COND -d-> MUDLD : load · save
+
+' RT execution path
+TS   -d-> CLK  : read atomics
+CLK  -d-> LFQ  : push MidiEvent
+LFQ  -d-> MERT : pop MidiEvent
+MERT -u-> TS   : read playhead
+CLK  -d-> AI   : audio I/O
+CLK  -r-> AE   : TBD
+MERT -d-> MI   : send MIDI bytes
+
+' Status path — upward
+CLK  -u-> COND : AudioUpdate · mpsc
+ME   -u-> COND : MidiUpdate · mpsc
+
+' Conductor fan-out — upward
+COND -u-> ZMQS : EngineUpdate
+ZMQS -u-> ZMQC : EngineUpdate · PUB inproc
+ZMQC -u-> SHELL : EngineUpdate
+COND -r-> SUB  : EngineUpdate · mpsc
+SUB  -u-> SHELL : EngineUpdate · SubscriptionHandle
+
+note bottom
+  Post-MVP Model A: extract Conductor into mush-server binary.
+  Change ZMQ inproc:// → tcp://5252/5253.
+  No other code changes required.
+end note
+
+@enduml

@@ -1,295 +1,163 @@
 # mush
 
-A collection of command-line tools and shells for working with MIDI and audio data. Developed as part of the [Let's Get Rusty](letsgetrusty.com) Rust Accelerator program. 
+A collection of command-line tools and shells for working with MIDI and audio data. Developed as part of the [Let's Get Rusty](letsgetrusty.com) Rust Accelerator program.
 
 Currently intended as a diagnostic and debugging tool for use in other projects but with ambitions to become a command-line based digital audio workstation (DAW) one day, when it grows up.
 
-There are three [`reedline`](github.com/nushell/reedline) based shells: `mish`, `mash` and `mush` . These cover MIDI, audio and unified MIDI/Audio respectively. The same functionality is exposed as a pair  `nushell` plugins: `nu_plugin_midi` and `nu_plugin_live_audio`. 
+There are three [`reedline`](github.com/nushell/reedline) based shells: `mish`, `mash` and `mush`. These cover MIDI, audio and unified MIDI/Audio respectively. The same functionality is exposed as a pair of [`nushell`](https://www.nushell.sh/) plugins: `nu_plugin_midi` and `nu_plugin_live_audio`.
 
 Note that current development is focussed on implementing MIDI functionality.
 
 ## Functionality
 
-The shells and plugins provide commands to: 
+The shells and plugins provide commands to:
 
-- enumerate available `devices`.
-
-- `load` file data.
-
-- `play` loaded or recorded data.
-
-- `record` live data.
-
-- `save` recorded data.
-
-- `stop` playback or recording.
-
-- `monitor` live data.
-
-- `send` MIDI data.
-
-- `receive` MIDI data including SysEx.
+- `version` — display version information.
+- `port` — get or set the active device port.
+- `ports` — enumerate available device ports.
+- `load` — load file data.
+- `play` — play loaded or recorded data.
+- `record` — record live data.
+- `save` — save recorded data.
+- `stop` — stop playback or recording.
+- `monitor` — monitor live data.
+- `send` — send MIDI data.
+- `receive` — receive MIDI data including SysEx.
 
 For both MIDI and audio data.
 
 ## Structure
 
-Developed as a workspace, the project is decomposed into core domain logic crates for MIDI, Audio and shell functionality. The crates are used by the shell and plugin crates to expose the domain functionality.
+Developed as a Rust workspace, the project is decomposed into core domain logic, codec, and shell/plugin crates. See [`DESIGN.md`](./DESIGN.md) for the full architecture.
 
-- 📁`mush/`
-  - 📁`crates/`
-    - 📁`mush-core/` - REPL engine + Shell trait (`reedline`)
-    - 📁`mish-midi-core/` - MIDI domain logic (`midir`)
-    - 📁`mash-audio-core/` - Audio domain logic (`cpal`)
-    - 📁`mish-shell/`  - Standalone MIDI reedline REPL  → `mish`
-    - 📁`mash-shell/` - Standalone Audio reedline REPL → `mash`
-    - 📁`mush-shell/` - Unified MIDI + Audio REPL → `mush`
-    - 📁`nu_plugin_midi/` - Nushell MIDI plugin  → `nu_plugin_midi`
-    - 📁`nu_plugin_live_audio/` - Nushell audio plugin → `nu_plugin_live_audio`
-  - 📁`tests/`  - Workspace-level PTY integration tests (expectrl)
+- 📁 `mush/`
+  - 📁 `crates/`
+    - 📁 `mush-core/` — Conductor, transport state, clock, MIDI engine, audio engine
+    - 📁 `mush-midi-codec/` — MIDI message CLI parser/formatter
+    - 📁 `mudld/` — `.mid` ↔ `.mudl` (KDL) file codec
+    - 📁 `mish-shell/` — Standalone MIDI Reedline REPL → `mish`
+    - 📁 `mash-shell/` — Standalone audio Reedline REPL → `mash`
+    - 📁 `mush-shell/` — Unified MIDI + audio Reedline REPL → `mush`
+    - 📁 `nu_plugin_midi/` — Nushell MIDI plugin → `nu_plugin_midi`
+    - 📁 `nu_plugin_live_audio/` — Nushell audio plugin → `nu_plugin_live_audio`
+  - 📁 `docs/` — Architecture diagrams and supplementary documentation
+  - 📁 `tests/` — Workspace-level integration tests
 
 ## Dependencies
 
-| Crate                   | Depends On                                       | Purpose                                |
-| ----------------------- | ------------------------------------------------ | -------------------------------------- |
-| `mush-core`             | `reedline`                                       | Wraps reedline for use by shell crates |
-| `mish-midi-core`        | `midir`                                          | Core MIDI data logic                   |
-| `mash-audio-core`       | `cpal`                                           | Core live audio data logic             |
-| `mish-shell`            | `mush-core`, `mish-midi-core`                    | MIDI interactive shell                 |
-| `mash-shell`            | `mush-core`, `mash-audio-core`                   | Live audio interactive shell           |
-| `mush-shell`            | `mush-core`, `mish-midi-core`, `mash-audio-core` | Combined interactive shell             |
-| `nu_plugin_midi`        | `mish-midi-core`, `nu-plugin`, `nu-protocol`     | Exposes MIDI as nushell commands       |
-| `nu_plugin_live_audio`  | `mash-audio-core`, `nu-plugin`, `nu-protocol`    | Exposes live audio as nushell commands |
-| `tests` *(integration)* | `mish-shell`, `mash-shell`, `mush-shell`         | Integration test harness               |
+| Crate | Depends On | Purpose |
+|-------|------------|---------|
+| `mush-core` | `tokio` · `tmq` · `cpal` · `midir` · `midly` · `wmidi` · `crossbeam` · `serde` · `rmp-serde` · `tracing` | Conductor, transport, clock, MIDI and audio engines |
+| `mush-midi-codec` | `wmidi` · `thiserror` | MIDI message CLI parser/formatter |
+| `mudld` | `midly` · `serde` · `rmp-serde` · `thiserror` | `.mid` ↔ `.mudl` file codec |
+| `mish-shell` | `mush-core` · `mush-midi-codec` · `reedline` · `clap` · `shadow-rs` · `tracing-subscriber` | MIDI interactive shell |
+| `mash-shell` | `mush-core` · `reedline` · `clap` · `shadow-rs` · `tracing-subscriber` | Audio interactive shell |
+| `mush-shell` | `mush-core` · `mush-midi-codec` · `reedline` · `clap` · `shadow-rs` · `tracing-subscriber` | Combined MIDI + audio interactive shell |
+| `nu_plugin_midi` | `mush-core` · `mush-midi-codec` · `nu-plugin` · `nu-protocol` · `shadow-rs` · `tracing-subscriber` | Exposes MIDI as Nushell commands |
+| `nu_plugin_live_audio` | `mush-core` · `nu-plugin` · `nu-protocol` · `shadow-rs` · `tracing-subscriber` | Exposes live audio as Nushell commands |
+| `tests` *(integration)* | `mish-shell` · `mash-shell` · `mush-shell` · `nu_plugin_midi` · `nu_plugin_live_audio` | Integration test harness |
 
 ## Prerequisites
 
-- [Rust](https://rustup.rs/) stable toolchain
-- [cargo-nextest](https://nexte.st/) for running tests
-- [mask](https://github.com/jacobdeichert/mask) for task running development tasks
+- [Rust](https://rustup.rs/) stable toolchain — edition 2024 minimum
+- [Nushell](https://www.nushell.sh/) — required for plugin development and testing
+- [FluidSynth](https://www.fluidsynth.org/) — required for MIDI audio testing
+- [PlantUML](https://plantuml.com/) — required for local diagram rendering
+- [cargo-nextest](https://nexte.st/) — test runner
+- [mask](https://github.com/jacobdeichert/mask) — task runner
 
-Install Rust, task runner and test runner:
+Install Rust task runner and test runner:
 
-- `cargo install mask`
-- `cargo install cargo-nextest`
+```sh
+cargo install mask
+cargo install cargo-nextest
+```
 
-### Plan
+## Prerequisites
 
-Development is currently focussed on MIDI functionality with the goal of publishing a usable MIDI shell and plugin.
+- [Rust](https://rustup.rs/) stable toolchain — edition 2024 minimum
+- [Nushell](https://www.nushell.sh/) — required for plugin development and testing
+- [FluidSynth](https://www.fluidsynth.org/) — required for MIDI audio testing
+- [PlantUML](https://plantuml.com/) — required for local diagram rendering
+- [cargo-nextest](https://nexte.st/) — test runner
+- [mask](https://github.com/jacobdeichert/mask) — task runner
 
-| Milestone | Goals                                        |
-| --------- | -------------------------------------------- |
-| 1         | Workspace & Core Scaffold, Enumerate devices |
-| 2         | File Commands in Both Frontends              |
-| 3         | Live MIDI Device I/O: `midi listen`          |
-| 4         | `midi send` + SysEx                          |
-| 5         | Full test, rework                            |
-| 6         | Publish                                      |
+Install task runner and test runner:
+
+```sh
+    cargo install mask
+    cargo install cargo-nextest
+```
+
+## Plan
+
+Development is currently focussed on MIDI functionality with the goal of publishing a usable MIDI shell and plugin. Milestones 1–4 are complete with remedial work in progress. Current work is Milestone 5.
+
+| Milestone | Status | Goals |
+| --------- | ------ | ----- |
+| 1 | ✅ Complete | Workspace & core scaffold, enumerate devices |
+| 2 | ✅ Complete | File commands in both frontends |
+| 3 | ✅ Complete | Live MIDI device I/O: `monitor` |
+| 4 | ✅ Complete | `send` + SysEx |
+| 5 | 🔧 In progress | Full test, remedial fixes, tracing and diagnostics |
+| 6 | ⏳ Pending | Publish |
 
 ## Usage
 
 ### Shells
 
-Run the standalone MIDI shell: `cargo run --bin mish`
+Run the standalone MIDI shell:
 
-Run the standalone Audio shell; `cargo run --bin mash`
+```sh
+    cargo run --bin mish
+```
 
-Run the unified MIDI + Audio shell: `cargo run --bin mush`
+Run the standalone audio shell:
 
-The `help` command in each shell list the available commands.
+```sh
+    cargo run --bin mash
+```
+
+Run the unified MIDI + audio shell:
+
+```sh
+    cargo run --bin mush
+```
+
+The `help` command in each shell lists the available commands. For each command `help <command>` displays detailed help.
 
 ### Nushell Plugin
 
-Build the MIDI plugin with nushell: `cargo build --package nu_plugin_midi --release`
-
-Register in nushell with: `plugin add target/release/nu_plugin_midi`
-
-Activate the plugin with `plugin use nu_plugin_midi` 
-
-The `plugin list` command displays the status of the plugin and available sub-commands. 
-
-For each command adding `--help` displays the help for that command.
-
-## Development Tasks
-
-The following are executable tasks using `mask --maskfile README.md <task>` (aliased as `miso` - "make it so"). 
-
-## build
-
-> Build all workspace crates
+Build and register the MIDI plugin:
 
 ```sh
-cargo build --workspace
+    cargo build --package nu_plugin_midi --release
+    plugin add target/release/nu_plugin_midi
+    plugin use nu_plugin_midi
 ```
 
-## run (shell)
-
-> Run a shell binary — usage: mask run [mish|mash|mush]
+Build and register the audio plugin:
 
 ```sh
-cargo run --bin $shell
+    cargo build --package nu_plugin_live_audio --release
+    plugin add target/release/nu_plugin_live_audio
+    plugin use nu_plugin_live_audio
 ```
 
-## test
+The `plugin list` command displays the status of registered plugins and available sub-commands. For each command adding `--help` displays detailed help.
 
-> Run all tests (unit + integration)
+## Documentation
 
-```sh
-cargo nextest run --package mish-midi-core --profile unit
-cargo nextest run --package mash-audio-core --profile unit
-cargo nextest run --package tests --profile ci
-```
+This README provides instructions for working with the implementation and outputs of the project.
 
-## buildest
+Other documentation:
 
-> Build all workspace crates
-
-```sh
-cargo build --workspace && cargo nextest run --workspace
-```
-
-### test unit
-
-> Run domain unit tests only (fast, parallel, no PTY)
-
-```sh
-cargo nextest run --package mish-midi-core --profile unit
-cargo nextest run --package mash-audio-core --profile unit
-```
-
-### test integration
-
-> Run PTY integration tests (sequential, requires built binaries)
-
-```sh
-cargo build --workspace
-cargo nextest run --package tests --profile ci
-```
-
-### test shell (shell)
-
-> Run mish integration tests only
-
-```sh
-cargo build --bin $shell
-cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
-```
-
-### test plugin
-
-> Check nu_plugin_midi binary exists and was built successfully
-
-```sh
-cargo build --package nu_plugin_midi
-cargo nextest run --package mush-tests --test nu_plugin_midi_tests --profile ci
-```
-
-## ci
-
-> Full CI pipeline — build, unit tests, integration tests
-
-```sh
-set -e
-cargo build --workspace
-cargo nextest run --package mish-midi-core --profile unit
-cargo nextest run --package mash-audio-core --profile unit
-cargo nextest run --package tests --profile ci
-```
-
-## clean
-
-> Remove build artifacts
-
-```sh
-cargo clean
-```
-
-## check
-
-> Run cargo check across the workspace (fast, no codegen)
-
-```sh
-cargo check --workspace
-```
-
-## clippy
-
-> Run clippy lints across the workspace
-
-```sh
-cargo clippy --workspace -- -D warnings
-```
-
-## format
-
-> Format all source files
-
-```sh
-cargo fmt --all
-```
-
-## format-check
-
-> Check formatting without modifying files (useful in CI)
-
-```sh
-cargo fmt --all -- --check
-```
-
-## plugin-add (plugin)
-
-> Build, register and list `nu_plugin_midi` with nushell (release build)
-
-```sh
-set -e
-cargo build --package nu_plugin_${plugin} --release
-nu -c "plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
-```
-
-## plugin-rm (plugin)
-
-> Build, register and list `nu_plugin_midi` with nushell (release build)
-
-```sh
-set -e
-nu -c "do -i {plugin rm $plugin}; plugin list | where name == $plugin"
-```
-
-## plugin-ls (plugin)
-
-> Build, register and list `nu_plugin_midi` with nushell (release build)
-
-```sh
-set -e
-nu -c "plugin list | where name == $plugin"
-```
-
-
-
-## plugin-test (plugin)
-
-> Build, register and list `nu_plugin_midi` with nushell (release build)
-
-```sh
-set -e
-cargo build --package nu_plugin_${plugin} --release
-nu -c "do -i {plugin rm $plugin}; plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
-```
-
-## pr-check
-
-```sh
-echo Fmt...
-cargo fmt --check
-echo Clippy...
-cargo clippy --workspace
-echo Tests..
-cargo nextest run --workspace
-```
-
-## fluidsynth
-
-```sh
-fluidsynth -a pulseaudio -m alsa_seq -o midi.autoconnect=1 /usr/share/sounds/sf2/default-GM.sf2
-```
-
+| Document | Purpose |
+| -------- | ------- |
+| [`DESIGN.md`](./DESIGN.md) | High-level architecture, crate map, key abstractions, data flows, and external dependencies. Reference document for contributors and for AI-assisted development sessions. |
+| [`STYLE.md`](./STYLE.md) | Defines the project documentation and coding standards. |
+| [`CHANGES.md`](./CHANGES.md) | Details of work items fixed/implemented in a build/release and any known issues. |
+| [`DEVELOP.md`](./DEVELOP.md) | Details of tools, versions and procedures necessary for developing with this project. |
+| [`BUILD.md`](./BUILD.md) | How to build this project. |
+| [`TEST.md`](./TEST.md) | How to test this project. Details of manual unit, integration, and smoke tests. How to run automated tests. |
+| [`RELEASE.md`](./RELEASE.md) | How to release this project. |
