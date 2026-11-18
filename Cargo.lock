@@ -2116,6 +2116,7 @@ dependencies = [
  "shadow-rs 1.7.1",
  "shlex 2.0.1",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2244,6 +2245,7 @@ dependencies = [
  "shadow-rs 1.7.1",
  "shlex 2.0.1",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2301,6 +2303,7 @@ dependencies = [
  "shadow-rs 1.7.1",
  "shlex 2.0.1",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

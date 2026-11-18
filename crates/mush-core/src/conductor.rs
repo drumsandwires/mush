@@ -345,7 +345,7 @@ impl Conductor {
             }
 
             TransportCommand::Stop => {
-                info!("Play");
+                info!("Stop");
                 // If a recording is in progress, save it before stopping.
                 if self.record_buffer.is_some() {
                     self.stop_record(None).await;

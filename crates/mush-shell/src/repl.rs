@@ -119,82 +119,68 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
     };
 
     match Cli::try_parse_from(tokens) {
-        Ok(cli) => match cli.domain {
-            Domain::Version { long } => {
-                if long {
-                    Response::Output(version::long())
-                } else {
-                    Response::Output(version::short())
-                }
-            }
-
-            Domain::Audio { command } => match command {
-                AudioCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
-
-                AudioCommand::Host { name } => {
-                    send(client, TransportCommand::AudioHost(name)).await
-                }
-
-                AudioCommand::Devices => send(client, TransportCommand::AudioDevices).await,
-
-                AudioCommand::Device { name } => {
-                    send(client, TransportCommand::AudioDevice(name)).await
-                }
-
-                AudioCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
-
-                AudioCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-
-                AudioCommand::Play => send(client, TransportCommand::Play).await,
-
-                AudioCommand::Stop => send(client, TransportCommand::Stop).await,
-
-                AudioCommand::Record { path: _ } => {
-                    Response::Output("audio record: not yet implemented".into())
-                }
-
-                AudioCommand::Monitor => {
-                    Response::Output("audio monitor: not yet implemented".into())
-                }
-            },
-
-            Domain::Midi { command } => match command {
-                MidiCommand::Ports => send(client, TransportCommand::MidiDevices).await,
-
-                MidiCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
-
-                MidiCommand::Load { path } => {
-                    let cmd = match path.extension().and_then(|e| e.to_str()) {
-                        Some("mudl") => TransportCommand::LoadMudl(path),
-                        _ => TransportCommand::LoadMidi(path),
-                    };
-                    send(client, cmd).await
-                }
-
-                MidiCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-
-                MidiCommand::Play => send(client, TransportCommand::Play).await,
-
-                MidiCommand::Stop => send(client, TransportCommand::Stop).await,
-
-                MidiCommand::Record { path } => {
-                    send(client, TransportCommand::Record { start: true, path }).await
-                }
-
-                MidiCommand::Monitor { path } => {
-                    send(client, TransportCommand::Monitor { path }).await
-                }
-
-                MidiCommand::Send { args } => {
-                    let joined = args.join(" ");
-                    match mush_midi_codec::parse(&joined) {
-                        Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
-                        Err(e) => Response::Output(format!("error: {e}")),
-                    }
-                }
-            },
-        },
         Err(e) => Response::Output(e.render().to_string()),
+        Ok(cli) => dispatch(client, cli.domain).await,
+    }
+}
+
+#[tracing::instrument(skip(client), fields(cmd = ?command))]
+async fn dispatch(client: &mut ZmqClient, command: Domain) -> Response {
+    match command {
+        Domain::Version { long } => {
+            if long {
+                Response::Output(version::long())
+            } else {
+                Response::Output(version::short())
+            }
+        }
+        Domain::Audio { command } => dispatch_audio(client, command).await,
+        Domain::Midi { command } => dispatch_midi(client, command).await,
+    }
+}
+
+#[tracing::instrument(skip(client), fields(cmd = ?command))]
+async fn dispatch_audio(client: &mut ZmqClient, command: AudioCommand) -> Response {
+    match command {
+        AudioCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
+        AudioCommand::Host { name } => send(client, TransportCommand::AudioHost(name)).await,
+        AudioCommand::Devices => send(client, TransportCommand::AudioDevices).await,
+        AudioCommand::Device { name } => send(client, TransportCommand::AudioDevice(name)).await,
+        AudioCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
+        AudioCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
+        AudioCommand::Play => send(client, TransportCommand::Play).await,
+        AudioCommand::Stop => send(client, TransportCommand::Stop).await,
+        AudioCommand::Record { .. } => Response::Output("audio record: not yet implemented".into()),
+        AudioCommand::Monitor => Response::Output("audio monitor: not yet implemented".into()),
+    }
+}
+
+#[tracing::instrument(skip(client), fields(cmd = ?command))]
+async fn dispatch_midi(client: &mut ZmqClient, command: MidiCommand) -> Response {
+    match command {
+        MidiCommand::Ports => send(client, TransportCommand::MidiDevices).await,
+        MidiCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
+        MidiCommand::Load { path } => {
+            let cmd = match path.extension().and_then(|e| e.to_str()) {
+                Some("mudl") => TransportCommand::LoadMudl(path),
+                _ => TransportCommand::LoadMidi(path),
+            };
+            send(client, cmd).await
+        }
+        MidiCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
+        MidiCommand::Play => send(client, TransportCommand::Play).await,
+        MidiCommand::Stop => send(client, TransportCommand::Stop).await,
+        MidiCommand::Record { path } => {
+            send(client, TransportCommand::Record { start: true, path }).await
+        }
+        MidiCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
+        MidiCommand::Send { args } => {
+            let joined = args.join(" ");
+            match mush_midi_codec::parse(&joined) {
+                Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
+                Err(e) => Response::Output(format!("error: {e}")),
+            }
+        }
     }
 }
 

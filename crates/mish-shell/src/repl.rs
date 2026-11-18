@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use mush_core::Response;
+
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
 use mush_tracing::tracing;
@@ -71,48 +72,53 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
     };
 
     match Cli::try_parse_from(tokens) {
-        Ok(cli) => match cli.command {
-            MishCommand::Version { long } => {
-                if long {
-                    Response::Output(version::long())
-                } else {
-                    Response::Output(version::short())
-                }
-            }
-
-            MishCommand::Ports => send(client, TransportCommand::MidiDevices).await,
-
-            MishCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
-
-            MishCommand::Load { path } => {
-                let cmd = match path.extension().and_then(|e| e.to_str()) {
-                    Some("mudl") => TransportCommand::LoadMudl(path),
-                    _ => TransportCommand::LoadMidi(path),
-                };
-                send(client, cmd).await
-            }
-
-            MishCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-
-            MishCommand::Play => send(client, TransportCommand::Play).await,
-
-            MishCommand::Stop => send(client, TransportCommand::Stop).await,
-
-            MishCommand::Record { path } => {
-                send(client, TransportCommand::Record { start: true, path }).await
-            }
-
-            MishCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
-
-            MishCommand::Send { args } => {
-                let joined = args.join(" ");
-                match mush_midi_codec::parse(&joined) {
-                    Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
-                    Err(e) => Response::Output(format!("error: {e}")),
-                }
-            }
-        },
         Err(e) => Response::Output(e.render().to_string()),
+        Ok(cli) => dispatch(client, cli.command).await,
+    }
+}
+
+#[tracing::instrument(skip(client), fields(cmd = ?command))]
+async fn dispatch(client: &mut ZmqClient, command: MishCommand) -> Response {
+    match command {
+        MishCommand::Version { long } => {
+            if long {
+                Response::Output(version::long())
+            } else {
+                Response::Output(version::short())
+            }
+        }
+
+        MishCommand::Ports => send(client, TransportCommand::MidiDevices).await,
+
+        MishCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
+
+        MishCommand::Load { path } => {
+            let cmd = match path.extension().and_then(|e| e.to_str()) {
+                Some("mudl") => TransportCommand::LoadMudl(path),
+                _ => TransportCommand::LoadMidi(path),
+            };
+            send(client, cmd).await
+        }
+
+        MishCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
+
+        MishCommand::Play => send(client, TransportCommand::Play).await,
+
+        MishCommand::Stop => send(client, TransportCommand::Stop).await,
+
+        MishCommand::Record { path } => {
+            send(client, TransportCommand::Record { start: true, path }).await
+        }
+
+        MishCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
+
+        MishCommand::Send { args } => {
+            let joined = args.join(" ");
+            match mush_midi_codec::parse(&joined) {
+                Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
+                Err(e) => Response::Output(format!("error: {e}")),
+            }
+        }
     }
 }
 

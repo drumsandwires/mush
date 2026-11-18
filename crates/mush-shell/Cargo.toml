@@ -11,6 +11,7 @@ shlex            = { workspace = true }
 tokio            = { workspace = true }
 reedline         = { workspace = true }
 shadow-rs        = { workspace = true }
+tracing          = { workspace = true }
 mush-tracing     = { workspace = true }
 
 [build-dependencies]
