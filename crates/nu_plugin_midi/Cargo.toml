@@ -9,11 +9,20 @@ path = "src/lib.rs"
 [dependencies]
 nu-plugin        = { workspace = true }
 nu-protocol      = { workspace = true }
-mush-core        = { workspace = true }
-mush-midi-codec  = { workspace = true }
 tokio            = { workspace = true }
 anyhow           = { workspace = true }
-tmq = { workspace = true }
+tmq              = { workspace = true }
+shadow-rs        = { workspace = true }
+mush-core        = { workspace = true }
+mush-midi-codec  = { workspace = true }
+mush-tracing     = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }
+
+[dependencies.console-subscriber]
+workspace = true
+optional  = true
+
+[features]
+tokio-console = ["dep:console-subscriber", "mush-tracing/tokio-console"]

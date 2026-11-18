@@ -10,8 +10,7 @@ mush-core      = { workspace = true, features = ["reedline-shell"] }
 tokio          = { workspace = true }
 reedline       = { workspace = true }
 shadow-rs      = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true }
+mush-tracing = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }
@@ -22,3 +21,10 @@ path = "src/lib.rs"
 [[bin]]
 name="mash"
 path="src/main.rs"
+
+[dependencies.console-subscriber]
+workspace = true
+optional  = true
+
+[features]
+tokio-console = ["dep:console-subscriber", "mush-tracing/tokio-console"]

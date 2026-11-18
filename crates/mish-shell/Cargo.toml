@@ -4,15 +4,14 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-mush-core      = { workspace = true, features = ["reedline-shell"] }
+mush-core       = { workspace = true, features = ["reedline-shell"] }
 mush-midi-codec = { workspace = true }
-clap           = { workspace = true }
-shlex          = { workspace = true }
-tokio          = { workspace = true }
-reedline       = { workspace = true }
-shadow-rs      = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true }
+clap            = { workspace = true }
+shlex           = { workspace = true }
+tokio           = { workspace = true }
+reedline        = { workspace = true }
+shadow-rs       = { workspace = true }
+mush-tracing    = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }
@@ -21,5 +20,12 @@ shadow-rs = { workspace = true }
 path = "src/lib.rs"
 
 [[bin]]
-name="mish"
-path="src/main.rs"
+name = "mish"
+path = "src/main.rs"
+
+[dependencies.console-subscriber]
+workspace = true
+optional  = true
+
+[features]
+tokio-console = ["dep:console-subscriber", "mush-tracing/tokio-console"]

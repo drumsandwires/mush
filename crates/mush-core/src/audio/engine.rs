@@ -60,7 +60,7 @@ impl AudioEngine {
 
         // slow path: cache miss — enumerate and populate
         let info = enumerate_hosts_and_devices().unwrap_or_else(|e: AudioDeviceError| {
-            eprintln!("mash-audio-core: device enumeration failed: {e}");
+            tracing::error!(error = %e, "device enumeration failed");
             AudioSystemInfo { hosts: vec![] }
         });
         let response = AudioResponse::Output(list_hosts_and_devices(&info));

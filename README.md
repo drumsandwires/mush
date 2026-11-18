@@ -87,6 +87,8 @@ Development is currently focussed on MIDI functionality with the goal of publish
 | 5 | 🔧 In progress | Full test, remedial fixes, tracing and diagnostics |
 | 6 | ⏳ Pending | Publish |
 
+Detailed implementation plan is available [here](/docs/PLAN.md).
+
 ## Usage
 
 ### Shells
@@ -139,7 +141,7 @@ Other documentation:
 
 | Document | Purpose |
 | -------- | ------- |
-| [`DESIGN.md`](./DESIGN.md) | High-level architecture, crate map, key abstractions, data flows, and external dependencies. Reference document for contributors and for AI-assisted development sessions. |
+| [`DESIGN.md`](./docs/DESIGN.md) | High-level architecture, crate map, key abstractions, data flows, and external dependencies. Reference document for contributors and for AI-assisted development sessions. |
 | [`STYLE.md`](./STYLE.md) | Defines the project documentation and coding standards. |
 | [`CHANGES.md`](./CHANGES.md) | Details of work items fixed/implemented in a build/release and any known issues. |
 | [`DEVELOP.md`](./DEVELOP.md) | Details of tools, versions and procedures necessary for developing with this project. |
@@ -274,7 +276,7 @@ cargo fmt --all
 cargo fmt --all -- --check
 ```
 
-## plugin-add (plugin)
+## plug-add (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
@@ -284,7 +286,7 @@ cargo build --package nu_plugin_${plugin} --release
 nu -c "plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
 ```
 
-## plugin-rm (plugin)
+## plug-rm (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
@@ -293,7 +295,7 @@ set -e
 nu -c "do -i {plugin rm $plugin}; plugin list | where name == $plugin"
 ```
 
-## plugin-ls (plugin)
+## plug-ls (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
@@ -304,7 +306,7 @@ nu -c "plugin list | where name == $plugin"
 
 
 
-## plugin-test (plugin)
+## plug-test (plugin)
 
 > Build, register and list `nu_plugin_midi` with nushell (release build)
 
@@ -329,4 +331,11 @@ cargo nextest run --workspace
 
 ```sh
 fluidsynth -a pulseaudio -m alsa_seq -o midi.autoconnect=1 /usr/share/sounds/sf2/default-GM.sf2
+```
+
+## issues
+> List open issues
+
+```nu
+gh issue list --state open --json number,title,labels,milestone | from json | select number title
 ```

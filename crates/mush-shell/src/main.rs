@@ -5,6 +5,7 @@ mod version;
 use mush_core::shell::Shell;
 use mush_core::zmq_client::ZmqClient;
 use mush_core::{Response, addrs};
+use mush_tracing::tracing;
 
 struct MushShell;
 
@@ -31,12 +32,12 @@ impl Shell for MushShell {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    let _guard = mush_tracing::init(mush_tracing::TracingConfig::default());
+
+    tracing::info!(shell = "mush", version = version::compact(), "starting");
+    tracing::debug!(version = version::long(), "full version");
 
     mush_core::shell::run(MushShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
         .await
         .expect("shell exited with error");
 }
-

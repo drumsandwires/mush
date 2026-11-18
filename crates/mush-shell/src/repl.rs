@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 use mush_core::Response;
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
+use mush_tracing::tracing;
+use std::path::PathBuf;
+
 use crate::version;
 
 #[derive(Parser, Debug)]
@@ -133,21 +135,15 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
                     send(client, TransportCommand::AudioHost(name)).await
                 }
 
-                AudioCommand::Devices => {
-                    send(client, TransportCommand::AudioDevices).await
-                }
+                AudioCommand::Devices => send(client, TransportCommand::AudioDevices).await,
 
                 AudioCommand::Device { name } => {
                     send(client, TransportCommand::AudioDevice(name)).await
                 }
 
-                AudioCommand::Load { path } => {
-                    send(client, TransportCommand::LoadMidi(path)).await
-                }
+                AudioCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
 
-                AudioCommand::Save { path } => {
-                    send(client, TransportCommand::Save(path)).await
-                }
+                AudioCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
 
                 AudioCommand::Play => send(client, TransportCommand::Play).await,
 
@@ -165,21 +161,17 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
             Domain::Midi { command } => match command {
                 MidiCommand::Ports => send(client, TransportCommand::MidiDevices).await,
 
-                MidiCommand::Port { name } => {
-                    send(client, TransportCommand::MidiPort(name)).await
-                }
+                MidiCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
 
                 MidiCommand::Load { path } => {
                     let cmd = match path.extension().and_then(|e| e.to_str()) {
                         Some("mudl") => TransportCommand::LoadMudl(path),
-                        _            => TransportCommand::LoadMidi(path),
+                        _ => TransportCommand::LoadMidi(path),
                     };
                     send(client, cmd).await
                 }
 
-                MidiCommand::Save { path } => {
-                    send(client, TransportCommand::Save(path)).await
-                }
+                MidiCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
 
                 MidiCommand::Play => send(client, TransportCommand::Play).await,
 
@@ -196,9 +188,7 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
                 MidiCommand::Send { args } => {
                     let joined = args.join(" ");
                     match mush_midi_codec::parse(&joined) {
-                        Ok(bytes) => {
-                            send(client, TransportCommand::SendMessage(bytes)).await
-                        }
+                        Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
                         Err(e) => Response::Output(format!("error: {e}")),
                     }
                 }
@@ -221,3 +211,4 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
         }
     }
 }
+

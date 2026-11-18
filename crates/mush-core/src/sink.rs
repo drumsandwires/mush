@@ -64,7 +64,7 @@ impl EngineSink for ReedlineSink {
     fn emit(&self, update: EngineUpdate) {
         if let Some(line) = crate::format::format_update(&update) {
             if let Err(e) = self.sender.try_send(line) {
-                eprintln!("{} sink: dropped update — {e}", self.name);
+                tracing::warn!(sink = self.name, error = %e, "dropped update")
             }
         }
     }

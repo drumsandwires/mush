@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 use mush_core::Response;
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
+use mush_tracing::tracing;
+use std::path::PathBuf;
+
 use crate::version;
 
 #[derive(Parser, Debug)]
@@ -80,14 +82,12 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
 
             MishCommand::Ports => send(client, TransportCommand::MidiDevices).await,
 
-            MishCommand::Port { name } => {
-                send(client, TransportCommand::MidiPort(name)).await
-            }
+            MishCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
 
             MishCommand::Load { path } => {
                 let cmd = match path.extension().and_then(|e| e.to_str()) {
                     Some("mudl") => TransportCommand::LoadMudl(path),
-                    _            => TransportCommand::LoadMidi(path),
+                    _ => TransportCommand::LoadMidi(path),
                 };
                 send(client, cmd).await
             }
@@ -102,15 +102,13 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
                 send(client, TransportCommand::Record { start: true, path }).await
             }
 
-            MishCommand::Monitor { path } => {
-                send(client, TransportCommand::Monitor { path }).await
-            }
+            MishCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
 
             MishCommand::Send { args } => {
                 let joined = args.join(" ");
                 match mush_midi_codec::parse(&joined) {
                     Ok(bytes) => send(client, TransportCommand::SendMessage(bytes)).await,
-                    Err(e)    => Response::Output(format!("error: {e}")),
+                    Err(e) => Response::Output(format!("error: {e}")),
                 }
             }
         },
@@ -131,3 +129,4 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
         }
     }
 }
+

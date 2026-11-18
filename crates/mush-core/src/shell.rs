@@ -106,7 +106,7 @@ async fn run_interactive<S: Shell>(
             Ok(Signal::CtrlD) => break,
             Ok(Signal::CtrlC) => println!("(interrupted)"),
             Err(e) => {
-                eprintln!("error: {e}");
+                tracing::error!(error = %e, "reedline signal error");
                 break;
             }
             Ok(_) => {}
