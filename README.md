@@ -57,21 +57,6 @@ Developed as a Rust workspace, the project is decomposed into core domain logic,
 | `nu_plugin_live_audio` | `mush-core` · `nu-plugin` · `nu-protocol` · `shadow-rs` · `tracing-subscriber` | Exposes live audio as Nushell commands |
 | `tests` *(integration)* | `mish-shell` · `mash-shell` · `mush-shell` · `nu_plugin_midi` · `nu_plugin_live_audio` | Integration test harness |
 
-## Prerequisites
-
-- [Rust](https://rustup.rs/) stable toolchain — edition 2024 minimum
-- [Nushell](https://www.nushell.sh/) — required for plugin development and testing
-- [FluidSynth](https://www.fluidsynth.org/) — required for MIDI audio testing
-- [PlantUML](https://plantuml.com/) — required for local diagram rendering
-- [cargo-nextest](https://nexte.st/) — test runner
-- [mask](https://github.com/jacobdeichert/mask) — task runner
-
-Install Rust task runner and test runner:
-
-```sh
-cargo install mask
-cargo install cargo-nextest
-```
 
 ## Prerequisites
 
@@ -161,3 +146,187 @@ Other documentation:
 | [`BUILD.md`](./BUILD.md) | How to build this project. |
 | [`TEST.md`](./TEST.md) | How to test this project. Details of manual unit, integration, and smoke tests. How to run automated tests. |
 | [`RELEASE.md`](./RELEASE.md) | How to release this project. |
+
+
+## Development Tasks
+
+The following are executable tasks using `mask --maskfile README.md <task>` (aliased as `miso` - "make it so"). 
+
+## build
+
+> Build all workspace crates
+
+```sh
+cargo build --workspace
+```
+
+## run (shell)
+
+> Run a shell binary — usage: mask run [mish|mash|mush]
+
+```sh
+cargo run --bin $shell
+```
+
+## test
+
+> Run all tests (unit + integration)
+
+```sh
+cargo nextest run --package mish-midi-core --profile unit
+cargo nextest run --package mash-audio-core --profile unit
+cargo nextest run --package tests --profile ci
+```
+
+## buildest
+
+> Build all workspace crates
+
+```sh
+cargo build --workspace && cargo nextest run --workspace
+```
+
+### test unit
+
+> Run domain unit tests only (fast, parallel, no PTY)
+
+```sh
+cargo nextest run --package mish-midi-core --profile unit
+cargo nextest run --package mash-audio-core --profile unit
+```
+
+### test integration
+
+> Run PTY integration tests (sequential, requires built binaries)
+
+```sh
+cargo build --workspace
+cargo nextest run --package tests --profile ci
+```
+
+### test shell (shell)
+
+> Run mish integration tests only
+
+```sh
+cargo build --bin $shell
+cargo nextest run --package $shell-tests --test ${shell}-tests --profile ci
+```
+
+### test plugin
+
+> Check nu_plugin_midi binary exists and was built successfully
+
+```sh
+cargo build --package nu_plugin_midi
+cargo nextest run --package mush-tests --test nu_plugin_midi_tests --profile ci
+```
+
+## ci
+
+> Full CI pipeline — build, unit tests, integration tests
+
+```sh
+set -e
+cargo build --workspace
+cargo nextest run --package mish-midi-core --profile unit
+cargo nextest run --package mash-audio-core --profile unit
+cargo nextest run --package tests --profile ci
+```
+
+## clean
+
+> Remove build artifacts
+
+```sh
+cargo clean
+```
+
+## check
+
+> Run cargo check across the workspace (fast, no codegen)
+
+```sh
+cargo check --workspace
+```
+
+## clippy
+
+> Run clippy lints across the workspace
+
+```sh
+cargo clippy --workspace -- -D warnings
+```
+
+## format
+
+> Format all source files
+
+```sh
+cargo fmt --all
+```
+
+## format-check
+
+> Check formatting without modifying files (useful in CI)
+
+```sh
+cargo fmt --all -- --check
+```
+
+## plugin-add (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+cargo build --package nu_plugin_${plugin} --release
+nu -c "plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
+```
+
+## plugin-rm (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+nu -c "do -i {plugin rm $plugin}; plugin list | where name == $plugin"
+```
+
+## plugin-ls (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+nu -c "plugin list | where name == $plugin"
+```
+
+
+
+## plugin-test (plugin)
+
+> Build, register and list `nu_plugin_midi` with nushell (release build)
+
+```sh
+set -e
+cargo build --package nu_plugin_${plugin} --release
+nu -c "do -i {plugin rm $plugin}; plugin add target/release/nu_plugin_$plugin; plugin list | where name == $plugin"
+```
+
+## pr-check
+
+```sh
+echo Fmt...
+cargo fmt --check
+echo Clippy...
+cargo clippy --workspace
+echo Tests..
+cargo nextest run --workspace
+```
+
+## fluidsynth
+
+```sh
+fluidsynth -a pulseaudio -m alsa_seq -o midi.autoconnect=1 /usr/share/sounds/sf2/default-GM.sf2
+```
