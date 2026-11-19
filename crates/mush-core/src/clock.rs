@@ -11,6 +11,7 @@ use crossbeam::queue::ArrayQueue;
 use thiserror::Error;
 use tracing::{debug, error, warn};
 
+use crate::diag::DiagEvent;
 use crate::timeline::TimelineEvent;
 use crate::update::AudioUpdate;
 
@@ -60,6 +61,7 @@ where
     pub timeline: Arc<RwLock<Vec<TimelineEvent<P>>>>,
     pub midi_queue: Arc<ArrayQueue<[u8; 3]>>,
     pub status_tx: tokio::sync::mpsc::Sender<AudioUpdate>,
+    pub diag_queue: Arc<ArrayQueue<DiagEvent>>,
     pub sample_rate: u32,
     /// Extracts raw MIDI bytes from a payload.
     /// Returns `None` for non-MIDI payloads (e.g. `TempoChange`).
@@ -109,6 +111,7 @@ impl Clock {
             next_event_idx: Arc::clone(&args.next_event_idx),
             timeline: Arc::clone(&args.timeline),
             midi_queue: Arc::clone(&args.midi_queue),
+            diag_queue: Arc::clone(&args.diag_queue),
             status_tx: args.status_tx.clone(),
             sample_rate: args.sample_rate,
             extract_midi: args.extract_midi,
@@ -140,6 +143,7 @@ impl Clock {
             next_event_idx,
             timeline,
             midi_queue,
+            diag_queue,
             status_tx,
             extract_midi,
             host_name,
@@ -218,7 +222,14 @@ impl Clock {
                 let frame_end = frame_start + buffer_frames;
 
                 if let Ok(tl) = timeline.try_read() {
-                    dispatch_events(&tl, &next_event_idx, &midi_queue, frame_end, extract_midi);
+                    dispatch_events(
+                        &tl,
+                        &next_event_idx,
+                        &midi_queue,
+                        frame_end,
+                        extract_midi,
+                        &diag_queue,
+                    );
                 }
 
                 playhead.store(frame_end, Ordering::Release);
@@ -255,6 +266,7 @@ impl Clock {
             status_tx,
             sample_rate,
             extract_midi,
+            diag_queue,
             ..
         } = args;
 
@@ -272,14 +284,21 @@ impl Clock {
                         let frame_start = playhead.load(Ordering::Acquire);
                         let frame_end = frame_start + BUFFER_SIZE;
 
-                        if let Ok(tl) = timeline.try_read() {
-                            dispatch_events(
-                                &tl,
-                                &next_event_idx,
-                                &midi_queue,
-                                frame_end,
-                                extract_midi,
-                            );
+                        match timeline.try_read() {
+                            Ok(tl) => {
+                                dispatch_events(
+                                    &tl,
+                                    &next_event_idx,
+                                    &midi_queue,
+                                    frame_end,
+                                    extract_midi,
+                                    &diag_queue,
+                                );
+                            }
+                            Err(_) => {
+                                let _ = diag_queue
+                                    .push(DiagEvent::TimelineLockMissed { frame: frame_start });
+                            }
                         }
 
                         playhead.store(frame_end, Ordering::Release);
@@ -329,8 +348,8 @@ impl Drop for Clock {
 /// **Must be lock-free — no allocation, no blocking.**
 ///
 /// Advances `next_event_idx` atomically as events are consumed.
-/// If `midi_queue` is full the event is dropped — preferable to
-/// blocking the RT thread.
+/// If `midi_queue` is full the event is dropped and a `DiagEvent` is
+/// pushed to `diag_queue` for off-RT logging by the Conductor.
 ///
 /// # Why a function pointer for `extract_midi`?
 /// A closure would require a generic bound or a `Box<dyn Fn>`.
@@ -342,6 +361,7 @@ pub fn dispatch_events<P>(
     midi_queue: &ArrayQueue<[u8; 3]>,
     frame_end: u64,
     extract_midi: fn(&P) -> Option<[u8; 3]>,
+    diag_queue: &ArrayQueue<DiagEvent>, // ← new
 ) where
     P: Clone + Send + Sync + 'static,
 {
@@ -351,8 +371,10 @@ pub fn dispatch_events<P>(
         match timeline.get(idx) {
             Some(event) if event.sample_pos < frame_end => {
                 if let Some(bytes) = extract_midi(&event.payload) {
-                    // Prefer dropping to blocking on the RT path.
-                    let _ = midi_queue.push(bytes);
+                    if midi_queue.push(bytes).is_err() {
+                        // Prefer dropping to blocking — record for off-RT logging.
+                        let _ = diag_queue.push(DiagEvent::MidiQueueFull { frame: frame_end });
+                    }
                 }
                 next_event_idx.fetch_add(1, Ordering::Release);
             }

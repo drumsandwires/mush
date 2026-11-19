@@ -2,6 +2,7 @@ pub mod addrs;
 pub mod audio;
 pub mod clock;
 pub mod conductor;
+pub mod diag;
 pub mod format;
 pub mod midi;
 pub mod midi_output;
