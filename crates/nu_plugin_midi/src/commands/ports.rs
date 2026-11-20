@@ -25,6 +25,8 @@ impl SimplePluginCommand for Ports {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "ports").entered();
+        tracing::debug!("ports: run");
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
 
@@ -54,6 +56,7 @@ impl SimplePluginCommand for Ports {
             })
             .collect::<Vec<_>>();
 
+        tracing::debug!("ports: done");
         Ok(Value::list(rows, span))
     }
 }

@@ -9,6 +9,7 @@ members = [
     "crates/nu_plugin_live_audio",
     "crates/mudld",
     "tests",
+    "crates/mush-tracing",
 ]
 resolver = "3"
 
@@ -40,7 +41,12 @@ tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
 wmidi = "4"
+tracing-appender = "0.2"
+console-subscriber = { git = "https://github.com/tokio-rs/console", package = "console-subscriber", rev = "b59758e5a6effe3a9df3ec84a2f28d319d178234" }
+dirs            = "6"
+
 # internal
 mush-core       = { path = "crates/mush-core" }
 mush-midi-codec       = { path = "crates/mush-midi-codec" }
+mush-tracing = { path = "crates/mush-tracing" }
 mudld           = { path = "crates/mudld" }

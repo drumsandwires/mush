@@ -30,6 +30,8 @@ impl SimplePluginCommand for Record {
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "record").entered();
+        tracing::debug!("record: run");
         let path: Option<String> = call.opt(0)?;
         let path = path.map(PathBuf::from);
 
@@ -44,6 +46,7 @@ impl SimplePluginCommand for Record {
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "ok".to_string());
 
+        tracing::debug!(result = %s, "record: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }

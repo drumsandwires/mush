@@ -30,6 +30,8 @@ impl SimplePluginCommand for Monitor {
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "monitor").entered();
+        tracing::debug!("monitor: run");
         let path: Option<String> = call.opt(0)?;
         let path = path.map(PathBuf::from);
 
@@ -44,6 +46,7 @@ impl SimplePluginCommand for Monitor {
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "ok".to_string());
 
+        tracing::debug!(result = %s, "monitor: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }

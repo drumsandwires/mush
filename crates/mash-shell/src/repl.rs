@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 use mush_core::Response;
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
+use mush_tracing::tracing;
+use std::path::PathBuf;
+
 use crate::version;
 
 #[derive(Parser, Debug)]
@@ -67,46 +69,41 @@ pub async fn evaluate(client: &mut ZmqClient, input: &str) -> Response {
     };
 
     match Cli::try_parse_from(tokens) {
-        Ok(cli) => match cli.command {
-            MashCommand::Version { long } => {
-                if long {
-                    Response::Output(version::long())
-                } else {
-                    Response::Output(version::short())
-                }
-            }
-
-            MashCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
-
-            MashCommand::Host { name } => {
-                send(client, TransportCommand::AudioHost(name)).await
-            }
-
-            MashCommand::Devices => send(client, TransportCommand::AudioDevices).await,
-
-            MashCommand::Device { name } => {
-                send(client, TransportCommand::AudioDevice(name)).await
-            }
-
-            MashCommand::Load { path } => {
-                send(client, TransportCommand::LoadMidi(path)).await
-            }
-
-            MashCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-
-            MashCommand::Play => send(client, TransportCommand::Play).await,
-
-            MashCommand::Stop => send(client, TransportCommand::Stop).await,
-
-            MashCommand::Record { path: _ } => {
-                Response::Output("record: not yet implemented".into())
-            }
-
-            MashCommand::Monitor => {
-                Response::Output("monitor: not yet implemented".into())
-            }
-        },
         Err(e) => Response::Output(e.render().to_string()),
+        Ok(cli) => dispatch(client, cli.command).await,
+    }
+}
+
+#[tracing::instrument(skip(client), fields(cmd = ?command))]
+async fn dispatch(client: &mut ZmqClient, command: MashCommand) -> Response {
+    match command {
+        MashCommand::Version { long } => {
+            if long {
+                Response::Output(version::long())
+            } else {
+                Response::Output(version::short())
+            }
+        }
+
+        MashCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
+
+        MashCommand::Host { name } => send(client, TransportCommand::AudioHost(name)).await,
+
+        MashCommand::Devices => send(client, TransportCommand::AudioDevices).await,
+
+        MashCommand::Device { name } => send(client, TransportCommand::AudioDevice(name)).await,
+
+        MashCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
+
+        MashCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
+
+        MashCommand::Play => send(client, TransportCommand::Play).await,
+
+        MashCommand::Stop => send(client, TransportCommand::Stop).await,
+
+        MashCommand::Record { path: _ } => Response::Output("record: not yet implemented".into()),
+
+        MashCommand::Monitor => Response::Output("monitor: not yet implemented".into()),
     }
 }
 
@@ -123,3 +120,4 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
         }
     }
 }
+

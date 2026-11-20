@@ -1,9 +1,21 @@
-use nu_plugin::{MsgPackSerializer, serve_plugin};
-use nu_plugin_live_audio::AudioPlugin;
 use mush_core::conductor::Conductor;
 use mush_core::zmq_client::ZmqClient;
+use mush_tracing::tracing;
+use nu_plugin::{MsgPackSerializer, serve_plugin};
+use nu_plugin_live_audio::AudioPlugin;
+
+mod version;
 
 fn main() -> anyhow::Result<()> {
+    let _guard = mush_tracing::init(mush_tracing::TracingConfig::default());
+
+    tracing::info!(
+        plugin = "nu_plugin_live_audio",
+        version = version::compact(),
+        "starting"
+    );
+    tracing::debug!(version = version::long(), "full version");
+
     let rt = tokio::runtime::Runtime::new()?;
     let rt_handle = rt.handle().clone();
 
@@ -38,3 +50,4 @@ fn main() -> anyhow::Result<()> {
     serve_plugin(&plugin, MsgPackSerializer);
     Ok(())
 }
+

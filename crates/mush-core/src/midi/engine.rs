@@ -7,6 +7,7 @@ use std::sync::{
 };
 use std::thread;
 
+use crate::diag::DiagEvent;
 use crate::midi::display::list_enumerated_devices;
 use crate::midi::enumerate::enumerate_devices;
 use crate::midi::types::MidiPortInfo;
@@ -198,13 +199,14 @@ impl MidiEngineRt {
         output: O,
         queue: Arc<ArrayQueue<[u8; 3]>>,
         status_tx: tokio::sync::mpsc::Sender<MidiUpdate>,
+        diag_queue: Arc<ArrayQueue<DiagEvent>>, // ← new
         running: Arc<AtomicBool>,
     ) -> thread::JoinHandle<()> {
         thread::Builder::new()
             .name("mush-midi-rt".into())
             .spawn(move || {
                 rt_priority::elevate_current_thread();
-                Self::run_loop(output, queue, status_tx, running);
+                Self::run_loop(output, queue, status_tx, diag_queue, running);
             })
             .expect("failed to spawn MIDI RT thread")
     }
@@ -213,13 +215,12 @@ impl MidiEngineRt {
         mut output: O,
         queue: Arc<ArrayQueue<[u8; 3]>>,
         status_tx: tokio::sync::mpsc::Sender<MidiUpdate>,
+        diag_queue: Arc<ArrayQueue<DiagEvent>>, // ← new
         running: Arc<AtomicBool>,
     ) {
         while running.load(Ordering::Acquire) {
             match queue.pop() {
                 Some(bytes) => {
-                    // ProgramChange (0xCn) and ChannelPressure (0xDn)
-                    // are 2-byte messages — the third byte is padding.
                     let status = bytes[0] & 0xF0;
                     let channel = bytes[0] & 0x0F;
                     let slice = if status == 0xC0 || status == 0xD0 {
@@ -229,22 +230,23 @@ impl MidiEngineRt {
                     };
 
                     if let Err(e) = output.send(slice) {
+                        let _ = diag_queue.push(DiagEvent::MidiSendError);
                         let _ = status_tx.try_send(MidiUpdate::Error(e));
                         break;
                     }
 
-                    let _ = status_tx.try_send(MidiUpdate::EventDispatched {
-                        channel,
-                        note: bytes[1],
-                        vel: bytes[2],
-                    });
+                    if status_tx
+                        .try_send(MidiUpdate::EventDispatched {
+                            channel,
+                            note: bytes[1],
+                            vel: bytes[2],
+                        })
+                        .is_err()
+                    {
+                        let _ = diag_queue.push(DiagEvent::StatusChannelFull);
+                    }
                 }
-
-                None => {
-                    // Queue empty — yield rather than spin at 100% CPU.
-                    // Returns quickly — does not sleep.
-                    thread::yield_now();
-                }
+                None => thread::yield_now(),
             }
         }
     }

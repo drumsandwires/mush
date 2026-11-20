@@ -32,6 +32,8 @@ impl SimplePluginCommand for Send {
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "send").entered();
+        tracing::debug!("send: run");
         let message: String = call.req(0)?;
 
         let bytes = parse(&message)
@@ -47,6 +49,7 @@ impl SimplePluginCommand for Send {
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "ok".to_string());
 
+        tracing::debug!(result = %s, "send: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }

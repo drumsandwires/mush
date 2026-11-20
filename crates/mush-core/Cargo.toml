@@ -31,5 +31,5 @@ shadow-rs = { workspace = true }
 tempfile = "3"
 
 [[bin]]
-name = "gen_test_mid"
-path = "src/bin/gen_test_mid.rs"
+name = "gen_fixtures"
+path = "src/bin/gen_fixtures.rs"

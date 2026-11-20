@@ -547,22 +547,89 @@ nu_plugin_live_audio
 - [x] Wire Play, Stop, Record via TransportCommand
 - [x] Wire Devices, DevicesRefresh via TransportCommand
 
-#### 8.3.12c — Audio host/device selection in mush-core (new)
+#### 8.3.12c — Audio host/device selection in mush-core ✅
 
-Unblocked by 8.3.12b. mash-shell Record/Monitor and nu_plugin_live_audio Host/Device are fully wired to TransportCommand — the conductor just needs to act on them properly.
+- [x] Add active_host: Option<String> state to Conductor
+- [x] Add active_device: Option<String> state to Conductor
+- [x] Handle AudioHost(Some(name)) — set active host, emit ActiveHost
+- [x] Handle AudioHost(None) — query, emit ActiveHost
+- [x] Handle AudioDevice(Some(name)) — set active device, emit ActiveDevice
+- [x] Handle AudioDevice(None) — query, emit ActiveDevice
+- [x] Wire active host/device into AudioEngine on Play
 
-- [ ] Add active_host: Option<String> state to Conductor
-- [ ] Add active_device: Option<String> state to Conductor
-- [ ] Handle AudioHost(Some(name)) — set active host, emit ActiveHost
-- [ ] Handle AudioHost(None) — query, emit ActiveHost
-- [ ] Handle AudioDevice(Some(name)) — set active device, emit ActiveDevice
-- [ ] Handle AudioDevice(None) — query, emit ActiveDevice
-- [ ] Wire active host/device into AudioEngine on Play
-- [ ] Add TransportCommand::AudioRecord { path } and AudioMonitor variants
-- [ ] Handle AudioRecord in conductor — start capture on audio stream
-- [ ] Handle AudioMonitor in conductor — stream metering updates
-- [ ] Wire mash-shell Record and Monitor
-- [ ] Wire mush-shell audio record and audio monitor
+Deferred to post-MVP:
+
+- Audio capture (Record) and metering (Monitor) via TransportCommand
+- mash-shell and mush-shell Record/Monitor wiring
+
+#### 8.3.12d — Documentation update ✅
+
+- [x] `README.md` — updated Functionality, Structure, Dependencies, Prerequisites, Plan, Usage and Documentation sections
+- [x] `DESIGN.md` — new document. High-level architecture, crate map, key abstractions, data flows, external dependencies, MVP → post-MVP split, known constraints
+- [x] `docs/diagrams/mush_crate_map.puml` — new diagram. Crate dependencies and roles
+- [x] `docs/diagrams/mush_data_flow.puml` — new diagram. End-to-end data flow across all layers
+- [x] `docs/diagrams/mush_architecture.puml` — updated diagram. Detailed single-binary architecture
+- [x] `STYLE.md` typo corrected in README documentation table (SYTLE → STYLE)
+
+#### 8.3.12e — Tracing and diagnostics
+
+##### Stage 1 — mush-core + mish-shell ✅
+
+- [x] Add `tracing-appender` to workspace dependencies
+- [x] Remove `tracing-logfmt` (incompatible with non-blocking writer — see issue #NNN)
+- [x] `telemetry.rs` in `mish-shell` — `init()` with `EnvFilter`, stderr `compact()`, non-blocking file output
+- [x] `WorkerGuard` held for lifetime of `main`
+- [x] `RUST_LOG` env var support via `EnvFilter::from_env_lossy()`
+- [x] Optional `tokio-console` feature flag — `console_subscriber::init()` gated behind `#[cfg(feature = "tokio-console")]`
+- [x] Replace `eprintln!` in `mush-core/src/sink.rs` → `tracing::warn!`
+- [x] Replace `eprintln!` in `mush-core/src/audio/engine.rs` → `tracing::error!`
+- [x] Replace `eprintln!` in `mush-core/src/shell.rs` → `tracing::error!`
+- [x] Remove obsolete `eprintln!` scaffolding in `tests/_src/mash_tests.rs`
+- [x] Startup log line — `tracing::info!` with `version::compact()`
+- [x] Full version detail — `tracing::debug!` with `version::long()`
+
+##### Stage 2 — remaining shells and plugins ✅
+
+- [x] Create `crates/mush-tracing/` shared crate — replaces per-binary telemetry.rs
+- [x] `mush-tracing` re-exports `tracing` — binaries need only one dependency
+- [x] Wire `mush_tracing::init()` into `mash-shell`
+- [x] Wire `mush_tracing::init()` into `mush-shell`
+- [x] Wire `mush_tracing::init()` into `nu_plugin_midi`
+- [x] Wire `mush_tracing::init()` into `nu_plugin_live_audio`
+- [x] Add `shadow-rs` + `build.rs` to `nu_plugin_midi` and `nu_plugin_live_audio`
+- [x] Startup `tracing::info!` and `tracing::debug!` log lines in all five binaries
+- [x] Replace remaining `eprintln!` across all crates
+  — `crates/mudld/src/bin/mudl2midi.rs:27` intentionally retained (CLI tool, tracing overkill)
+
+##### Stage 3 — Conductor, transport instrumentation, and command-level spans
+
+- [x] Instrument Conductor::new
+- [x] Instrument run() loop lifetime
+- [x] Upgrade Play/Stop to info!
+- [x] Add debug! to queue_event
+- [x] Add debug! to send_raw_message success path
+- [x] Add command-level spans via #[tracing::instrument] on dispatch()
+- [x] Command-level spans in nu_plugin_midi and nu_plugin_live_audio
+- [ ] Log/prompt interleaving (deferred — gh issue #96)
+
+##### Stage 4 — RT diagnostic buffer
+
+- [x] Lock-free `DiagEvent` ring buffer in `Clock` and `MidiEngineRt`
+- [x] Drain buffer in Conductor, emit via `tracing` off RT path
+
+##### Stage 5 — CLI flags
+
+- [x] `--log-level` flag in each shell binary
+- [x] `--log-file` flag in each shell binary
+- [x] Wire flags into `TracingConfig` in each `main.rs`
+
+##### Stage 6 — Tokio Console
+
+- [ ] Add `tokio-console` CLI to prerequisites
+- [ ] Instrument Conductor `tokio::select!` loop
+- [ ] Instrument ZMQ send/receive futures
+- [ ] Instrument `mpsc` channel backpressure
+- [ ] Requires `RUSTFLAGS="--cfg tokio_unstable"`
 
 #### 8.3.12 Confirm MVP command surface end-to-end
 
@@ -623,6 +690,8 @@ Unblocked by 8.3.12b. mash-shell Record/Monitor and nu_plugin_live_audio Host/De
 - [ ] 9.2.7 Add ZMQ inproc roundtrip test (deferred from 5.3.3–5.3.5)
 - [ ] 9.2.8 Add ZMQ TCP roundtrip test
 - [ ] 9.2.9 Add MUDL file format validation test
+- [ ] 9.2.10 Add `RUSTFLAGS="--cfg tokio_unstable"` to CI for tokio-console builds
+- [ ] 9.2.11 Add PlantUML rendering step
 
 ### 9.3 Definition of Done
 
@@ -643,3 +712,13 @@ Unblocked by 8.3.12b. mash-shell Record/Monitor and nu_plugin_live_audio Host/De
 - [ ] 9.3.15 All deprecated methods removed
 - [ ] 9.3.16 All legacy evaluator files deleted
 - [ ] 9.3.17 All `display.rs` files assessed and resolved
+
+#### Post-MVP — Audio Record and Monitor
+
+Deferred from 8.3.12c.
+
+- [ ] Add TransportCommand::AudioRecord { path } and AudioMonitor variants
+- [ ] Handle AudioRecord in conductor — start capture on audio stream
+- [ ] Handle AudioMonitor in conductor — stream metering updates
+- [ ] Wire mash-shell Record and Monitor
+- [ ] Wire mush-shell audio record and audio monitor

@@ -26,6 +26,8 @@ impl SimplePluginCommand for Save {
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "save").entered();
+        tracing::debug!("save: run");
         let path: String = call.req(0)?;
         let path = PathBuf::from(&path);
 
@@ -39,6 +41,7 @@ impl SimplePluginCommand for Save {
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "no response".to_string());
 
+        tracing::debug!(result = %s, "save: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }

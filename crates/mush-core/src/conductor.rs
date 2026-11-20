@@ -8,6 +8,7 @@ use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
 
 use crate::clock::{Clock, ClockArgs};
+use crate::diag::DiagEvent;
 use crate::midi::engine::DesktopMidiOutput;
 use crate::midi::enumerate::list_midi_ports;
 use crate::midi::input::{InputEvent, MidiInputHandle};
@@ -127,6 +128,13 @@ pub struct Conductor {
     #[allow(dead_code)]
     midi_queue: Arc<ArrayQueue<[u8; 3]>>,
 
+    // Lock-free ring buffer for RT diagnostic events.
+    ///
+    /// Pushed to by the audio callback and `MidiEngineRt` on the RT path —
+    /// must never block or allocate. Drained by `drain_diag_queue` on the
+    /// conductor tick (~1ms) and emitted via `tracing::warn!` off the RT path.
+    diag_queue: Arc<ArrayQueue<DiagEvent>>,
+
     /// The currently open MIDI output connection, if any.
     ///
     /// `None`  — no port selected; `SendMessage` returns an error.
@@ -212,6 +220,7 @@ impl Conductor {
         let (input_tx, input_rx) = mpsc::channel(INPUT_CHANNEL_CAPACITY);
 
         let midi_queue = Arc::new(ArrayQueue::new(MIDI_QUEUE_CAPACITY));
+        let diag_queue = Arc::new(ArrayQueue::<DiagEvent>::new(256));
 
         let conductor = Self {
             ctx,
@@ -225,6 +234,7 @@ impl Conductor {
             state: TransportState::new(INITIAL_BPM),
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
+            diag_queue: Arc::clone(&diag_queue),
             midi_connection: None,
             clock: None,
             midi_input: None,
@@ -236,6 +246,8 @@ impl Conductor {
             record_path: None,
             input_mode: InputMode::Off,
         };
+
+        info!(sample_rate, "conductor created");
 
         Ok((conductor, midi_queue, audio_tx, midi_tx))
     }
@@ -271,7 +283,9 @@ impl Conductor {
     /// Suspends on `tokio::select!` — wakes only when a command
     /// arrives or an update is ready to fan out. Returns when the
     /// ZMQ transport is closed or all senders are dropped.
+    #[tracing::instrument(skip(self), name = "conductor")]
     pub async fn run(mut self) {
+        info!("conductor running");
         let mut drain_interval = time::interval(Duration::from_millis(1));
         drain_interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
 
@@ -302,10 +316,15 @@ impl Conductor {
                     }
                 }
                 _ = drain_interval.tick() => {
+                    // Span here makes drain backpressure visible in tokio-console
+                    // as a recurring short-lived child of the conductor task.
+                    let _span = tracing::debug_span!("conductor.drain").entered();
                     self.drain_midi_queue();
+                    self.drain_diag_queue();
                 }
             }
         }
+        info!("conductor stopped");
     }
 
     /// Drain the RT midi_queue into the open MIDI output connection.
@@ -326,18 +345,45 @@ impl Conductor {
             }
         }
     }
+
+    /// Drain the RT diag_queue and emit tracing events off the RT path.
+    ///
+    /// Called on every conductor tick (~1ms). Each variant maps to a
+    /// `warn!` — these are non-fatal but indicate RT compliance issues.
+    fn drain_diag_queue(&self) {
+        while let Some(event) = self.diag_queue.pop() {
+            match event {
+                DiagEvent::MidiQueueFull { frame } => {
+                    warn!(frame, "RT: midi_queue full — MIDI event dropped");
+                }
+                DiagEvent::StatusChannelFull => {
+                    warn!("RT: status channel full — update dropped");
+                }
+                DiagEvent::MidiSendError => {
+                    warn!("RT: MIDI send error");
+                }
+                DiagEvent::TimelineLockMissed { frame } => {
+                    warn!(frame, "RT: timeline lock missed — buffer period skipped");
+                }
+            }
+        }
+    }
+
     /// Dispatch a `TransportCommand` to the appropriate handler.
+    #[tracing::instrument(skip(self), fields(cmd = ?cmd))]
     async fn handle_command(&mut self, cmd: TransportCommand) {
         debug!(?cmd, "handle_command");
         match cmd {
             // ── Transport ─────────────────────────────────────────
             TransportCommand::Play => {
+                info!("Play");
                 self.start_clock();
                 self.emit_all(EngineUpdate::Audio(AudioUpdate::TransportStarted))
                     .await;
             }
 
             TransportCommand::Stop => {
+                info!("Stop");
                 // If a recording is in progress, save it before stopping.
                 if self.record_buffer.is_some() {
                     self.stop_record(None).await;
@@ -698,6 +744,7 @@ impl Conductor {
             next_event_idx: Arc::clone(&self.state.next_event_idx),
             timeline: Arc::clone(&self.timeline),
             midi_queue: Arc::clone(&self.midi_queue),
+            diag_queue: Arc::clone(&self.diag_queue),
             status_tx: self.audio_tx.clone(),
             sample_rate: self.sample_rate,
             extract_midi: extract_midi_payload,
@@ -814,6 +861,12 @@ impl Conductor {
         tl.push(note_on);
         tl.push(note_off);
         tl.sort_by_key(|e| e.sample_pos);
+        debug!(
+            beat = event.beat,
+            note = event.note,
+            vel = event.vel,
+            "event queued"
+        );
     }
 
     /// Send raw MIDI bytes directly to the open output connection.
@@ -848,6 +901,7 @@ impl Conductor {
                     let channel = bytes[0] & 0x0F;
                     let note = bytes.get(1).copied().unwrap_or(0);
                     let vel = bytes.get(2).copied().unwrap_or(0);
+                    debug!(channel, note, vel, "MIDI message sent");
                     self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
                         channel,
                         note,
@@ -1044,6 +1098,7 @@ impl Conductor {
     /// Fan out an `EngineUpdate` to all subscribers and the ZMQ PUB socket.
     ///
     /// Removes dead subscriptions (dropped handles) via `retain()`.
+    #[tracing::instrument(skip(self, update), name = "conductor.emit_all")]
     async fn emit_all(&mut self, update: EngineUpdate) {
         debug!(?update, subs = self.subs.len(), "emit_all");
         self.subs.retain(|s| !s.is_closed());

@@ -9,8 +9,9 @@ use cpal::StreamConfig;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crossbeam::queue::ArrayQueue;
 use thiserror::Error;
-use tracing::{error, info, warn};
+use tracing::{debug, error, warn};
 
+use crate::diag::DiagEvent;
 use crate::timeline::TimelineEvent;
 use crate::update::AudioUpdate;
 
@@ -60,6 +61,7 @@ where
     pub timeline: Arc<RwLock<Vec<TimelineEvent<P>>>>,
     pub midi_queue: Arc<ArrayQueue<[u8; 3]>>,
     pub status_tx: tokio::sync::mpsc::Sender<AudioUpdate>,
+    pub diag_queue: Arc<ArrayQueue<DiagEvent>>,
     pub sample_rate: u32,
     /// Extracts raw MIDI bytes from a payload.
     /// Returns `None` for non-MIDI payloads (e.g. `TempoChange`).
@@ -109,6 +111,7 @@ impl Clock {
             next_event_idx: Arc::clone(&args.next_event_idx),
             timeline: Arc::clone(&args.timeline),
             midi_queue: Arc::clone(&args.midi_queue),
+            diag_queue: Arc::clone(&args.diag_queue),
             status_tx: args.status_tx.clone(),
             sample_rate: args.sample_rate,
             extract_midi: args.extract_midi,
@@ -118,7 +121,7 @@ impl Clock {
 
         match Self::try_cpal(args) {
             Ok(stream) => {
-                info!("clock: cpal audio callback (sample-accurate)");
+                debug!("clock: cpal audio callback (sample-accurate)");
                 Clock::Cpal(stream)
             }
             Err(e) => {
@@ -140,6 +143,7 @@ impl Clock {
             next_event_idx,
             timeline,
             midi_queue,
+            diag_queue,
             status_tx,
             extract_midi,
             host_name,
@@ -218,7 +222,14 @@ impl Clock {
                 let frame_end = frame_start + buffer_frames;
 
                 if let Ok(tl) = timeline.try_read() {
-                    dispatch_events(&tl, &next_event_idx, &midi_queue, frame_end, extract_midi);
+                    dispatch_events(
+                        &tl,
+                        &next_event_idx,
+                        &midi_queue,
+                        frame_end,
+                        extract_midi,
+                        &diag_queue,
+                    );
                 }
 
                 playhead.store(frame_end, Ordering::Release);
@@ -255,6 +266,7 @@ impl Clock {
             status_tx,
             sample_rate,
             extract_midi,
+            diag_queue,
             ..
         } = args;
 
@@ -272,14 +284,21 @@ impl Clock {
                         let frame_start = playhead.load(Ordering::Acquire);
                         let frame_end = frame_start + BUFFER_SIZE;
 
-                        if let Ok(tl) = timeline.try_read() {
-                            dispatch_events(
-                                &tl,
-                                &next_event_idx,
-                                &midi_queue,
-                                frame_end,
-                                extract_midi,
-                            );
+                        match timeline.try_read() {
+                            Ok(tl) => {
+                                dispatch_events(
+                                    &tl,
+                                    &next_event_idx,
+                                    &midi_queue,
+                                    frame_end,
+                                    extract_midi,
+                                    &diag_queue,
+                                );
+                            }
+                            Err(_) => {
+                                let _ = diag_queue
+                                    .push(DiagEvent::TimelineLockMissed { frame: frame_start });
+                            }
                         }
 
                         playhead.store(frame_end, Ordering::Release);
@@ -329,8 +348,8 @@ impl Drop for Clock {
 /// **Must be lock-free — no allocation, no blocking.**
 ///
 /// Advances `next_event_idx` atomically as events are consumed.
-/// If `midi_queue` is full the event is dropped — preferable to
-/// blocking the RT thread.
+/// If `midi_queue` is full the event is dropped and a `DiagEvent` is
+/// pushed to `diag_queue` for off-RT logging by the Conductor.
 ///
 /// # Why a function pointer for `extract_midi`?
 /// A closure would require a generic bound or a `Box<dyn Fn>`.
@@ -342,6 +361,7 @@ pub fn dispatch_events<P>(
     midi_queue: &ArrayQueue<[u8; 3]>,
     frame_end: u64,
     extract_midi: fn(&P) -> Option<[u8; 3]>,
+    diag_queue: &ArrayQueue<DiagEvent>, // ← new
 ) where
     P: Clone + Send + Sync + 'static,
 {
@@ -351,8 +371,10 @@ pub fn dispatch_events<P>(
         match timeline.get(idx) {
             Some(event) if event.sample_pos < frame_end => {
                 if let Some(bytes) = extract_midi(&event.payload) {
-                    // Prefer dropping to blocking on the RT path.
-                    let _ = midi_queue.push(bytes);
+                    if midi_queue.push(bytes).is_err() {
+                        // Prefer dropping to blocking — record for off-RT logging.
+                        let _ = diag_queue.push(DiagEvent::MidiQueueFull { frame: frame_end });
+                    }
                 }
                 next_event_idx.fetch_add(1, Ordering::Release);
             }
@@ -394,6 +416,16 @@ mod tests {
             .collect()
     }
 
+    /// Returns a fresh diag queue sized for test use.
+    fn diag() -> ArrayQueue<DiagEvent> {
+        ArrayQueue::new(16)
+    }
+
+    /// Events whose `sample_pos` is strictly less than `frame_end` must
+    /// be dispatched. Events at or beyond `frame_end` must be held back.
+    /// Here the note-on at sample 0 is before frame_end 44_100;
+    /// the note-off at sample 44_100 is not — only one event should
+    /// reach the queue and the index should advance by one.
     #[test]
     fn dispatches_events_before_frame_end() {
         let timeline = make_timeline(vec![
@@ -402,15 +434,19 @@ mod tests {
         ]);
         let idx = AtomicUsize::new(0);
         let queue = ArrayQueue::new(16);
+        let diag = diag();
 
-        dispatch_events(&timeline, &idx, &queue, 44_100, extract);
+        dispatch_events(&timeline, &idx, &queue, 44_100, extract, &diag);
 
-        // Only the event at sample 0 is before frame_end 44_100.
         assert_eq!(queue.len(), 1);
         assert_eq!(queue.pop(), Some([0x90, 60, 100]));
         assert_eq!(idx.load(Ordering::Acquire), 1);
     }
 
+    /// Non-MIDI payloads (e.g. tempo markers) must advance the index
+    /// without pushing anything to the MIDI queue. The marker at sample 0
+    /// is consumed silently; the MIDI event at sample 1 is dispatched.
+    /// Final index must be 2 and queue length must be 1.
     #[test]
     fn skips_non_midi_payloads() {
         let timeline = make_timeline(vec![
@@ -419,34 +455,41 @@ mod tests {
         ]);
         let idx = AtomicUsize::new(0);
         let queue = ArrayQueue::new(16);
+        let diag = diag();
 
-        dispatch_events(&timeline, &idx, &queue, 100, extract);
+        dispatch_events(&timeline, &idx, &queue, 100, extract, &diag);
 
-        // Marker is consumed (idx advances) but not pushed to queue.
         assert_eq!(idx.load(Ordering::Acquire), 2);
         assert_eq!(queue.len(), 1);
         assert_eq!(queue.pop(), Some([0x90, 64, 80]));
     }
 
+    /// An event whose `sample_pos` equals `frame_end` is not yet due —
+    /// the dispatch window is exclusive of the upper bound.
+    /// Nothing should be pushed and the index must remain at 0.
     #[test]
     fn does_not_dispatch_events_at_or_after_frame_end() {
         let timeline = make_timeline(vec![(512, TestPayload::Midi([0x90, 60, 100]))]);
         let idx = AtomicUsize::new(0);
         let queue = ArrayQueue::new(16);
+        let diag = diag();
 
-        dispatch_events(&timeline, &idx, &queue, 512, extract);
+        dispatch_events(&timeline, &idx, &queue, 512, extract, &diag);
 
         assert_eq!(queue.len(), 0);
         assert_eq!(idx.load(Ordering::Acquire), 0);
     }
 
+    /// An empty timeline must return immediately without panicking.
+    /// Both queue and index remain at their initial values.
     #[test]
     fn empty_timeline_does_not_panic() {
         let timeline: Vec<TimelineEvent<TestPayload>> = vec![];
         let idx = AtomicUsize::new(0);
         let queue = ArrayQueue::new(16);
+        let diag = diag();
 
-        dispatch_events(&timeline, &idx, &queue, 44_100, extract);
+        dispatch_events(&timeline, &idx, &queue, 44_100, extract, &diag);
 
         assert_eq!(queue.len(), 0);
     }

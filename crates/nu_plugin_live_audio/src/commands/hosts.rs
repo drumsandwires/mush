@@ -23,6 +23,8 @@ impl SimplePluginCommand for Hosts {
         _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
+        let _span = tracing::debug_span!("command", cmd = "hosts").entered();
+        tracing::debug!("hosts: run");
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
         plugin.rt
@@ -32,6 +34,7 @@ impl SimplePluginCommand for Hosts {
         let s = update
             .and_then(|u| mush_core::format::format_update(&u))
             .unwrap_or_else(|| "no response".to_string());
+        tracing::debug!(result = %s, "hosts: done");
         Ok(Value::string(s, Span::unknown()))
     }
 }
