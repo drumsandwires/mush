@@ -13,7 +13,7 @@ reedline        = { workspace = true }
 shadow-rs       = { workspace = true }
 tracing         = { workspace = true }
 dirs            = { workspace = true }
-mush-tracing    = { workspace = true }
+mush-tracing    = { workspace = true, features = ["tokio-console"] }
 
 [build-dependencies]
 shadow-rs = { workspace = true }

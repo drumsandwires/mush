@@ -42,7 +42,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
 wmidi = "4"
 tracing-appender = "0.2"
-console-subscriber  = "0.4"
+console-subscriber = { git = "https://github.com/tokio-rs/console", package = "console-subscriber", rev = "b59758e5a6effe3a9df3ec84a2f28d319d178234" }
 dirs            = "6"
 
 # internal

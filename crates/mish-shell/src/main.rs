@@ -53,8 +53,7 @@ impl Shell for MishShell {
     }
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let cli = Cli::parse();
     let app_name = Cli::command().get_name().to_owned();
 
@@ -66,12 +65,20 @@ async fn main() {
         cli.console_port,
     );
 
+    // Tracing must be initialised before the runtime starts so the
+    // console subscriber can observe all tasks from the beginning.
     let _guard = mush_tracing::init(config);
 
     tracing::info!(shell = app_name, version = version::compact(), "starting");
     tracing::debug!(version = version::long(), "full version");
 
-    mush_core::shell::run(MishShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
-        .await
-        .expect("shell exited with error");
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build tokio runtime")
+        .block_on(async {
+            mush_core::shell::run(MishShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
+                .await
+                .expect("shell exited with error");
+        });
 }
