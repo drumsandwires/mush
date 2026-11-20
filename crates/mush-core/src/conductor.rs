@@ -316,6 +316,9 @@ impl Conductor {
                     }
                 }
                 _ = drain_interval.tick() => {
+                    // Span here makes drain backpressure visible in tokio-console
+                    // as a recurring short-lived child of the conductor task.
+                    let _span = tracing::debug_span!("conductor.drain").entered();
                     self.drain_midi_queue();
                     self.drain_diag_queue();
                 }
@@ -1095,6 +1098,7 @@ impl Conductor {
     /// Fan out an `EngineUpdate` to all subscribers and the ZMQ PUB socket.
     ///
     /// Removes dead subscriptions (dropped handles) via `retain()`.
+    #[tracing::instrument(skip(self, update), name = "conductor.emit_all")]
     async fn emit_all(&mut self, update: EngineUpdate) {
         debug!(?update, subs = self.subs.len(), "emit_all");
         self.subs.retain(|s| !s.is_closed());

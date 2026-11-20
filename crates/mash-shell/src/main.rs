@@ -20,6 +20,14 @@ struct Cli {
     /// Log file path [default: ~/.local/share/drumsandwires/<bin>.log]
     #[arg(long, value_name = "PATH")]
     log_file: Option<PathBuf>,
+
+    /// Enable tokio-console on the given port [default: 6669]
+    #[arg(long, default_value = "false")]
+    tokio_console: bool,
+
+    /// tokio-console port [default: 6669]
+    #[arg(long, value_name = "PORT")]
+    console_port: Option<u16>,
 }
 
 struct MashShell;
@@ -50,14 +58,15 @@ async fn main() {
     let cli = Cli::parse();
     let app_name = Cli::command().get_name().to_owned();
 
-    let log_file = cli
-        .log_file
-        .or_else(|| mush_tracing::default_logfile(&app_name));
+    let config = mush_tracing::resolve_config(
+        cli.log_level,
+        cli.log_file
+            .or_else(|| mush_tracing::default_logfile(&app_name)),
+        cli.tokio_console,
+        cli.console_port,
+    );
 
-    let _guard = mush_tracing::init(mush_tracing::TracingConfig {
-        log_level: cli.log_level,
-        log_file,
-    });
+    let _guard = mush_tracing::init(config);
 
     tracing::info!(shell = app_name, version = version::compact(), "starting");
     tracing::debug!(version = version::long(), "full version");

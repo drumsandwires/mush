@@ -41,12 +41,12 @@ impl ZmqTransport {
 
         Ok(Self { router, pub_socket })
     }
-
     /// Receive the next `TransportCommand` from any connected shell.
     ///
     /// Suspends until a message arrives — does not block the thread.
     /// Returns `None` if the socket is closed or the message cannot
     /// be deserialised.
+    #[tracing::instrument(skip(self), name = "zmq.recv_command")]
     pub async fn recv_command(&mut self) -> Option<TransportCommand> {
         use futures::StreamExt;
 
@@ -57,12 +57,15 @@ impl ZmqTransport {
         let frames: Vec<_> = msg.into_iter().collect();
         let payload = frames.get(2)?;
 
-        rmp_serde::from_slice(payload).ok()
+        let cmd = rmp_serde::from_slice(payload).ok();
+        tracing::debug!(success = cmd.is_some(), "recv_command decoded");
+        cmd
     }
 
     /// Publish an `EngineUpdate` to all connected shell subscribers.
     ///
     /// Empty topic — all subscribers receive all messages.
+    #[tracing::instrument(skip(self, update), name = "zmq.send_update")]
     pub async fn send_update(&mut self, update: &EngineUpdate) -> Result<(), String> {
         let payload = rmp_serde::to_vec(update).map_err(|e| e.to_string())?;
 
