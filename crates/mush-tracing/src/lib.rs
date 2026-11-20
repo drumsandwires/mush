@@ -1,8 +1,8 @@
 // Re-export tracing so binaries only need mush-tracing as a dependency
 pub use tracing;
 
+use dirs;
 use std::path::PathBuf;
-use std::time::Instant;
 use tracing::Level;
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -18,6 +18,10 @@ impl Default for TracingConfig {
             log_file: None,
         }
     }
+}
+
+pub fn default_logfile(prefix: &str) -> Option<PathBuf> {
+    dirs::data_local_dir().map(|d| d.join("drumsandwires").join(format!("{}.log", prefix)))
 }
 
 /// Initialises the tracing subscriber.

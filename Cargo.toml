@@ -43,6 +43,7 @@ anyhow = "1"
 wmidi = "4"
 tracing-appender = "0.2"
 console-subscriber  = "0.4"
+dirs            = "6"
 
 # internal
 mush-core       = { path = "crates/mush-core" }

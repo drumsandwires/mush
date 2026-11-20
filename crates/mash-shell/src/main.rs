@@ -32,7 +32,12 @@ impl Shell for MashShell {
 
 #[tokio::main]
 async fn main() {
-    let _guard = mush_tracing::init(mush_tracing::TracingConfig::default());
+    let log_file = mush_tracing::default_logfile("mash");
+
+    let _guard = mush_tracing::init(mush_tracing::TracingConfig {
+        log_level: tracing::Level::INFO,
+        log_file,
+    });
 
     tracing::info!(shell = "mash", version = version::compact(), "starting");
     tracing::debug!(version = version::long(), "full version");

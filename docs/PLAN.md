@@ -558,6 +558,7 @@ nu_plugin_live_audio
 - [x] Wire active host/device into AudioEngine on Play
 
 Deferred to post-MVP:
+
 - Audio capture (Record) and metering (Monitor) via TransportCommand
 - mash-shell and mush-shell Record/Monitor wiring
 
@@ -598,7 +599,7 @@ Deferred to post-MVP:
 - [x] Add `shadow-rs` + `build.rs` to `nu_plugin_midi` and `nu_plugin_live_audio`
 - [x] Startup `tracing::info!` and `tracing::debug!` log lines in all five binaries
 - [x] Replace remaining `eprintln!` across all crates
-      — `crates/mudld/src/bin/mudl2midi.rs:27` intentionally retained (CLI tool, tracing overkill)
+  — `crates/mudld/src/bin/mudl2midi.rs:27` intentionally retained (CLI tool, tracing overkill)
 
 ##### Stage 3 — Conductor, transport instrumentation, and command-level spans
 
@@ -613,8 +614,8 @@ Deferred to post-MVP:
 
 ##### Stage 4 — RT diagnostic buffer
 
-- [ ] Lock-free `DiagEvent` ring buffer in `Clock` and `MidiEngineRt`
-- [ ] Drain buffer in Conductor, emit via `tracing` off RT path
+- [x] Lock-free `DiagEvent` ring buffer in `Clock` and `MidiEngineRt`
+- [x] Drain buffer in Conductor, emit via `tracing` off RT path
 
 ##### Stage 5 — CLI flags
 
@@ -629,8 +630,6 @@ Deferred to post-MVP:
 - [ ] Instrument ZMQ send/receive futures
 - [ ] Instrument `mpsc` channel backpressure
 - [ ] Requires `RUSTFLAGS="--cfg tokio_unstable"`
-
-
 
 #### 8.3.12 Confirm MVP command surface end-to-end
 
