@@ -53,10 +53,13 @@ impl Shell for MishShell {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
     let app_name = Cli::command().get_name().to_owned();
 
+    // Resolve tracing config from CLI flags with env var fallbacks:
+    //   MUSH_LOG_LEVEL, MUSH_LOG_FILE, MUSH_CONSOLE, MUSH_CONSOLE_PORT
     let config = mush_tracing::resolve_config(
         cli.log_level,
         cli.log_file
@@ -65,20 +68,29 @@ fn main() {
         cli.console_port,
     );
 
-    // Tracing must be initialised before the runtime starts so the
-    // console subscriber can observe all tasks from the beginning.
+    // Initialise tracing (stderr + optional file + optional tokio-console).
+    //
+    // tokio-console investigation notes (Stage 6, parked):
+    //
+    //   - `.cargo/config.toml` sets `RUSTFLAGS="--cfg tokio_unstable"` ✓
+    //   - `mush-tracing` has a `tokio-console` feature that adds
+    //     `ConsoleLayer` to the tracing-subscriber registry ✓
+    //   - CLI flags `--tokio-console` / `--console-port` wired through
+    //     `resolve_config` into `TracingConfig` ✓
+    //   - Port binds and CLI connects (confirmed via `ss -tlnp`) ✓
+    //   - h2 CANCEL on connection: caused by console-api version mismatch
+    //     between `tokio-console` 0.1.14 (needs console-api 0.9) and
+    //     released `console-subscriber` 0.3 (ships console-api 0.7) ✓ fixed
+    //     by pinning console-subscriber to git rev b59758e5a6effe3a9df3ec84
+    //   - TUI connects but shows no task events — root cause unresolved.
+    //     Suspected: ConsoleLayer::spawn() / subscriber registry interaction.
+    //     Parked until console-subscriber cuts a release matching CLI 0.1.14.
     let _guard = mush_tracing::init(config);
 
     tracing::info!(shell = app_name, version = version::compact(), "starting");
     tracing::debug!(version = version::long(), "full version");
 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .expect("failed to build tokio runtime")
-        .block_on(async {
-            mush_core::shell::run(MishShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
-                .await
-                .expect("shell exited with error");
-        });
+    mush_core::shell::run(MishShell, addrs::CMD_INPROC, addrs::PUB_INPROC, 44_100)
+        .await
+        .expect("shell exited with error");
 }
