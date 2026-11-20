@@ -619,9 +619,9 @@ Deferred to post-MVP:
 
 ##### Stage 5 — CLI flags
 
-- [ ] `--log-level` flag in each shell binary
-- [ ] `--log-file` flag in each shell binary
-- [ ] Wire flags into `TracingConfig` in each `main.rs`
+- [x] `--log-level` flag in each shell binary
+- [x] `--log-file` flag in each shell binary
+- [x] Wire flags into `TracingConfig` in each `main.rs`
 
 ##### Stage 6 — Tokio Console
 
