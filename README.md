@@ -13,6 +13,7 @@ Note that current development is focussed on implementing MIDI functionality.
 The shells and plugins provide commands to:
 
 - `version` — display version information.
+ o
 - `port` — get or set the active device port.
 - `ports` — enumerate available device ports.
 - `load` — load file data.
@@ -162,6 +163,14 @@ The following are executable tasks using `mask --maskfile README.md <task>` (ali
 cargo build --workspace
 ```
 
+## build-console
+
+>    Build all workspace crates with tokio-console instrumentation enabled. Requires: tokio-console CLI (cargo install tokio-console) Note: parked — TUI connects but shows no task events (see main.rs investigation notes)
+
+```sh
+cargo build --workspace --features mush-tracing/tokio-console
+```
+
 ## run (shell)
 
 > Run a shell binary — usage: mask run [mish|mash|mush]
@@ -169,6 +178,16 @@ cargo build --workspace
 ```sh
 cargo run --bin $shell
 ```
+
+## run-console (shell) (port)
+
+> Run a shell with tokio-console enabled — usage: mask run-console [mish|mash|mush] [port] Default port: 6669. Attach with: tokio-console http://127.0.0.1
+    :<port>
+
+```sh
+cargo run --bin $shell --features mush-tracing/tokio-console -- --tokio-console --console-port ${port:-6669}
+```
+
 
 ## test
 
@@ -332,6 +351,23 @@ cargo nextest run --workspace
 ```sh
 fluidsynth -a pulseaudio -m alsa_seq -o midi.autoconnect=1 /usr/share/sounds/sf2/default-GM.sf2
 ```
+
+
+## tokio-console
+
+```sh
+tokio-console http://127.0.0.1:6669
+
+```
+
+## tokio-console-traced
+
+```sh
+tokio-console --log trace --log-dir . http://127.0.0.1:6669
+
+```
+
+
 
 ## issues
 > List open issues
