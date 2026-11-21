@@ -22,14 +22,25 @@ impl SimplePluginCommand for Save {
     fn run(
         &self,
         plugin: &MidiPlugin,
-        _engine: &nu_plugin::EngineInterface,
+        engine: &nu_plugin::EngineInterface,
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
         let _span = tracing::debug_span!("command", cmd = "save").entered();
         tracing::debug!("save: run");
+
         let path: String = call.req(0)?;
-        let path = PathBuf::from(&path);
+        let path = {
+            let p = PathBuf::from(&path);
+            if p.is_absolute() {
+                p
+            } else {
+                let cwd = engine
+                    .get_current_dir()
+                    .map_err(|e| LabeledError::new(e.to_string()))?;
+                PathBuf::from(cwd).join(p)
+            }
+        };
 
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
