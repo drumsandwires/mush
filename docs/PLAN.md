@@ -612,7 +612,7 @@ Deferred to post-MVP:
 - [x] Command-level spans in nu_plugin_midi and nu_plugin_live_audio
 - [ ] Log/prompt interleaving (deferred — gh issue #96)
 
-##### Stage 4 — RT diagnostic buffer
+##### Stage 4 — RT diagnostic buffer\
 
 - [x] Lock-free `DiagEvent` ring buffer in `Clock` and `MidiEngineRt`
 - [x] Drain buffer in Conductor, emit via `tracing` off RT path
@@ -623,15 +623,26 @@ Deferred to post-MVP:
 - [x] `--log-file` flag in each shell binary
 - [x] Wire flags into `TracingConfig` in each `main.rs`
 
-##### Stage 6 — Tokio Console
+##### Stage 6 — Tokio Console  [PARKED]
 
-- [ ] Add `tokio-console` CLI to prerequisites
-- [ ] Instrument Conductor `tokio::select!` loop
-- [ ] Instrument ZMQ send/receive futures
-- [ ] Instrument `mpsc` channel backpressure
-- [ ] Requires `RUSTFLAGS="--cfg tokio_unstable"`
+- [x] Requires `RUSTFLAGS="--cfg tokio_unstable"` — `.cargo/config.toml`
+- [x] `mush-tracing` tokio-console feature flag + ConsoleLayer in registry
+- [x] `TracingConfig` extended — `tokio_console: bool`, `console_port: u16`
+- [x] `resolve_config()` — CLI flags + env var fallbacks for all five binaries
+- [x] CLI flags wired in all three shells (`--tokio-console`, `--console-port`)
+- [x] Plugins use env vars only (`MUSH_CONSOLE`, `MUSH_CONSOLE_PORT`)
+- [x] `#[tracing::instrument]` on conductor loop, `emit_all`, ZMQ send/receive
+- [x] `mask build-console` and `mask run-console` tasks in README
+- [ ] TUI shows task events — PARKED
+  Root cause: console-subscriber has no released version matching
+  tokio-console 0.1.14 (needs console-api 0.9). Git pin b59758e connects
+  but emits no task events. Revisit when console-subscriber cuts a release.
 
-#### 8.3.12 Confirm MVP command surface end-to-end
+----
+
+## 9. Integration and Cleanup
+
+### 9.0 Confirm MVP command surface end-to-end
 
 - [ ] `midi ports` — returns structured port list
 - [ ] `midi port` — returns active port name
@@ -655,10 +666,6 @@ Deferred to post-MVP:
 - [ ] `audio device <name>` — sets active device
 - [ ] All commands functional in `mish-shell`, `mash-shell`,
   `mush-shell`, `nu_plugin_midi`, `nu_plugin_live_audio`
-
-----
-
-## 9. Integration and Cleanup
 
 ### 9.1 Cleanup
 

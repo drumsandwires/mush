@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
-
 use crate::MidiPlugin;
 
 pub struct Load;
@@ -10,8 +9,13 @@ pub struct Load;
 impl SimplePluginCommand for Load {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi load" }
-    fn description(&self) -> &str { "Load a MIDI file (.mid or .mudl)" }
+    fn name(&self) -> &str {
+        "midi load"
+    }
+
+    fn description(&self) -> &str {
+        "Load a MIDI file (.mid or .mudl)"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
@@ -22,23 +26,37 @@ impl SimplePluginCommand for Load {
     fn run(
         &self,
         plugin: &MidiPlugin,
-        _engine: &nu_plugin::EngineInterface,
+        engine: &nu_plugin::EngineInterface,
         call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
         let _span = tracing::debug_span!("command", cmd = "load").entered();
         tracing::debug!("load: run");
+
         let path: String = call.req(0)?;
-        let path = PathBuf::from(&path);
+        let path = {
+            let p = PathBuf::from(&path);
+            if p.is_absolute() {
+                p
+            } else {
+                let cwd = engine
+                    .get_current_dir()
+                    .map_err(|e| LabeledError::new(e.to_string()))?;
+                PathBuf::from(cwd).join(p)
+            }
+        };
 
         let cmd = match path.extension().and_then(|e| e.to_str()) {
             Some("mudl") => TransportCommand::LoadMudl(path),
-            _            => TransportCommand::LoadMidi(path),
+            _ => TransportCommand::LoadMidi(path),
         };
 
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt.block_on(client.send_command(&cmd))
+
+        plugin
+            .rt
+            .block_on(client.send_command(&cmd))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
         let update = plugin.rt.block_on(handle.recv());

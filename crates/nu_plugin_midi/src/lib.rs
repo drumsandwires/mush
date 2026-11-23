@@ -33,6 +33,8 @@ impl Plugin for MidiPlugin {
             Box::new(commands::Save),
             Box::new(commands::Ports),
             Box::new(commands::Port),
+            Box::new(commands::PortIn),
+            Box::new(commands::PortOut),
             Box::new(commands::Send),
             Box::new(commands::Play),
             Box::new(commands::Stop),
@@ -41,3 +43,4 @@ impl Plugin for MidiPlugin {
         ]
     }
 }
+

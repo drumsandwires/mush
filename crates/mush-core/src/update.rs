@@ -47,10 +47,23 @@ pub enum MidiUpdate {
     /// Formatted string at MVP — retire when frontends use `ActivePort`.
     PortList(Vec<MidiPortInfo>),
 
+    /// Response to `TransportCommand::MidiPortGet`.
+    /// Returns current input and output assignments together.
+    /// `None` in either field — no port selected for that direction.
+    PortAssignments {
+        input: Option<String>,
+        output: Option<String>,
+    },
+
     /// Response to `TransportCommand::MidiPort(None/Some)`.
     /// `None` — no port selected; first available is in use.
     /// `Some(name)` — this port is currently active.
     ActivePort(Option<String>),
+
+    /// Response to `TransportCommand::MidiInputPort`.
+    /// `None` — input port cleared.
+    /// `Some(name)` — this input port is now active.
+    ActiveInputPort(Option<String>),
 
     /// Acknowledgement that a file was saved successfully.
     /// Payload is the path as a display string.

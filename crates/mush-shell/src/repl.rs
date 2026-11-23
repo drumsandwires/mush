@@ -22,11 +22,13 @@ enum Domain {
         #[arg(long)]
         long: bool,
     },
+
     /// Audio commands
     Audio {
         #[command(subcommand)]
         command: AudioCommand,
     },
+
     /// MIDI commands
     Midi {
         #[command(subcommand)]
@@ -38,64 +40,100 @@ enum Domain {
 enum AudioCommand {
     /// List available audio hosts
     Hosts,
+
     /// Get or set the active audio host
     Host {
         /// Host name to select; omit to query the current host
         name: Option<String>,
     },
+
     /// List available audio devices on the active host
     Devices,
+
     /// Get or set the active audio output device
     Device {
         /// Device name to select; omit to query the current device
         name: Option<String>,
     },
+
     /// Load an audio file
-    Load { path: PathBuf },
+    Load {
+        path: PathBuf,
+    },
+
     /// Save the current session
-    Save { path: PathBuf },
+    Save {
+        path: PathBuf,
+    },
+
     /// Start audio playback
     Play,
+
     /// Start recording
     Record {
         /// Optional path to save the recording when stopped
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+
     /// Monitor live audio
     Monitor,
+
     /// Stop playback or recording
     Stop,
 }
 
 #[derive(Subcommand, Debug)]
 enum MidiCommand {
-    /// List available MIDI output ports
+    /// List available MIDI ports (input, output, and thru)
     Ports,
-    /// Get or set the active MIDI output port
-    Port {
-        /// Port name to select; omit to query the current port
-        name: Option<String>,
+
+    /// Show current MIDI port assignments (in and out)
+    Port,
+
+    /// Set the active MIDI input port by name, index, or substring
+    #[command(name = "port in")]
+    PortIn {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
     },
+
+    /// Set the active MIDI output port by name, index, or substring
+    #[command(name = "port out")]
+    PortOut {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
+    },
+
     /// Load a MIDI file (.mid or .mudl)
-    Load { path: PathBuf },
+    Load {
+        path: PathBuf,
+    },
+
     /// Save the current timeline
-    Save { path: PathBuf },
+    Save {
+        path: PathBuf,
+    },
+
     /// Start MIDI playback
     Play,
+
     /// Start MIDI recording
     Record {
         /// Optional path to save the recording when stopped
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+
     /// Monitor live MIDI input
     Monitor {
         /// Optional autosave path for the pre-roll buffer
         path: Option<PathBuf>,
     },
+
     /// Stop playback or recording
     Stop,
+
     /// Send a raw MIDI message
     Send {
         /// Message in symbolic or numeric form, e.g. "NoteOn C4 mf" or "0x90 0x3C 0x64"
@@ -142,24 +180,40 @@ async fn dispatch(client: &mut ZmqClient, command: Domain) -> Response {
 #[tracing::instrument(skip(client), fields(cmd = ?command))]
 async fn dispatch_audio(client: &mut ZmqClient, command: AudioCommand) -> Response {
     match command {
-        AudioCommand::Hosts => send(client, TransportCommand::AudioHosts).await,
-        AudioCommand::Host { name } => send(client, TransportCommand::AudioHost(name)).await,
-        AudioCommand::Devices => send(client, TransportCommand::AudioDevices).await,
-        AudioCommand::Device { name } => send(client, TransportCommand::AudioDevice(name)).await,
-        AudioCommand::Load { path } => send(client, TransportCommand::LoadMidi(path)).await,
-        AudioCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-        AudioCommand::Play => send(client, TransportCommand::Play).await,
-        AudioCommand::Stop => send(client, TransportCommand::Stop).await,
-        AudioCommand::Record { .. } => Response::Output("audio record: not yet implemented".into()),
-        AudioCommand::Monitor => Response::Output("audio monitor: not yet implemented".into()),
+        AudioCommand::Hosts =>
+            send(client, TransportCommand::AudioHosts).await,
+        AudioCommand::Host { name } =>
+            send(client, TransportCommand::AudioHost(name)).await,
+        AudioCommand::Devices =>
+            send(client, TransportCommand::AudioDevices).await,
+        AudioCommand::Device { name } =>
+            send(client, TransportCommand::AudioDevice(name)).await,
+        AudioCommand::Load { path } =>
+            send(client, TransportCommand::LoadMidi(path)).await,
+        AudioCommand::Save { path } =>
+            send(client, TransportCommand::Save(path)).await,
+        AudioCommand::Play =>
+            send(client, TransportCommand::Play).await,
+        AudioCommand::Stop =>
+            send(client, TransportCommand::Stop).await,
+        AudioCommand::Record { .. } =>
+            Response::Output("audio record: not yet implemented".into()),
+        AudioCommand::Monitor =>
+            Response::Output("audio monitor: not yet implemented".into()),
     }
 }
 
 #[tracing::instrument(skip(client), fields(cmd = ?command))]
 async fn dispatch_midi(client: &mut ZmqClient, command: MidiCommand) -> Response {
     match command {
-        MidiCommand::Ports => send(client, TransportCommand::MidiDevices).await,
-        MidiCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
+        MidiCommand::Ports =>
+            send(client, TransportCommand::MidiDevices).await,
+        MidiCommand::Port =>
+            send(client, TransportCommand::MidiPortGet).await,
+        MidiCommand::PortIn { selector } =>
+            send(client, TransportCommand::MidiInputPort(selector)).await,
+        MidiCommand::PortOut { selector } =>
+            send(client, TransportCommand::MidiOutputPort(selector)).await,
         MidiCommand::Load { path } => {
             let cmd = match path.extension().and_then(|e| e.to_str()) {
                 Some("mudl") => TransportCommand::LoadMudl(path),
@@ -167,13 +221,16 @@ async fn dispatch_midi(client: &mut ZmqClient, command: MidiCommand) -> Response
             };
             send(client, cmd).await
         }
-        MidiCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
-        MidiCommand::Play => send(client, TransportCommand::Play).await,
-        MidiCommand::Stop => send(client, TransportCommand::Stop).await,
-        MidiCommand::Record { path } => {
-            send(client, TransportCommand::Record { start: true, path }).await
-        }
-        MidiCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
+        MidiCommand::Save { path } =>
+            send(client, TransportCommand::Save(path)).await,
+        MidiCommand::Play =>
+            send(client, TransportCommand::Play).await,
+        MidiCommand::Stop =>
+            send(client, TransportCommand::Stop).await,
+        MidiCommand::Record { path } =>
+            send(client, TransportCommand::Record { start: true, path }).await,
+        MidiCommand::Monitor { path } =>
+            send(client, TransportCommand::Monitor { path }).await,
         MidiCommand::Send { args } => {
             let joined = args.join(" ");
             match mush_midi_codec::parse(&joined) {
@@ -197,4 +254,3 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
         }
     }
 }
-

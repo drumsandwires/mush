@@ -1,6 +1,6 @@
 use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
+use nu_protocol::{LabeledError, Signature, Span, Type, Value};
 
 use crate::MidiPlugin;
 
@@ -10,15 +10,10 @@ impl SimplePluginCommand for Port {
     type Plugin = MidiPlugin;
 
     fn name(&self) -> &str { "midi port" }
-    fn description(&self) -> &str { "Get or set the active MIDI output port" }
+    fn description(&self) -> &str { "Show current MIDI port assignments (in and out)" }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
-            .optional(
-                "name",
-                SyntaxShape::String,
-                "Port name to select; omit to query the current port",
-            )
             .input_output_type(Type::Nothing, Type::String)
     }
 
@@ -26,16 +21,18 @@ impl SimplePluginCommand for Port {
         &self,
         plugin: &MidiPlugin,
         _engine: &nu_plugin::EngineInterface,
-        call: &EvaluatedCall,
+        _call: &EvaluatedCall,
         _input: &Value,
     ) -> Result<Value, LabeledError> {
         let _span = tracing::debug_span!("command", cmd = "port").entered();
         tracing::debug!("port: run");
-        let name: Option<String> = call.opt(0)?;
+
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
 
-        plugin.rt.block_on(client.send_command(&TransportCommand::MidiPort(name)))
+        plugin
+            .rt
+            .block_on(client.send_command(&TransportCommand::MidiPortGet))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
         let update = plugin.rt.block_on(handle.recv());
