@@ -276,16 +276,20 @@ pub enum TransportCommand {
     SetAutosavePath(PathBuf),
 
     // ── Device selection ──────────────────────────────────────────
-    /// Query or set the active MIDI output port.
-    /// `None` — query; engine responds with `MidiUpdate::ActivePort`.
-    /// `Some(name)` — select port by name; engine confirms with
-    ///   `MidiUpdate::ActivePort(Some(name))`.
-    MidiPort(Option<String>),
+    /// Query the active MIDI input and output port assignments.
+    /// No side effects. Engine responds with `MidiUpdate::PortAssignments`.
+    MidiPortGet,
 
-    /// Query or set the active MIDI input port.
-    /// Independent from `MidiPort` (output).
-    /// `None` — query; engine responds with `MidiUpdate::ActiveInputPort`.
-    /// `Some(name)` — select input port by name.
+    /// Set or clear the active MIDI output port.
+    /// `None`       — clear the current output port selection.
+    /// `Some(s)`    — select by exact name, integer index, or substring.
+    /// Engine responds with `MidiUpdate::ActivePort`.
+    MidiOutputPort(Option<String>),
+
+    /// Set or clear the active MIDI input port.
+    /// `None`       — clear the current input port selection.
+    /// `Some(s)`    — select by exact name, integer index, or substring.
+    /// Engine responds with `MidiUpdate::ActiveInputPort`.
     MidiInputPort(Option<String>),
 
     /// Query or set the active audio host.
@@ -434,4 +438,3 @@ mod tests {
         assert_eq!(ts.audio_device(), None);
     }
 }
-

@@ -17,7 +17,7 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
         EngineUpdate::Audio(AudioUpdate::TransportStarted) => Some("▶ transport started".into()),
         EngineUpdate::Audio(AudioUpdate::TransportStopped) => Some("■ transport stopped".into()),
         EngineUpdate::Audio(AudioUpdate::PlayheadMoved(_)) => None,
-        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => Some(list_hosts_and_devices(&s)),
+        EngineUpdate::Audio(AudioUpdate::DeviceList(s)) => Some(list_hosts_and_devices(s)),
         EngineUpdate::Audio(AudioUpdate::HostList(hosts)) => {
             if hosts.is_empty() {
                 Some("audio hosts: none found".into())
@@ -39,14 +39,31 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
             None => "audio device: (default)".into(),
         }),
         EngineUpdate::Audio(AudioUpdate::Error(e)) => Some(format!("✗ audio error: {e}")),
-        EngineUpdate::Midi(MidiUpdate::PortList(s)) => list_enumerated_devices(&s),
+
+        EngineUpdate::Midi(MidiUpdate::PortList(s)) => list_enumerated_devices(s),
         EngineUpdate::Midi(MidiUpdate::EventDispatched { channel, note, vel }) => {
             Some(format!("▶ MIDI event — ch:{channel} note:{note} vel:{vel}"))
         }
+
+        // Response to MidiPortGet — shows both assignments
+        EngineUpdate::Midi(MidiUpdate::PortAssignments { input, output }) => {
+            let in_str = input.as_deref().unwrap_or("(none selected)");
+            let out_str = output.as_deref().unwrap_or("(none selected)");
+            Some(format!("in:  {in_str}\nout: {out_str}"))
+        }
+
+        // Response to MidiOutputPort set/clear
         EngineUpdate::Midi(MidiUpdate::ActivePort(name)) => Some(match name {
-            Some(n) => format!("MIDI port: {n}"),
-            None => "MIDI port: (none selected)".into(),
+            Some(n) => format!("MIDI output port: {n}"),
+            None => "MIDI output port: (none selected)".into(),
         }),
+
+        // Response to MidiInputPort set/clear
+        EngineUpdate::Midi(MidiUpdate::ActiveInputPort(name)) => Some(match name {
+            Some(n) => format!("MIDI input port: {n}"),
+            None => "MIDI input port: (none selected)".into(),
+        }),
+
         EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path)) => Some(format!("✓ loaded {path}")),
         EngineUpdate::Midi(MidiUpdate::SaveAck(path)) => Some(format!("✓ saved {path}")),
         EngineUpdate::Midi(MidiUpdate::RecordStarted) => Some("⏺ recording started".into()),
@@ -169,7 +186,7 @@ mod tests {
             name: "IAC Driver".into(),
             direction: MidiPortDirection::Output,
         }]));
-        assert_eq!(format_update(&u), Some("OUT 0: IAC Driver".into()));
+        assert_eq!(format_update(&u), Some("OUT  0: IAC Driver".into()));
     }
 
     #[test]
@@ -187,17 +204,22 @@ mod tests {
 
     #[test]
     fn active_port_some_formats() {
-        let u = EngineUpdate::Midi(MidiUpdate::ActivePort(Some("IAC Driver Bus 1".into())));
+        let u = EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
+            "FluidSynth virtual port".into(),
+        )));
         assert_eq!(
             format_update(&u),
-            Some("MIDI port: IAC Driver Bus 1".into())
+            Some("MIDI output port: FluidSynth virtual port".into())
         );
     }
 
     #[test]
     fn active_port_none_formats() {
         let u = EngineUpdate::Midi(MidiUpdate::ActivePort(None));
-        assert_eq!(format_update(&u), Some("MIDI port: (none selected)".into()));
+        assert_eq!(
+            format_update(&u),
+            Some("MIDI output port: (none selected)".into())
+        );
     }
 
     #[test]

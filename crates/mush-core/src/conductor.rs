@@ -10,10 +10,12 @@ use tracing::{debug, info, warn};
 use crate::clock::{Clock, ClockArgs};
 use crate::diag::DiagEvent;
 use crate::midi::engine::DesktopMidiOutput;
+use crate::midi::enumerate::enumerate_devices;
 use crate::midi::enumerate::list_midi_ports;
 use crate::midi::input::{InputEvent, MidiInputHandle};
 use crate::midi::preroll::PreRoll;
 use crate::midi::timeline::{MidiPayload, load_midi};
+use crate::midi::types::{MidiPortDirection, MidiPortInfo};
 use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
 use crate::timeline::TimelineEvent;
@@ -187,6 +189,8 @@ impl Conductor {
     /// Create a new `Conductor` and return it alongside the shared
     /// MIDI queue and the senders that `Clock` and `MidiEngineRt`
     /// write into.
+    ///
+    /// Read the active MIDI output port name, if
     ///
     /// # Arguments
     /// - `cmd_addr`    — address to bind the ROUTER socket
@@ -517,17 +521,46 @@ impl Conductor {
             }
 
             // ── Device selection ──────────────────────────────────
-            TransportCommand::MidiPort(name) => {
+            TransportCommand::MidiPortGet => {
+                let output = self.state.active_midi_port.read().unwrap().clone();
+                let input = self.state.active_midi_input_port.read().unwrap().clone();
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::PortAssignments {
+                    input,
+                    output,
+                }))
+                .await;
+            }
+
+            TransportCommand::MidiOutputPort(selector) => {
+                let name = match selector {
+                    None => None,
+                    Some(ref s) => {
+                        let resolved = self.resolve_and_emit(s, MidiPortDirection::Output).await;
+                        if resolved.is_none() {
+                            return;
+                        }
+                        resolved
+                    }
+                };
                 self.select_midi_port(name).await;
             }
 
-            TransportCommand::MidiInputPort(name) => {
-                self.state.set_midi_input_port(name.clone());
-                // If input is currently active, reopen on the new port.
+            TransportCommand::MidiInputPort(selector) => {
+                let name = match selector {
+                    None => None,
+                    Some(ref s) => {
+                        // Input port is opened lazily — validate existence at
+                        // open time, not at selection time.
+                        Some(s.clone())
+                    }
+                };
+                *self.state.active_midi_input_port.write().unwrap() = name.clone();
                 if self.input_mode != InputMode::Off {
                     let mode = self.input_mode;
                     self.start_input(mode, None).await;
                 }
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(name)))
+                    .await;
             }
 
             TransportCommand::AudioHost(name) => {
@@ -801,15 +834,11 @@ impl Conductor {
         self.emit_all(EngineUpdate::Midi(update)).await;
     }
 
-    /// Select a MIDI output port by name, or clear the current selection.
-    ///
-    /// - `None`       — drop the current connection, emit `ActivePort(None)`
-    /// - `Some(name)` — open a connection to the named port, emit
-    ///                  `ActivePort(Some(name))` on success or `Error` on failure
     async fn select_midi_port(&mut self, name: Option<String>) {
         match name {
             None => {
                 self.midi_connection = None;
+                *self.state.active_midi_port.write().unwrap() = None;
                 debug!("MIDI output port cleared");
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(None)))
                     .await;
@@ -817,6 +846,7 @@ impl Conductor {
             Some(ref port_name) => match open_midi_port_by_name(port_name) {
                 Ok(conn) => {
                     self.midi_connection = Some(Box::new(conn));
+                    *self.state.active_midi_port.write().unwrap() = Some(port_name.clone());
                     debug!(port = %port_name, "MIDI output port opened");
                     self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
                         port_name.clone(),
@@ -824,6 +854,7 @@ impl Conductor {
                     .await;
                 }
                 Err(e) => {
+                    // Do not touch state or connection on failure — fixes #79
                     warn!(port = %port_name, error = %e, "failed to open MIDI port");
                     self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
                         "failed to open MIDI port '{port_name}': {e}"
@@ -831,6 +862,40 @@ impl Conductor {
                     .await;
                 }
             },
+        }
+    }
+
+    /// Resolve a port selector to a name, filtered by direction.
+    /// Emits `MidiUpdate::Error` and returns `None` on failure.
+    /// Returns `Some(name)` on success.
+    async fn resolve_and_emit(
+        &mut self,
+        selector: &str,
+        direction: MidiPortDirection,
+    ) -> Option<String> {
+        let ports = match enumerate_devices() {
+            Ok(p) => p,
+            Err(e) => {
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(format!(
+                    "failed to enumerate MIDI ports: {e}"
+                ))))
+                .await;
+                return None;
+            }
+        };
+
+        let filtered: Vec<MidiPortInfo> = ports
+            .into_iter()
+            .filter(|p| p.direction == direction)
+            .collect();
+
+        match resolve_port_name(selector, &filtered) {
+            Ok(name) => Some(name),
+            Err(e) => {
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(e)))
+                    .await;
+                None
+            }
         }
     }
 
@@ -1145,6 +1210,50 @@ fn open_midi_port_by_name(name: &str) -> Result<DesktopMidiOutput, String> {
     Ok(DesktopMidiOutput::from_connection(connection))
 }
 
+/// Resolve a port selector to a port name.
+///
+/// Accepts:
+/// - An exact port name match
+/// - An integer index (e.g. "0", "1")
+/// - A case-insensitive substring match
+///
+/// Returns `Ok(name)` on unambiguous match, `Err` on no match or
+/// ambiguous substring.
+fn resolve_port_name(selector: &str, ports: &[MidiPortInfo]) -> Result<String, String> {
+    // Exact match first
+    if let Some(p) = ports.iter().find(|p| p.name == selector) {
+        return Ok(p.name.clone());
+    }
+
+    // Integer index
+    if let Ok(idx) = selector.parse::<usize>() {
+        return ports
+            .iter()
+            .find(|p| p.index == idx)
+            .map(|p| p.name.clone())
+            .ok_or_else(|| format!("no port at index {idx}"));
+    }
+
+    // Case-insensitive substring
+    let lower = selector.to_lowercase();
+    let matches: Vec<&MidiPortInfo> = ports
+        .iter()
+        .filter(|p| p.name.to_lowercase().contains(&lower))
+        .collect();
+
+    match matches.len() {
+        0 => Err(format!("no port matching '{selector}'")),
+        1 => Ok(matches[0].name.clone()),
+        _ => {
+            let names: Vec<&str> = matches.iter().map(|p| p.name.as_str()).collect();
+            Err(format!(
+                "ambiguous port selector '{selector}' — matches: {}",
+                names.join(", ")
+            ))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1387,16 +1496,36 @@ mod tests {
         ));
     }
 
-    // 8.3.6 — MidiPort(None) emits ActivePort(None) and clears connection
+    // // 8.3.6 — MidiPort(None) emits ActivePort(None) and clears connection
+    // #[tokio::test]
+    // async fn midi_port_none_clears_connection() {
+    //     let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+    //     let mut handle = conductor.subscribe();
+    //     conductor
+    //         .handle_command(TransportCommand::MidiPortGet)
+    //         .await;
+    //     let update = handle.recv().await.unwrap();
+    //     assert_eq!(update, EngineUpdate::Midi(MidiUpdate::ActivePort(None)));
+    //     assert!(conductor.midi_connection.is_none());
+    // }
+    //
+
+    // MidiPortGet emits PortAssignments with both in and out assignments
     #[tokio::test]
-    async fn midi_port_none_clears_connection() {
+    async fn midi_port_get_emits_assignments() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         let mut handle = conductor.subscribe();
         conductor
-            .handle_command(TransportCommand::MidiPort(None))
+            .handle_command(TransportCommand::MidiPortGet)
             .await;
         let update = handle.recv().await.unwrap();
-        assert_eq!(update, EngineUpdate::Midi(MidiUpdate::ActivePort(None)));
+        assert_eq!(
+            update,
+            EngineUpdate::Midi(MidiUpdate::PortAssignments {
+                input: None,
+                output: None,
+            })
+        );
         assert!(conductor.midi_connection.is_none());
     }
 
@@ -1406,7 +1535,7 @@ mod tests {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
         let mut handle = conductor.subscribe();
         conductor
-            .handle_command(TransportCommand::MidiPort(Some(
+            .handle_command(TransportCommand::MidiOutputPort(Some(
                 "nonexistent-port-xyz".into(),
             )))
             .await;

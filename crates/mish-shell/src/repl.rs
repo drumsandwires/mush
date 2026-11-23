@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use mush_core::Response;
-
 use mush_core::transport::TransportCommand;
 use mush_core::zmq_client::ZmqClient;
 use mush_tracing::tracing;
@@ -23,32 +22,52 @@ enum MishCommand {
         #[arg(long)]
         long: bool,
     },
-    /// List available MIDI output ports
+
+    /// List available MIDI ports (input, output, and thru)
     Ports,
-    /// Get or set the active MIDI output port
-    Port {
-        /// Port name to select; omit to query the current port
-        name: Option<String>,
+
+    /// Show current MIDI port assignments (in and out)
+    Port,
+
+    /// Set the active MIDI input port by name, index, or substring
+    #[command(name = "port in")]
+    PortIn {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
     },
+
+    /// Set the active MIDI output port by name, index, or substring
+    #[command(name = "port out")]
+    PortOut {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
+    },
+
     /// Load a MIDI file (.mid or .mudl)
     Load { path: PathBuf },
+
     /// Save the current timeline
     Save { path: PathBuf },
+
     /// Start MIDI playback
     Play,
+
     /// Start MIDI recording
     Record {
         /// Optional path to save the recording when stopped
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+
     /// Monitor live MIDI input
     Monitor {
         /// Optional autosave path for the pre-roll buffer
         path: Option<PathBuf>,
     },
+
     /// Stop playback or recording
     Stop,
+
     /// Send a raw MIDI message
     Send {
         /// Message in symbolic or numeric form, e.g. "NoteOn C4 mf" or "0x90 0x3C 0x64"
@@ -90,7 +109,15 @@ async fn dispatch(client: &mut ZmqClient, command: MishCommand) -> Response {
 
         MishCommand::Ports => send(client, TransportCommand::MidiDevices).await,
 
-        MishCommand::Port { name } => send(client, TransportCommand::MidiPort(name)).await,
+        MishCommand::Port => send(client, TransportCommand::MidiPortGet).await,
+
+        MishCommand::PortIn { selector } => {
+            send(client, TransportCommand::MidiInputPort(selector)).await
+        }
+
+        MishCommand::PortOut { selector } => {
+            send(client, TransportCommand::MidiOutputPort(selector)).await
+        }
 
         MishCommand::Load { path } => {
             let cmd = match path.extension().and_then(|e| e.to_str()) {

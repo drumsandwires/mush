@@ -5,6 +5,7 @@ use thiserror::Error;
 pub enum MidiPortDirection {
     Input,
     Output,
+    Thru,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,10 +19,8 @@ pub struct MidiPortInfo {
 pub enum MidiError {
     #[error("failed to initialise MIDI input: {0}")]
     InputInit(midir::InitError),
-
     #[error("failed to initialise MIDI output: {0}")]
     OutputInit(midir::InitError),
-
     #[error("failed to read port name: {0}")]
     PortName(#[from] midir::PortInfoError),
 }

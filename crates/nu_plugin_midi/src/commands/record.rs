@@ -1,16 +1,20 @@
-use std::path::PathBuf;
+use crate::MidiPlugin;
 use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
-use crate::MidiPlugin;
+use std::path::PathBuf;
 
 pub struct Record;
 
 impl SimplePluginCommand for Record {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi record" }
-    fn description(&self) -> &str { "Start MIDI recording" }
+    fn name(&self) -> &str {
+        "midi record"
+    }
+    fn description(&self) -> &str {
+        "Start MIDI recording"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
@@ -34,7 +38,7 @@ impl SimplePluginCommand for Record {
 
         let path: Option<String> = call.opt(0)?;
         let path = path
-            .map(|s| {
+            .map(|s| -> Result<PathBuf, LabeledError> {
                 let p = PathBuf::from(&s);
                 if p.is_absolute() {
                     Ok(p)
@@ -63,3 +67,4 @@ impl SimplePluginCommand for Record {
         Ok(Value::string(s, Span::unknown()))
     }
 }
+
