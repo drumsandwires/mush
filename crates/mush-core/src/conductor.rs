@@ -421,6 +421,9 @@ impl Conductor {
                         self.state
                             .next_event_idx
                             .store(0, std::sync::atomic::Ordering::Release);
+                        self.state
+                            .playhead
+                            .store(0, std::sync::atomic::Ordering::Release);
                         debug!(path = %path_str, events = count, tpb, "timeline loaded");
                         self.emit_all(EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path_str)))
                             .await;
@@ -448,6 +451,9 @@ impl Conductor {
                         self.ticks_per_beat = tpb;
                         self.state
                             .next_event_idx
+                            .store(0, std::sync::atomic::Ordering::Release);
+                        self.state
+                            .playhead
                             .store(0, std::sync::atomic::Ordering::Release);
                         debug!(path = %path_str, events = count, tpb, "mudl timeline loaded");
                         self.emit_all(EngineUpdate::Midi(MidiUpdate::LoadMudlAck(path_str)))
@@ -1458,6 +1464,35 @@ mod tests {
         assert!(
             tl.windows(2).all(|w| w[0].sample_pos <= w[1].sample_pos),
             "timeline is not sorted after multiple QueueEvent calls"
+        );
+    }
+
+    // 8.3.x — LoadMidi resets playhead to zero
+    #[tokio::test]
+    async fn load_midi_resets_playhead() {
+        let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+        let path = std::path::PathBuf::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tests/fixtures/test.mid"
+        ));
+
+        // Simulate a non-zero playhead as if playback had run to completion
+        conductor
+            .state
+            .playhead
+            .store(999_999, std::sync::atomic::Ordering::Release);
+
+        conductor
+            .handle_command(TransportCommand::LoadMidi(path))
+            .await;
+
+        assert_eq!(
+            conductor
+                .state
+                .playhead
+                .load(std::sync::atomic::Ordering::Acquire),
+            0,
+            "load should reset playhead to zero"
         );
     }
 
