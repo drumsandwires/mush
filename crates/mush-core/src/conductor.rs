@@ -112,6 +112,17 @@ pub struct Conductor {
     /// `Play`, and `Stop`; read by the Clock's audio callback.
     state: Arc<TransportState>,
 
+    /// Set to `true` by `emit_all` when all subscription channels have closed.
+    /// Checked on every `drain_interval` tick — conductor exits its run loop
+    /// within 1 ms of the last subscriber dropping.
+    ///
+    /// Acceptable at MVP because the conductor is embedded in each shell/plugin
+    /// process and should exit with it. Post-MVP, when the conductor moves to a
+    /// dedicated server process, this field should be removed and the run loop
+    /// should instead survive zero subscribers, reconnecting when a new client
+    /// subscribes.
+    shutdown: bool,
+
     /// The sorted, sample-accurate event timeline.
     ///
     /// Written by `LoadMidi`, `LoadMudl`, and `QueueEvent`.
@@ -236,6 +247,7 @@ impl Conductor {
             sample_rate,
             ticks_per_beat: 480,
             state: TransportState::new(INITIAL_BPM),
+            shutdown: false,
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
             diag_queue: Arc::clone(&diag_queue),
@@ -325,6 +337,9 @@ impl Conductor {
                     let _span = tracing::debug_span!("conductor.drain").entered();
                     self.drain_midi_queue();
                     self.drain_diag_queue();
+                    if self.shutdown {
+                        break;
+                    }
                 }
             }
         }
@@ -1173,9 +1188,14 @@ impl Conductor {
     async fn emit_all(&mut self, update: EngineUpdate) {
         debug!(?update, subs = self.subs.len(), "emit_all");
         self.subs.retain(|s| !s.is_closed());
+        if self.subs.is_empty() {
+            debug!("all subscriptions closed — shutting down");
+            self.shutdown = true;
+            return;
+        }
         for sub in &self.subs {
             if let Err(()) = sub.send(update.clone()) {
-                warn!(?update, "subscription send failed — channel full or closed");
+                warn!(?update, "subscription send failed — channel full");
             }
         }
         let _ = self.transport.send_update(&update).await;
