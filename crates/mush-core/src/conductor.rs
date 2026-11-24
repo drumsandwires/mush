@@ -570,9 +570,11 @@ impl Conductor {
                 let name = match selector {
                     None => None,
                     Some(ref s) => {
-                        // Input port is opened lazily — validate existence at
-                        // open time, not at selection time.
-                        Some(s.clone())
+                        let resolved = self.resolve_and_emit(s, MidiPortDirection::Input).await;
+                        if resolved.is_none() {
+                            return;
+                        }
+                        resolved
                     }
                 };
                 *self.state.active_midi_input_port.write().unwrap() = name.clone();
@@ -657,7 +659,7 @@ impl Conductor {
                 self.input_mode = mode;
                 self.pre_roll_active = mode == InputMode::Listen;
                 info!(port = %opened_name, ?mode, "MIDI input opened");
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(Some(
                     opened_name,
                 ))))
                 .await;
@@ -689,7 +691,17 @@ impl Conductor {
         }
 
         if let Some(ref mut buf) = self.record_buffer {
-            buf.push(event);
+            buf.push(event.clone());
+        }
+
+        if self.input_mode == InputMode::Monitor {
+            let [status, note, vel] = event.bytes;
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
+                channel: status & 0x0F,
+                note,
+                vel,
+            }))
+            .await;
         }
     }
 

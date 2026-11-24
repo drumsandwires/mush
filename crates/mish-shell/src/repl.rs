@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
 use mush_core::Response;
 use mush_core::transport::TransportCommand;
+use mush_core::update::{EngineUpdate, MidiUpdate};
 use mush_core::zmq_client::ZmqClient;
 use mush_tracing::tracing;
+
 use std::path::PathBuf;
 
 use crate::version;
@@ -27,20 +29,9 @@ enum MishCommand {
     Ports,
 
     /// Show current MIDI port assignments (in and out)
-    Port,
-
-    /// Set the active MIDI input port by name, index, or substring
-    #[command(name = "port in")]
-    PortIn {
-        /// Port selector — name, integer index, or substring; omit to clear
-        selector: Option<String>,
-    },
-
-    /// Set the active MIDI output port by name, index, or substring
-    #[command(name = "port out")]
-    PortOut {
-        /// Port selector — name, integer index, or substring; omit to clear
-        selector: Option<String>,
+    Port {
+        #[command(subcommand)]
+        direction: Option<PortDirection>,
     },
 
     /// Load a MIDI file (.mid or .mudl)
@@ -73,6 +64,20 @@ enum MishCommand {
         /// Message in symbolic or numeric form, e.g. "NoteOn C4 mf" or "0x90 0x3C 0x64"
         #[arg(required = true, num_args = 1..)]
         args: Vec<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum PortDirection {
+    /// Set the active MIDI input port by name, index, or substring
+    In {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
+    },
+    /// Set the active MIDI output port by name, index, or substring
+    Out {
+        /// Port selector — name, integer index, or substring; omit to clear
+        selector: Option<String>,
     },
 }
 
@@ -109,15 +114,15 @@ async fn dispatch(client: &mut ZmqClient, command: MishCommand) -> Response {
 
         MishCommand::Ports => send(client, TransportCommand::MidiDevices).await,
 
-        MishCommand::Port => send(client, TransportCommand::MidiPortGet).await,
-
-        MishCommand::PortIn { selector } => {
-            send(client, TransportCommand::MidiInputPort(selector)).await
-        }
-
-        MishCommand::PortOut { selector } => {
-            send(client, TransportCommand::MidiOutputPort(selector)).await
-        }
+        MishCommand::Port { direction } => match direction {
+            None => send(client, TransportCommand::MidiPortGet).await,
+            Some(PortDirection::In { selector }) => {
+                send(client, TransportCommand::MidiInputPort(selector)).await
+            }
+            Some(PortDirection::Out { selector }) => {
+                send(client, TransportCommand::MidiOutputPort(selector)).await
+            }
+        },
 
         MishCommand::Load { path } => {
             let cmd = match path.extension().and_then(|e| e.to_str()) {
@@ -137,7 +142,7 @@ async fn dispatch(client: &mut ZmqClient, command: MishCommand) -> Response {
             send(client, TransportCommand::Record { start: true, path }).await
         }
 
-        MishCommand::Monitor { path } => send(client, TransportCommand::Monitor { path }).await,
+        MishCommand::Monitor { path } => handle_monitor(client, path).await,
 
         MishCommand::Send { args } => {
             let joined = args.join(" ");
@@ -163,3 +168,73 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
     }
 }
 
+async fn handle_monitor(client: &mut ZmqClient, path: Option<PathBuf>) -> Response {
+    // Send the Monitor command
+    if let Err(e) = client
+        .send_command(&TransportCommand::Monitor { path })
+        .await
+    {
+        return Response::Output(format!("error: {e}"));
+    }
+
+    // Wait for ActiveInputPort ack before entering the event loop
+    // so the user sees which port was opened (or an error).
+    // Timeout after 2 s to avoid hanging on a silent conductor.
+    let ack = tokio::time::timeout(std::time::Duration::from_secs(2), client.recv_update()).await;
+
+    match ack {
+        Err(_) => return Response::Output("error: monitor timed out waiting for port ack".into()),
+        Ok(None) => return Response::Output("error: conductor closed connection".into()),
+        Ok(Some(update)) => {
+            if let Some(line) = mush_core::format::format_update(&update) {
+                println!("{line}");
+            }
+            // If the conductor returned an error, stop here
+            if matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))) {
+                return Response::Empty;
+            }
+        }
+    }
+
+    println!("monitoring MIDI input — press Ctrl+C to stop");
+
+    // Event loop — runs until Space/Enter
+    loop {
+        tokio::select! {
+            _ = wait_for_stop() => {
+                println!("stopped");
+                let _ = client.send_command(&TransportCommand::Stop).await;
+                break;
+            }
+            update = client.recv_update() => {
+                match update {
+                    None => {
+                        println!("conductor disconnected");
+                        break;
+                    }
+                    Some(update) => {
+                        if let Some(line) = mush_core::format::format_update(&update) {
+                            println!("{line}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Response::Empty
+}
+
+async fn wait_for_stop() {
+    use tokio::io::AsyncReadExt;
+    let mut stdin = tokio::io::stdin();
+    let mut buf = [0u8; 1];
+    loop {
+        if stdin.read(&mut buf).await.is_err() {
+            break;
+        }
+        if buf[0] == b' ' || buf[0] == b'\n' || buf[0] == b'\r' {
+            break;
+        }
+    }
+}
