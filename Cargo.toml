@@ -44,6 +44,7 @@ wmidi              = "4"
 tracing-appender   = "0.2"
 console-subscriber = { git = "https://github.com/tokio-rs/console", package = "console-subscriber", rev = "b59758e5a6effe3a9df3ec84a2f28d319d178234" }
 dirs               = "6"
+crossterm = { version = "0.28", default-features = false, features = ["events", "event-stream"] }
 
 # internal
 mush-core          = { path = "crates/mush-core" }

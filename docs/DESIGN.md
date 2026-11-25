@@ -112,6 +112,30 @@ There are five UI entry points. All embed `mush-core` via the ZMQ inproc transpo
 3. Conductor → EngineUpdate → ZmqTransport (PUB inproc) → ZmqClient (SUB) → Shell
 4. Conductor → Subscription (mpsc) → SubscriptionHandle → Shell
 
+### Monitor / Live View path (hardware → terminal TUI)
+
+```
+MIDI hardware
+    │  midir callback
+    ▼
+InputEvent  (input_tx mpsc)
+    │  conductor select loop
+    ▼
+handle_input_event
+    │  InputMode::Monitor or InputMode::Record
+    ▼
+emit_all → EngineUpdate::Midi(MidiUpdate::EventDispatched)
+    │  ZMQ PUB socket
+    ▼
+ZmqClient::recv_update  (in live_view::run_live_view)
+    │  crossterm alternate screen
+    ▼
+Terminal TUI  (Raw / Symbolic view, switchable with Tab)
+```
+
+For playback, `EventDispatched` is emitted by `send_raw_message` on the
+output path and flows through the same ZMQ PUB → `recv_update` route.
+
 ---
 
 ## External Dependencies
@@ -144,6 +168,125 @@ Post-MVP (Model A), the Conductor is extracted into a standalone `mush-server` b
 - ZMQ addresses change from `inproc://mush-cmd` / `inproc://mush-pub` to `tcp://5252` / `tcp://5253`
 - Shell binaries become thin clients — no change to shell or conductor code required
 - Enables remote shells and multi-client sessions
+
+---
+
+## Live View Architecture
+
+### Scope
+
+`mush_core::live_view` provides a reusable terminal TUI for any live command
+— monitor, playback, and recording. It is activated by:
+
+- `monitor` — always enters live view after port confirmation
+- `play --monitor` — enters live view after sending `TransportCommand::Play`
+- `record --monitor` — enters live view after sending `TransportCommand::Record`
+
+### Why EventDispatched is filtered at ReedlineSink
+
+`ReedlineSink::emit` silently drops `EngineUpdate::Midi(MidiUpdate::EventDispatched)`
+and `EngineUpdate::Transport(_)`. Two reasons:
+
+1. **Volume.** At performance tempo, `EventDispatched` arrives at 10–100 Hz.
+   The `ExternalPrinter` channel (capacity 32) fills in under 2 seconds and
+   drops with warnings. This is a category mismatch, not a backpressure
+   problem to solve by raising capacity.
+
+2. **Context.** A scrolling REPL line has no useful presentation for a raw
+   MIDI event or a transport status snapshot. The live view TUI owns both via
+   the ZMQ SUB socket and the alternate screen buffer.
+
+If a future feature needs last-event display in the prompt or a status panel,
+implement it as a dedicated `EngineSink` with its own channel.
+
+### Terminal ownership
+
+Reedline has no suspend/resume mechanism. `live_view::run_live_view` takes
+the terminal over completely using `crossterm::terminal::EnterAlternateScreen`.
+The reedline prompt, history, and all previous output are preserved in the
+primary screen buffer and restored exactly when the live view exits — the
+user sees no visual disruption.
+
+Drop errors in `TerminalGuard` are intentionally ignored: we may already be
+in an error path and there is nothing useful to do with a secondary terminal
+failure.
+
+### ZMQ SUB backlog flush
+
+The ZMQ SUB socket buffers all updates published since connect. When
+`handle_monitor` is called, the buffer may contain port assignments, device
+lists, and other updates published before the `Monitor` command was sent.
+`handle_monitor` drains these silently until `ActiveInputPort` or `Error`
+arrives, with a 2 s timeout. `handle_live_view` (used by `play --monitor`
+and `record --monitor`) does not need this flush because those commands have
+no ack to wait for — the TUI starts immediately.
+
+### TransportStatus emission
+
+`EngineUpdate::Transport(TransportStatus)` is emitted by the conductor on
+every discrete state transition: Play, Stop, Record start, Record stop,
+Monitor start. It carries `is_playing`, `is_recording`, and current BPM.
+It is not emitted at audio-callback rate.
+
+The live view TUI uses `TransportStatus` to update the header line. It is
+filtered out of `ReedlineSink` because it has no useful one-line REPL
+representation beyond what `ActivePort` / `Error` updates already provide.
+
+### is_recording on TransportState
+
+`TransportState::is_recording` is an `Arc<AtomicBool>` derived from whether
+`Conductor::record_buffer` is `Some`. It is set `true` when recording starts
+and `false` when it stops. It is stored on `TransportState` (not inferred
+from `record_buffer` directly) so it can be read by the live view TUI without
+holding a reference into the Conductor or taking any lock.
+
+Invariant: `is_recording` is always `false` when `is_playing` is `false`.
+Both may be `true` simultaneously post-MVP (overdub / punch-in).
+
+### terminal feature flag
+
+`mush_core::live_view` is gated behind the `terminal` feature in `mush-core`.
+The `reedline-shell` feature implies `terminal`. Shells that want live view
+without reedline (e.g. a future headless plugin or `nu_plugin_midi`) can
+enable `terminal` alone.
+
+### Event direction
+
+`LiveViewConfig::direction` controls which events are displayed and how they
+are coloured:
+
+- `In`   — cyan `←`  — incoming from hardware (monitor, record)
+- `Out`  — yellow `→` — outgoing to hardware (playback)
+- `Both` — green `↔`  — reserved for simultaneous play + record (post-MVP)
+
+At MVP, `Both` is treated as `In`. Post-MVP, the conductor should tag each
+`EventDispatched` with its direction rather than inferring it from config.
+
+### Post-MVP notes
+
+- **Bar/beat display.** `TransportStatus` carries BPM only. Accurate bar/beat
+  position requires exposing the tempo map through `TransportState` or adding
+  a `bar_beat` atomic updated by the playback loop. Deferred post-MVP.
+
+- **Additional views.** Add `View::PianoRoll` and `View::Notation` as new
+  variants in `live_view.rs` and handle them in `render_event_row`. No other
+  files need changing.
+
+- **Per-channel filtering.** `LiveViewConfig` has no channel mask at MVP.
+  Post-MVP: add `channel_mask: Option<u16>` (bitmask, one bit per channel)
+  and filter in the `EventDispatched` arm of the select loop.
+
+- **Original status byte.** `MidiUpdate::EventDispatched` currently carries
+  `channel` (masked to 0x0F) rather than the original status byte. The live
+  view reconstructs status as `0x90 | channel`, which assumes NoteOn family.
+  Post-MVP: add `status: u8` to `EventDispatched` to carry the full original
+  byte and remove this assumption.
+
+- **Conductor server process.** When the conductor moves to a dedicated server
+  process, the live view connects over TCP rather than inproc ZMQ. No change
+  to `live_view.rs` is required — only the address passed to
+  `ZmqClient::connect`.
+
 
 ---
 

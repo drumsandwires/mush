@@ -87,6 +87,27 @@ pub enum MidiUpdate {
     Error(String),
 }
 
+/// Snapshot of conductor transport state for display purposes.
+///
+/// Emitted by the conductor whenever transport mode changes —
+/// on Play, Stop, Record start, Record stop, and Monitor start/stop.
+///
+/// Intentionally a snapshot rather than individual field updates so the
+/// live view TUI can redraw the header from a single message without
+/// assembling state from multiple update streams.
+///
+/// # Not emitted at audio-callback rate
+/// This is a status update, not a per-sample event. It is emitted only
+/// on discrete state transitions. The live view TUI polls this to update
+/// its header line.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TransportStatus {
+    pub is_playing: bool,
+    pub is_recording: bool,
+    /// Current BPM, derived from `bpm_milli / 1000.0`.
+    pub bpm: f64,
+}
+
 /// The top-level update type flowing from engine to frontends.
 /// Wraps `AudioUpdate` and `MidiUpdate` so frontends receive a
 /// single stream of updates regardless of source.
@@ -94,4 +115,7 @@ pub enum MidiUpdate {
 pub enum EngineUpdate {
     Audio(AudioUpdate),
     Midi(MidiUpdate),
+    /// Transport mode changed — playing, recording, stopped, BPM.
+    /// See [`TransportStatus`].
+    Transport(TransportStatus),
 }

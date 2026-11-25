@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crossbeam_queue::ArrayQueue;
 use midir::MidiOutput as MidirOutput;
+use std::sync::atomic::Ordering;
 use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
@@ -20,6 +21,7 @@ use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
 use crate::timeline::TimelineEvent;
 use crate::transport::{MidiEvent, TransportCommand, TransportState};
+use crate::update::TransportStatus;
 use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 use crate::zmq_transport::ZmqTransport;
 
@@ -567,16 +569,12 @@ impl Conductor {
             }
 
             TransportCommand::MidiInputPort(selector) => {
-                let name = match selector {
-                    None => None,
-                    Some(ref s) => {
-                        let resolved = self.resolve_and_emit(s, MidiPortDirection::Input).await;
-                        if resolved.is_none() {
-                            return;
-                        }
-                        resolved
-                    }
-                };
+                // Store the raw selector immediately — validation happens lazily
+                // at open time in start_input. This allows the user to configure
+                // a port before it is connected, matching DAW convention.
+                // Index and substring resolution occurs in start_input via
+                // resolve_and_emit when the port is actually opened.
+                let name = selector;
                 *self.state.active_midi_input_port.write().unwrap() = name.clone();
                 if self.input_mode != InputMode::Off {
                     let mode = self.input_mode;
@@ -616,7 +614,6 @@ impl Conductor {
     /// If an input is already open it is closed first — switching
     /// from Monitor to Listen (or vice versa) is a single command.
     /// The autosave path is updated if `path` is `Some`.
-
     async fn start_input(&mut self, mode: InputMode, path: Option<PathBuf>) {
         self.midi_input = None;
 
@@ -624,21 +621,29 @@ impl Conductor {
             self.pre_roll.set_autosave_path(Some(p));
         }
 
-        // MidiInputHandle::open reports errors via its Result return value.
-        // The status_tx parameter is used only for async errors that occur
-        // after the connection is established (e.g. callback failures).
-        // We provide a disconnected sender — dropped errors are logged by
-        // the callback via `warn!` in input.rs.
         let (status_tx, _status_rx) = mpsc::channel::<MidiUpdate>(1);
 
         let result = match self.state.midi_input_port() {
-            Some(ref name) => MidiInputHandle::open(
-                name,
-                self.input_tx.clone(),
-                Arc::clone(&self.state.playhead),
-                status_tx,
-            )
-            .map(|h| (h, name.clone())),
+            Some(ref selector) => {
+                // Resolve index/substring selector to a concrete port name.
+                // Resolution happens here (at open time) rather than at
+                // selection time so the user can configure a port before it
+                // is connected — the selector is stored raw and validated
+                // lazily when the port is actually opened.
+                match self
+                    .resolve_and_emit(selector, MidiPortDirection::Input)
+                    .await
+                {
+                    None => return, // resolve_and_emit already emitted the error
+                    Some(name) => MidiInputHandle::open(
+                        &name,
+                        self.input_tx.clone(),
+                        Arc::clone(&self.state.playhead),
+                        status_tx,
+                    )
+                    .map(|h| (h, name)),
+                }
+            }
             None => MidiInputHandle::open_first(
                 self.input_tx.clone(),
                 Arc::clone(&self.state.playhead),
@@ -729,6 +734,8 @@ impl Conductor {
         self.pre_roll_active = true;
         self.record_buffer = Some(Vec::new());
         self.record_path = path;
+        self.state.is_recording.store(true, Ordering::Release);
+        self.emit_transport_status().await;
         debug!("record started");
         self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordStarted))
             .await;
@@ -741,7 +748,11 @@ impl Conductor {
     /// - Emits `Error` if no record was in progress.
     async fn stop_record(&mut self, path_override: Option<PathBuf>) {
         let buffer = match self.record_buffer.take() {
-            Some(b) => b,
+            Some(b) => {
+                self.state.is_recording.store(false, Ordering::Release);
+                self.emit_transport_status().await;
+                b
+            }
             None => {
                 warn!("Record(stop) received but no capture in progress");
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
@@ -1191,6 +1202,20 @@ impl Conductor {
                 }
             },
         }
+    }
+
+    /// Emit a TransportStatus snapshot reflecting current conductor state.
+    ///
+    /// Call this after any change to is_playing, is_recording, or bpm_milli
+    /// so that the live view TUI header stays current.
+    async fn emit_transport_status(&mut self) {
+        let bpm = self.state.bpm_milli.load(Ordering::Relaxed) as f64 / 1000.0;
+        let status = TransportStatus {
+            is_playing: self.state.is_playing.load(Ordering::Relaxed),
+            is_recording: self.state.is_recording.load(Ordering::Relaxed),
+            bpm,
+        };
+        self.emit_all(EngineUpdate::Transport(status)).await;
     }
 
     /// Fan out an `EngineUpdate` to all subscribers and the ZMQ PUB socket.

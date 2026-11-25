@@ -4,6 +4,8 @@ pub mod clock;
 pub mod conductor;
 pub mod diag;
 pub mod format;
+#[cfg(feature = "terminal")]
+pub mod live_view;
 pub mod midi;
 pub mod midi_output;
 pub mod rt_priority;

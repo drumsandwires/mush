@@ -41,13 +41,20 @@ enum MishCommand {
     Save { path: PathBuf },
 
     /// Start MIDI playback
-    Play,
+    Play {
+        /// Open the live view TUI during playback
+        #[arg(short, long)]
+        monitor: bool,
+    },
 
     /// Start MIDI recording
     Record {
         /// Optional path to save the recording when stopped
         #[arg(short, long)]
         path: Option<PathBuf>,
+        /// Open the live view TUI during recording
+        #[arg(short, long)]
+        monitor: bool,
     },
 
     /// Monitor live MIDI input
@@ -134,12 +141,38 @@ async fn dispatch(client: &mut ZmqClient, command: MishCommand) -> Response {
 
         MishCommand::Save { path } => send(client, TransportCommand::Save(path)).await,
 
-        MishCommand::Play => send(client, TransportCommand::Play).await,
+        MishCommand::Play { monitor } => {
+            let resp = send(client, TransportCommand::Play).await;
+            if monitor {
+                handle_live_view(
+                    client,
+                    "Playback",
+                    mush_core::live_view::EventDirection::Out,
+                    true,
+                    TransportCommand::Stop,
+                )
+                .await
+            } else {
+                resp
+            }
+        }
 
         MishCommand::Stop => send(client, TransportCommand::Stop).await,
 
-        MishCommand::Record { path } => {
-            send(client, TransportCommand::Record { start: true, path }).await
+        MishCommand::Record { path, monitor } => {
+            let resp = send(client, TransportCommand::Record { start: true, path }).await;
+            if monitor {
+                handle_live_view(
+                    client,
+                    "Recording",
+                    mush_core::live_view::EventDirection::In,
+                    true,
+                    TransportCommand::Stop,
+                )
+                .await
+            } else {
+                resp
+            }
         }
 
         MishCommand::Monitor { path } => handle_monitor(client, path).await,
@@ -168,8 +201,14 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
     }
 }
 
+/// Flush the ZMQ SUB backlog and wait for ActiveInputPort ack,
+/// then enter the live view TUI.
+///
+/// The ZMQ SUB socket buffers all updates published since connect.
+/// Before the Monitor command was sent, the conductor may have published
+/// port assignments, device lists, and other updates. We drain these
+/// silently until ActiveInputPort or Error arrives, or until timeout.
 async fn handle_monitor(client: &mut ZmqClient, path: Option<PathBuf>) -> Response {
-    // Send the Monitor command
     if let Err(e) = client
         .send_command(&TransportCommand::Monitor { path })
         .await
@@ -177,64 +216,57 @@ async fn handle_monitor(client: &mut ZmqClient, path: Option<PathBuf>) -> Respon
         return Response::Output(format!("error: {e}"));
     }
 
-    // Wait for ActiveInputPort ack before entering the event loop
-    // so the user sees which port was opened (or an error).
-    // Timeout after 2 s to avoid hanging on a silent conductor.
-    let ack = tokio::time::timeout(std::time::Duration::from_secs(2), client.recv_update()).await;
-
-    match ack {
-        Err(_) => return Response::Output("error: monitor timed out waiting for port ack".into()),
-        Ok(None) => return Response::Output("error: conductor closed connection".into()),
-        Ok(Some(update)) => {
-            if let Some(line) = mush_core::format::format_update(&update) {
-                println!("{line}");
+    // Drain stale ZMQ SUB backlog, wait for ActiveInputPort ack.
+    // Timeout is 2 s — port open is synchronous, ack arrives in < 10 ms.
+    let port_name = loop {
+        match tokio::time::timeout(std::time::Duration::from_secs(2), client.recv_update()).await {
+            Err(_) => {
+                return Response::Output(
+                    "error: monitor timed out waiting for port confirmation".into(),
+                );
             }
-            // If the conductor returned an error, stop here
-            if matches!(update, EngineUpdate::Midi(MidiUpdate::Error(_))) {
-                return Response::Empty;
+            Ok(None) => {
+                return Response::Output("error: conductor closed connection".into());
             }
+            Ok(Some(EngineUpdate::Midi(MidiUpdate::Error(e)))) => {
+                return Response::Output(format!("✗ {e}"));
+            }
+            Ok(Some(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(Some(name))))) => {
+                break name;
+            }
+            Ok(Some(_)) => continue, // stale — discard and keep waiting
         }
-    }
+    };
 
-    println!("monitoring MIDI input — press Ctrl+C to stop");
+    handle_live_view(
+        client,
+        &port_name,
+        mush_core::live_view::EventDirection::In,
+        false,
+        TransportCommand::Stop,
+    )
+    .await
+}
 
-    // Event loop — runs until Space/Enter
-    loop {
-        tokio::select! {
-            _ = wait_for_stop() => {
-                println!("stopped");
-                let _ = client.send_command(&TransportCommand::Stop).await;
-                break;
-            }
-            update = client.recv_update() => {
-                match update {
-                    None => {
-                        println!("conductor disconnected");
-                        break;
-                    }
-                    Some(update) => {
-                        if let Some(line) = mush_core::format::format_update(&update) {
-                            println!("{line}");
-                        }
-                    }
-                }
-            }
-        }
+/// Enter the live view TUI with the given configuration.
+async fn handle_live_view(
+    client: &mut ZmqClient,
+    label: &str,
+    direction: mush_core::live_view::EventDirection,
+    show_transport: bool,
+    stop_command: TransportCommand,
+) -> Response {
+    let config = mush_core::live_view::LiveViewConfig {
+        label: label.to_string(),
+        direction,
+        initial_view: mush_core::live_view::View::default(),
+        stop_command,
+        show_transport,
+    };
+
+    if let Err(e) = mush_core::live_view::run_live_view(client, config).await {
+        return Response::Output(format!("error: live view failed: {e}"));
     }
 
     Response::Empty
-}
-
-async fn wait_for_stop() {
-    use tokio::io::AsyncReadExt;
-    let mut stdin = tokio::io::stdin();
-    let mut buf = [0u8; 1];
-    loop {
-        if stdin.read(&mut buf).await.is_err() {
-            break;
-        }
-        if buf[0] == b' ' || buf[0] == b'\n' || buf[0] == b'\r' {
-            break;
-        }
-    }
 }

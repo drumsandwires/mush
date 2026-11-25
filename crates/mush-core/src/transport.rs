@@ -61,6 +61,16 @@ pub struct TransportState {
     /// Whether the transport is currently running.
     pub is_playing: Arc<AtomicBool>,
 
+    /// Whether the conductor is currently recording.
+    ///
+    /// Set `true` when `record_buffer` becomes `Some`, `false` when it
+    /// becomes `None`. Stored as an atomic so the live view TUI can read
+    /// it without holding a reference into the Conductor or taking a lock.
+    ///
+    /// Invariant: always `false` when `is_playing` is `false`. Both may
+    /// be `true` simultaneously post-MVP (overdub / punch-in).
+    pub is_recording: Arc<AtomicBool>,
+
     /// Tempo stored as BPM × 1000 to avoid floating-point atomics.
     /// 120.0 BPM is stored as 120_000u64.
     pub bpm_milli: Arc<AtomicU64>,
@@ -105,6 +115,7 @@ impl TransportState {
         Arc::new(Self {
             playhead: Arc::new(AtomicU64::new(0)),
             is_playing: Arc::new(AtomicBool::new(false)),
+            is_recording: Arc::new(AtomicBool::new(false)),
             bpm_milli: Arc::new(AtomicU64::new((bpm * 1000.0) as u64)),
             next_event_idx: Arc::new(AtomicUsize::new(0)),
             meta: Arc::new(RwLock::new(ProjectMeta::default())),
