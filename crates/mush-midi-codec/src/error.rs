@@ -26,9 +26,9 @@ pub enum ParseError {
 
     #[error("'{status}' expects {expected} data byte(s), got {got}")]
     WrongArgumentCount {
-        status:   String,
+        status: String,
         expected: usize,
-        got:      usize,
+        got: usize,
     },
 
     #[error("SysEx message missing 0xF7 terminator")]
@@ -49,8 +49,8 @@ pub enum FormatError {
 
     #[error("message truncated: status 0x{status:02X} expects {expected} byte(s), got {got}")]
     TruncatedMessage {
-        status:   u8,
+        status: u8,
         expected: usize,
-        got:      usize,
+        got: usize,
     },
 }

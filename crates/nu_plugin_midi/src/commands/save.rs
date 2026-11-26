@@ -1,7 +1,7 @@
-use std::path::PathBuf;
 use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
+use std::path::PathBuf;
 
 use crate::MidiPlugin;
 
@@ -10,8 +10,12 @@ pub struct Save;
 impl SimplePluginCommand for Save {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi save" }
-    fn description(&self) -> &str { "Save the current timeline (.mid or .mudl)" }
+    fn name(&self) -> &str {
+        "midi save"
+    }
+    fn description(&self) -> &str {
+        "Save the current timeline (.mid or .mudl)"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
@@ -44,7 +48,9 @@ impl SimplePluginCommand for Save {
 
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt.block_on(client.send_command(&TransportCommand::Save(path)))
+        plugin
+            .rt
+            .block_on(client.send_command(&TransportCommand::Save(path)))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
         let update = plugin.rt.block_on(handle.recv());

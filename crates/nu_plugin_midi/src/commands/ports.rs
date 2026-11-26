@@ -11,12 +11,15 @@ pub struct Ports;
 impl SimplePluginCommand for Ports {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi ports" }
-    fn description(&self) -> &str { "List available MIDI ports (input, output, and thru)" }
+    fn name(&self) -> &str {
+        "midi ports"
+    }
+    fn description(&self) -> &str {
+        "List available MIDI ports (input, output, and thru)"
+    }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name())
-            .input_output_type(Type::Nothing, Type::Table(vec![].into()))
+        Signature::build(self.name()).input_output_type(Type::Nothing, Type::Table(vec![].into()))
     }
 
     fn run(
@@ -40,7 +43,11 @@ impl SimplePluginCommand for Ports {
         let update = plugin.rt.block_on(handle.recv());
         let ports = match update {
             Some(EngineUpdate::Midi(MidiUpdate::PortList(ports))) => ports,
-            _ => return Err(LabeledError::new("unexpected or missing response from conductor")),
+            _ => {
+                return Err(LabeledError::new(
+                    "unexpected or missing response from conductor",
+                ));
+            }
         };
 
         let span = Span::unknown();
@@ -48,14 +55,14 @@ impl SimplePluginCommand for Ports {
             .into_iter()
             .map(|port| {
                 let direction = match port.direction {
-                    MidiPortDirection::Input  => "IN",
+                    MidiPortDirection::Input => "IN",
                     MidiPortDirection::Output => "OUT",
-                    MidiPortDirection::Thru   => "THRU",
+                    MidiPortDirection::Thru => "THRU",
                 };
                 let mut record = Record::new();
                 record.push("direction", Value::string(direction, span));
-                record.push("index",     Value::int(port.index as i64, span));
-                record.push("name",      Value::string(port.name, span));
+                record.push("index", Value::int(port.index as i64, span));
+                record.push("name", Value::string(port.name, span));
                 Value::record(record, span)
             })
             .collect::<Vec<_>>();

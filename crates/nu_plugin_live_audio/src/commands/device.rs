@@ -8,8 +8,12 @@ pub struct Device;
 impl SimplePluginCommand for Device {
     type Plugin = AudioPlugin;
 
-    fn name(&self) -> &str { "audio device" }
-    fn description(&self) -> &str { "Get or set the active audio output device" }
+    fn name(&self) -> &str {
+        "audio device"
+    }
+    fn description(&self) -> &str {
+        "Get or set the active audio output device"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
@@ -33,7 +37,8 @@ impl SimplePluginCommand for Device {
         let name: Option<String> = call.opt(0)?;
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt
+        plugin
+            .rt
             .block_on(client.send_command(&TransportCommand::AudioDevice(name)))
             .map_err(|e| LabeledError::new(e.to_string()))?;
         let update = plugin.rt.block_on(handle.recv());

@@ -53,9 +53,18 @@ mod tests {
     #[test]
     fn timeline_sorts_by_sample_pos() {
         let mut events = vec![
-            TimelineEvent { sample_pos: 88_200, payload: TestPayload },
-            TimelineEvent { sample_pos: 0,      payload: TestPayload },
-            TimelineEvent { sample_pos: 44_100, payload: TestPayload },
+            TimelineEvent {
+                sample_pos: 88_200,
+                payload: TestPayload,
+            },
+            TimelineEvent {
+                sample_pos: 0,
+                payload: TestPayload,
+            },
+            TimelineEvent {
+                sample_pos: 44_100,
+                payload: TestPayload,
+            },
         ];
         events.sort_by_key(|e| e.sample_pos);
         assert_eq!(events[0].sample_pos, 0);

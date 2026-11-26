@@ -9,8 +9,12 @@ pub struct PortIn;
 impl SimplePluginCommand for PortIn {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi port in" }
-    fn description(&self) -> &str { "Set the active MIDI input port by name, index, or substring" }
+    fn name(&self) -> &str {
+        "midi port in"
+    }
+    fn description(&self) -> &str {
+        "Set the active MIDI input port by name, index, or substring"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())

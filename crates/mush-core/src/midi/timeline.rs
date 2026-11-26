@@ -263,4 +263,3 @@ mod tests {
         assert!(tpb > 0, "ticks_per_beat must be non-zero");
     }
 }
-

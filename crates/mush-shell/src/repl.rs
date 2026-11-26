@@ -238,4 +238,3 @@ async fn send(client: &mut ZmqClient, cmd: TransportCommand) -> Response {
         }
     }
 }
-

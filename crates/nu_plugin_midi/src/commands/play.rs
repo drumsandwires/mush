@@ -9,7 +9,9 @@ pub struct Play;
 impl SimplePluginCommand for Play {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi play" }
+    fn name(&self) -> &str {
+        "midi play"
+    }
     fn description(&self) -> &str {
         "Start MIDI playback; optionally pipe a list of events to queue"
     }
@@ -39,14 +41,16 @@ impl SimplePluginCommand for Play {
         if let Value::List { vals, .. } = input {
             for val in vals {
                 let event = midi_event_from_value(val)?;
-                plugin.rt
+                plugin
+                    .rt
                     .block_on(client.send_command(&TransportCommand::QueueEvent(event)))
                     .map_err(|e| LabeledError::new(e.to_string()))?;
             }
         }
 
         // ── Play ──────────────────────────────────────────────────────────
-        plugin.rt
+        plugin
+            .rt
             .block_on(client.send_command(&TransportCommand::Play))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
@@ -97,12 +101,12 @@ fn midi_event_from_value(val: &Value) -> Result<MidiEvent, LabeledError> {
         })
     };
 
-        tracing::debug!("play: done");
+    tracing::debug!("play: done");
     Ok(MidiEvent {
-        beat:     get_f64("beat")?,
-        channel:  get_u8("channel")?,
-        note:     get_u8("note")?,
-        vel:      get_u8("vel")?,
+        beat: get_f64("beat")?,
+        channel: get_u8("channel")?,
+        note: get_u8("note")?,
+        vel: get_u8("vel")?,
         duration: get_f64("duration")?,
     })
 }

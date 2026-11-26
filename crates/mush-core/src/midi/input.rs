@@ -7,7 +7,10 @@
 //! The Conductor decides whether to push events into the pre-roll
 //! buffer, the record buffer, or neither — this module is policy-free.
 
-use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
 use std::time::Instant;
 
 use midir::MidiInput;
@@ -27,7 +30,7 @@ use crate::update::MidiUpdate;
 #[derive(Debug, Clone)]
 pub struct InputEvent {
     /// Wall-clock time of receipt.
-    pub wall_time:  Instant,
+    pub wall_time: Instant,
     /// Playhead sample position at receipt.
     pub sample_pos: u64,
     /// Raw MIDI bytes. Always 3 bytes — 2-byte messages pad with 0.
@@ -56,12 +59,12 @@ impl MidiInputHandle {
     /// connection fails.
     pub fn open(
         port_name: &str,
-        event_tx:  mpsc::Sender<InputEvent>,
-        playhead:  Arc<AtomicU64>,
+        event_tx: mpsc::Sender<InputEvent>,
+        playhead: Arc<AtomicU64>,
         status_tx: mpsc::Sender<MidiUpdate>,
     ) -> Result<Self, String> {
         let input = MidiInput::new("mush-midi-in").map_err(|e| e.to_string())?;
-        let ports  = input.ports();
+        let ports = input.ports();
 
         let port = ports
             .iter()
@@ -84,7 +87,7 @@ impl MidiInputHandle {
                     bytes[..raw.len()].copy_from_slice(raw);
 
                     let event = InputEvent {
-                        wall_time:  Instant::now(),
+                        wall_time: Instant::now(),
                         sample_pos: playhead.load(Ordering::Acquire),
                         bytes,
                     };
@@ -96,14 +99,14 @@ impl MidiInputHandle {
                 (),
             )
             .map_err(|e| {
-                let msg = format!(
-                    "failed to connect to MIDI input '{port_name_owned}': {e}"
-                );
+                let msg = format!("failed to connect to MIDI input '{port_name_owned}': {e}");
                 let _ = status_tx.try_send(MidiUpdate::Error(msg.clone()));
                 msg
             })?;
 
-        Ok(Self { _connection: connection })
+        Ok(Self {
+            _connection: connection,
+        })
     }
 
     /// Open a connection to the first available MIDI input port.
@@ -117,21 +120,19 @@ impl MidiInputHandle {
     /// Returns `Err` if no input ports are available or the
     /// connection fails.
     pub fn open_first(
-        event_tx:  mpsc::Sender<InputEvent>,
-        playhead:  Arc<AtomicU64>,
+        event_tx: mpsc::Sender<InputEvent>,
+        playhead: Arc<AtomicU64>,
         status_tx: mpsc::Sender<MidiUpdate>,
     ) -> Result<(Self, String), String> {
         let input = MidiInput::new("mush-midi-in").map_err(|e| e.to_string())?;
-        let ports  = input.ports();
+        let ports = input.ports();
 
         if ports.is_empty() {
             return Err("no MIDI input ports available".into());
         }
 
-        let port      = &ports[0];
-        let port_name = input
-            .port_name(port)
-            .unwrap_or_else(|_| "unknown".into());
+        let port = &ports[0];
+        let port_name = input.port_name(port).unwrap_or_else(|_| "unknown".into());
 
         let handle = Self::open(&port_name, event_tx, playhead, status_tx)?;
         Ok((handle, port_name))

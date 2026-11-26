@@ -150,6 +150,18 @@ pub struct Conductor {
     /// conductor tick (~1ms) and emitted via `tracing::warn!` off the RT path.
     diag_queue: Arc<ArrayQueue<DiagEvent>>,
 
+    /// Outgoing MIDI events that have been sent to the output port and are
+    /// waiting to be emitted as `EventDispatched` updates.
+    ///
+    /// Populated by `drain_midi_queue` (sync, called from the RT tick).
+    /// Drained by the `drain_interval` arm of the `run` loop (async, where
+    /// `emit_all` is available).
+    ///
+    /// Capacity matches `midi_queue` — if the output port is producing
+    /// events faster than the drain interval can emit them, older events
+    /// are dropped with a warning rather than blocking the RT path.
+    dispatched_queue: Arc<ArrayQueue<[u8; 3]>>,
+
     /// The currently open MIDI output connection, if any.
     ///
     /// `None`  — no port selected; `SendMessage` returns an error.
@@ -253,6 +265,7 @@ impl Conductor {
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
             diag_queue: Arc::clone(&diag_queue),
+            dispatched_queue: Arc::new(ArrayQueue::new(1024)),
             midi_connection: None,
             clock: None,
             midi_input: None,
@@ -334,11 +347,14 @@ impl Conductor {
                     }
                 }
                 _ = drain_interval.tick() => {
-                    // Span here makes drain backpressure visible in tokio-console
-                    // as a recurring short-lived child of the conductor task.
-                    let _span = tracing::debug_span!("conductor.drain").entered();
-                    self.drain_midi_queue();
-                    self.drain_diag_queue();
+                    {
+                        // Span here makes drain backpressure visible in tokio-console
+                        // as a recurring short-lived child of the conductor task.
+                        let _span = tracing::debug_span!("conductor.drain").entered();
+                        self.drain_midi_queue();
+                        self.drain_diag_queue();
+                    }
+                    self.drain_dispatched_queue().await;
                     if self.shutdown {
                         break;
                     }
@@ -354,8 +370,6 @@ impl Conductor {
     /// selected or the queue is empty.
     fn drain_midi_queue(&mut self) {
         let Some(conn) = self.midi_connection.as_mut() else {
-            // Drain and discard — don't let the queue fill up with
-            // stale events if no port is selected.
             while self.midi_queue.pop().is_some() {}
             return;
         };
@@ -363,6 +377,13 @@ impl Conductor {
         while let Some(bytes) = self.midi_queue.pop() {
             if let Err(e) = conn.send(&bytes) {
                 warn!(error = %e, "drain_midi_queue: send failed");
+            } else {
+                // Queue for async emission as EventDispatched.
+                // Force-push drops the oldest entry on overflow rather than
+                // blocking — matches ArrayQueue semantics on midi_queue.
+                if self.dispatched_queue.force_push(bytes).is_some() {
+                    warn!("dispatched_queue full — oldest outgoing event dropped");
+                }
             }
         }
     }
@@ -387,6 +408,23 @@ impl Conductor {
                     warn!(frame, "RT: timeline lock missed — buffer period skipped");
                 }
             }
+        }
+    }
+
+    /// Emit queued outgoing MIDI events as `EventDispatched` updates.
+    ///
+    /// Called from the `drain_interval` arm of the `run` loop where
+    /// `emit_all` is available. Pairs with `drain_midi_queue` which
+    /// populates `dispatched_queue` on the sync RT tick path.
+    async fn drain_dispatched_queue(&mut self) {
+        while let Some(bytes) = self.dispatched_queue.pop() {
+            let [status, note, vel] = bytes;
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
+                channel: status & 0x0F,
+                note,
+                vel,
+            }))
+            .await;
         }
     }
 

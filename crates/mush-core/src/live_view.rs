@@ -45,7 +45,6 @@ pub enum View {
     #[default]
     Raw,
     /// Codec-formatted symbolic — e.g. `NoteOn C4 mf`
-    /// Uses [`mush_midi_codec::Style::Long`] for readability.
     Symbolic,
 }
 
@@ -166,25 +165,18 @@ pub async fn run_live_view(
         tokio::select! {
             update = client.recv_update() => {
                 match update {
-                    None => break, // conductor disconnected
+                    None => {
+                        tracing::warn!("recv_update returned None — breaking live view loop");
+                        break;
+                    }
 
                     Some(EngineUpdate::Midi(MidiUpdate::EventDispatched {
                         channel, note, vel
                     })) => {
-                        // Determine display direction from config.
-                        // At MVP, all events from a monitor/record session
-                        // are In; all from a play session are Out.
-                        // Both is reserved for future simultaneous play+record.
                         let dir = match config.direction {
-                            EventDirection::Both => EventDirection::In, // MVP: treat as In
+                            EventDirection::Both => EventDirection::In,
                             d => d,
                         };
-
-                        // Reconstruct status byte. channel is already masked
-                        // to 0x0F by handle_input_event. We use 0x90 (NoteOn
-                        // family) — vel=0 conventionally means NoteOff.
-                        // Post-MVP: store the original status byte in
-                        // MidiUpdate::EventDispatched to avoid this assumption.
                         let status = 0x90 | (channel & 0x0F);
                         events.push(DisplayEvent { status, note, vel, dir });
                         render_screen(&events, view, &config, &transport)?;
@@ -195,21 +187,26 @@ pub async fn run_live_view(
                         render_screen(&events, view, &config, &transport)?;
                     }
 
-                    Some(_) => {} // ignore other update variants
+                    Some(_) => {}
                 }
             }
 
             key = key_stream.next() => {
                 match key {
+                    None => {
+                        tracing::warn!("key_stream exhausted — breaking live view loop");
+                        break;
+                    }
+                    Some(Err(e)) => {
+                        tracing::warn!(error = %e, "key_stream error");
+                    }
                     Some(Ok(Event::Key(KeyEvent { code, modifiers, .. }))) => {
                         match (code, modifiers) {
-                            // Exit live view
                             (KeyCode::Char(' '), _)
                             | (KeyCode::Char('q'), _)
                             | (KeyCode::Esc, _)
                             | (KeyCode::Char('c'), KeyModifiers::CONTROL) => break,
 
-                            // Cycle view
                             (KeyCode::Tab, _) => {
                                 view = view.next();
                                 render_screen(&events, view, &config, &transport)?;
@@ -218,7 +215,7 @@ pub async fn run_live_view(
                             _ => {}
                         }
                     }
-                    _ => {}
+                    Some(Ok(_)) => {}
                 }
             }
         }
@@ -348,22 +345,36 @@ fn render_event_row(
         ),
 
         View::Symbolic => {
-            let bytes = [event.status, event.note, event.vel];
             let channel = event.status & 0x0F;
 
-            // Format using Long style for readability in the table.
-            // Falls back to hex on codec error (e.g. unknown status byte).
-            let symbolic = mush_midi_codec::format(&bytes, mush_midi_codec::Style::Long)
-                .unwrap_or_else(|_| format!(
-                    "{:02X} {:02X} {:02X}", event.status, event.note, event.vel
-                ));
+            // Decode status nibble to event type name.
+            let kind = match event.status & 0xF0 {
+                0x80 => "NoteOff",
+                0x90 => if event.vel == 0 { "NoteOff" } else { "NoteOn" },
+                0xA0 => "PolyAT",
+                0xB0 => "CC",
+                0xC0 => "ProgramChg",
+                0xD0 => "ChanAT",
+                0xE0 => "PitchBend",
+                _    => "Unknown",
+            };
 
-            // mush_midi_codec::Style::Long produces "NoteOn C4 mf" —
-            // split into type / note / velocity columns.
-            let mut parts = symbolic.splitn(3, ' ');
-            let kind     = parts.next().unwrap_or("?");
-            let note_name = parts.next().unwrap_or("?");
-            let vel_name  = parts.next().unwrap_or("?");
+            // Note name from MIDI note number.
+            let note_names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+            let octave    = (event.note / 12) as i8 - 1;
+            let note_name = format!("{}{}", note_names[(event.note % 12) as usize], octave);
+
+            // Velocity as approximate dynamic marking.
+            let vel_name = match event.vel {
+                0        => "off",
+                1..=31   => "pp",
+                32..=47  => "p",
+                48..=63  => "mp",
+                64..=79  => "mf",
+                80..=95  => "f",
+                96..=111 => "ff",
+                _        => "fff",
+            };
 
             format!(
                 "{:<4}  {:<3}  {:<2}  {:<8}  {:<4}  {}",

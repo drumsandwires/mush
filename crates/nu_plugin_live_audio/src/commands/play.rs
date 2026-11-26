@@ -39,4 +39,3 @@ impl SimplePluginCommand for Play {
         // Ok(Value::nothing(Span::unknown()))
     }
 }
-

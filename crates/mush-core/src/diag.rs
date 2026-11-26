@@ -1,4 +1,3 @@
-
 /// A diagnostic event captured on the RT path.
 ///
 /// Must be `Copy` and allocation-free — pushed from audio callback

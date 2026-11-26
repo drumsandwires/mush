@@ -9,12 +9,15 @@ pub struct Stop;
 impl SimplePluginCommand for Stop {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi stop" }
-    fn description(&self) -> &str { "Stop MIDI playback or recording" }
+    fn name(&self) -> &str {
+        "midi stop"
+    }
+    fn description(&self) -> &str {
+        "Stop MIDI playback or recording"
+    }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name())
-            .input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
@@ -28,7 +31,9 @@ impl SimplePluginCommand for Stop {
         tracing::debug!("stop: run");
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt.block_on(client.send_command(&TransportCommand::Stop))
+        plugin
+            .rt
+            .block_on(client.send_command(&TransportCommand::Stop))
             .map_err(|e| LabeledError::new(e))?;
 
         let update = plugin.rt.block_on(handle.recv());

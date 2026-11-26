@@ -10,7 +10,9 @@ pub struct Send;
 impl SimplePluginCommand for Send {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi send" }
+    fn name(&self) -> &str {
+        "midi send"
+    }
     fn description(&self) -> &str {
         "Send a raw MIDI message — symbolic (NoteOn C4 mf) or numeric (0x90 0x3C 0x64)"
     }
@@ -36,12 +38,13 @@ impl SimplePluginCommand for Send {
         tracing::debug!("send: run");
         let message: String = call.req(0)?;
 
-        let bytes = parse(&message)
-            .map_err(|e| LabeledError::new(e.to_string()))?;
+        let bytes = parse(&message).map_err(|e| LabeledError::new(e.to_string()))?;
 
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt.block_on(client.send_command(&TransportCommand::SendMessage(bytes)))
+        plugin
+            .rt
+            .block_on(client.send_command(&TransportCommand::SendMessage(bytes)))
             .map_err(|e| LabeledError::new(e.to_string()))?;
 
         let update = plugin.rt.block_on(handle.recv());

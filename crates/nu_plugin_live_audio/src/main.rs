@@ -50,4 +50,3 @@ fn main() -> anyhow::Result<()> {
     serve_plugin(&plugin, MsgPackSerializer);
     Ok(())
 }
-

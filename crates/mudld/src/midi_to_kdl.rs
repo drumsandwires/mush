@@ -5,13 +5,13 @@ use midly::{MidiMessage, Smf, TrackEventKind};
 ///
 /// The returned document can be serialised with `doc.to_string()`.
 pub fn midi_to_kdl(smf: &Smf<'_>) -> KdlDocument {
-    let mut root       = KdlDocument::new();
-    let mut midi_node  = KdlNode::new("midi");
+    let mut root = KdlDocument::new();
+    let mut midi_node = KdlNode::new("midi");
 
     let format_num: i128 = match smf.header.format {
         midly::Format::SingleTrack => 0,
-        midly::Format::Parallel    => 1,
-        midly::Format::Sequential  => 2,
+        midly::Format::Parallel => 1,
+        midly::Format::Sequential => 2,
     };
     midi_node.push(KdlEntry::new_prop("format", KdlValue::Integer(format_num)));
 
@@ -73,36 +73,48 @@ fn build_event_node(kind: &TrackEventKind<'_>) -> KdlNode {
             let ch = u8::from(*channel) as i128;
             match message {
                 MidiMessage::NoteOn { key, vel } => midi_msg(
-                    "note-on", ch,
-                    &[("key", u8::from(*key) as i128), ("vel", u8::from(*vel) as i128)],
+                    "note-on",
+                    ch,
+                    &[
+                        ("key", u8::from(*key) as i128),
+                        ("vel", u8::from(*vel) as i128),
+                    ],
                 ),
                 MidiMessage::NoteOff { key, vel } => midi_msg(
-                    "note-off", ch,
-                    &[("key", u8::from(*key) as i128), ("vel", u8::from(*vel) as i128)],
+                    "note-off",
+                    ch,
+                    &[
+                        ("key", u8::from(*key) as i128),
+                        ("vel", u8::from(*vel) as i128),
+                    ],
                 ),
                 MidiMessage::ProgramChange { program } => midi_msg(
-                    "program-change", ch,
+                    "program-change",
+                    ch,
                     &[("program", u8::from(*program) as i128)],
                 ),
                 MidiMessage::Controller { controller, value } => midi_msg(
-                    "controller", ch,
+                    "controller",
+                    ch,
                     &[
-                        ("cc",    u8::from(*controller) as i128),
-                        ("value", u8::from(*value)      as i128),
+                        ("cc", u8::from(*controller) as i128),
+                        ("value", u8::from(*value) as i128),
                     ],
                 ),
-                MidiMessage::PitchBend { bend } => midi_msg(
-                    "pitch-bend", ch,
-                    &[("value", bend.as_int() as i128)],
-                ),
+                MidiMessage::PitchBend { bend } => {
+                    midi_msg("pitch-bend", ch, &[("value", bend.as_int() as i128)])
+                }
                 MidiMessage::Aftertouch { key, vel } => midi_msg(
-                    "aftertouch", ch,
-                    &[("key", u8::from(*key) as i128), ("vel", u8::from(*vel) as i128)],
+                    "aftertouch",
+                    ch,
+                    &[
+                        ("key", u8::from(*key) as i128),
+                        ("vel", u8::from(*vel) as i128),
+                    ],
                 ),
-                MidiMessage::ChannelAftertouch { vel } => midi_msg(
-                    "channel-aftertouch", ch,
-                    &[("vel", u8::from(*vel) as i128)],
-                ),
+                MidiMessage::ChannelAftertouch { vel } => {
+                    midi_msg("channel-aftertouch", ch, &[("vel", u8::from(*vel) as i128)])
+                }
             }
         }
 
@@ -116,45 +128,60 @@ fn build_event_node(kind: &TrackEventKind<'_>) -> KdlNode {
                     }
                     node
                 }
-                MetaMessage::Text(data)           => text_meta_node("text",            data),
-                MetaMessage::Copyright(data)      => text_meta_node("copyright",       data),
-                MetaMessage::TrackName(data)      => text_meta_node("track-name",      data),
+                MetaMessage::Text(data) => text_meta_node("text", data),
+                MetaMessage::Copyright(data) => text_meta_node("copyright", data),
+                MetaMessage::TrackName(data) => text_meta_node("track-name", data),
                 MetaMessage::InstrumentName(data) => text_meta_node("instrument-name", data),
-                MetaMessage::Lyric(data)          => text_meta_node("lyric",           data),
-                MetaMessage::Marker(data)         => text_meta_node("marker",          data),
-                MetaMessage::CuePoint(data)       => text_meta_node("cue-point",       data),
-                MetaMessage::ProgramName(data)    => text_meta_node("program-name",    data),
-                MetaMessage::DeviceName(data)     => text_meta_node("device-name",     data),
-                MetaMessage::MidiChannel(ch) => prop_node(
-                    "midi-channel",
-                    &[("channel", u8::from(*ch) as i128)],
-                ),
-                MetaMessage::MidiPort(port) => prop_node(
-                    "midi-port",
-                    &[("port", u8::from(*port) as i128)],
-                ),
+                MetaMessage::Lyric(data) => text_meta_node("lyric", data),
+                MetaMessage::Marker(data) => text_meta_node("marker", data),
+                MetaMessage::CuePoint(data) => text_meta_node("cue-point", data),
+                MetaMessage::ProgramName(data) => text_meta_node("program-name", data),
+                MetaMessage::DeviceName(data) => text_meta_node("device-name", data),
+                MetaMessage::MidiChannel(ch) => {
+                    prop_node("midi-channel", &[("channel", u8::from(*ch) as i128)])
+                }
+                MetaMessage::MidiPort(port) => {
+                    prop_node("midi-port", &[("port", u8::from(*port) as i128)])
+                }
                 MetaMessage::EndOfTrack => KdlNode::new("end-of-track"),
-                MetaMessage::Tempo(us)  => prop_node(
-                    "tempo",
-                    &[("us-per-beat", u32::from(*us) as i128)],
-                ),
+                MetaMessage::Tempo(us) => {
+                    prop_node("tempo", &[("us-per-beat", u32::from(*us) as i128)])
+                }
                 MetaMessage::SmpteOffset(s) => {
                     let mut n = KdlNode::new("smpte-offset");
-                    n.push(KdlEntry::new_prop("fps",      KdlValue::Integer(s.fps().as_int() as i128)));
-                    n.push(KdlEntry::new_prop("hour",     KdlValue::Integer(s.hour()     as i128)));
-                    n.push(KdlEntry::new_prop("minute",   KdlValue::Integer(s.minute()   as i128)));
-                    n.push(KdlEntry::new_prop("second",   KdlValue::Integer(s.second()   as i128)));
-                    n.push(KdlEntry::new_prop("frame",    KdlValue::Integer(s.frame()    as i128)));
-                    n.push(KdlEntry::new_prop("subframe", KdlValue::Integer(s.subframe() as i128)));
+                    n.push(KdlEntry::new_prop(
+                        "fps",
+                        KdlValue::Integer(s.fps().as_int() as i128),
+                    ));
+                    n.push(KdlEntry::new_prop(
+                        "hour",
+                        KdlValue::Integer(s.hour() as i128),
+                    ));
+                    n.push(KdlEntry::new_prop(
+                        "minute",
+                        KdlValue::Integer(s.minute() as i128),
+                    ));
+                    n.push(KdlEntry::new_prop(
+                        "second",
+                        KdlValue::Integer(s.second() as i128),
+                    ));
+                    n.push(KdlEntry::new_prop(
+                        "frame",
+                        KdlValue::Integer(s.frame() as i128),
+                    ));
+                    n.push(KdlEntry::new_prop(
+                        "subframe",
+                        KdlValue::Integer(s.subframe() as i128),
+                    ));
                     n
                 }
                 MetaMessage::TimeSignature(num, den_pow, clocks, notes) => prop_node(
                     "time-signature",
                     &[
-                        ("num",    *num    as i128),
-                        ("den",    2_i128.pow(*den_pow as u32)),
+                        ("num", *num as i128),
+                        ("den", 2_i128.pow(*den_pow as u32)),
                         ("clocks", *clocks as i128),
-                        ("notes",  *notes  as i128),
+                        ("notes", *notes as i128),
                     ],
                 ),
                 MetaMessage::KeySignature(key, minor) => {
@@ -169,7 +196,10 @@ fn build_event_node(kind: &TrackEventKind<'_>) -> KdlNode {
                 }
                 MetaMessage::Unknown(type_byte, data) => {
                     let mut n = KdlNode::new("meta-other");
-                    n.push(KdlEntry::new_prop("type", KdlValue::Integer(*type_byte as i128)));
+                    n.push(KdlEntry::new_prop(
+                        "type",
+                        KdlValue::Integer(*type_byte as i128),
+                    ));
                     n.push(KdlEntry::new(KdlValue::String(hex_encode(data))));
                     n
                 }
@@ -213,7 +243,7 @@ fn prop_node(name: &str, props: &[(&str, i128)]) -> KdlNode {
 fn text_meta_node(node_name: &str, data: &[u8]) -> KdlNode {
     let mut n = KdlNode::new(node_name);
     match std::str::from_utf8(data) {
-        Ok(s)  => n.push(KdlEntry::new(KdlValue::String(s.to_string()))),
+        Ok(s) => n.push(KdlEntry::new(KdlValue::String(s.to_string()))),
         Err(_) => {
             n.push(KdlEntry::new_prop("hex", KdlValue::Bool(true)));
             n.push(KdlEntry::new(KdlValue::String(hex_encode(data))));

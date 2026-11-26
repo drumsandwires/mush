@@ -39,4 +39,3 @@ impl SimplePluginCommand for Stop {
         // Ok(Value::nothing(Span::unknown()))
     }
 }
-

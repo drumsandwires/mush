@@ -9,12 +9,15 @@ pub struct Port;
 impl SimplePluginCommand for Port {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi port" }
-    fn description(&self) -> &str { "Show current MIDI port assignments (in and out)" }
+    fn name(&self) -> &str {
+        "midi port"
+    }
+    fn description(&self) -> &str {
+        "Show current MIDI port assignments (in and out)"
+    }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name())
-            .input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
