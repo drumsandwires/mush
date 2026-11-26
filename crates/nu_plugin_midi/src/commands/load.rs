@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use crate::MidiPlugin;
 use mush_core::transport::TransportCommand;
 use nu_plugin::{EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{LabeledError, Signature, Span, SyntaxShape, Type, Value};
-use crate::MidiPlugin;
+use std::path::PathBuf;
 
 pub struct Load;
 

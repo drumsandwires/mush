@@ -1,5 +1,3 @@
 fn main() {
-    shadow_rs::ShadowBuilder::builder()
-        .build()
-        .unwrap();
+    shadow_rs::ShadowBuilder::builder().build().unwrap();
 }

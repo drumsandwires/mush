@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crossbeam_queue::ArrayQueue;
 use midir::MidiOutput as MidirOutput;
+use std::sync::atomic::Ordering;
 use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 use tracing::{debug, info, warn};
@@ -20,6 +21,7 @@ use crate::midi_output::MidiOutput;
 use crate::subscription::{Subscription, subscription};
 use crate::timeline::TimelineEvent;
 use crate::transport::{MidiEvent, TransportCommand, TransportState};
+use crate::update::TransportStatus;
 use crate::update::{AudioUpdate, EngineUpdate, MidiUpdate};
 use crate::zmq_transport::ZmqTransport;
 
@@ -148,6 +150,18 @@ pub struct Conductor {
     /// conductor tick (~1ms) and emitted via `tracing::warn!` off the RT path.
     diag_queue: Arc<ArrayQueue<DiagEvent>>,
 
+    /// Outgoing MIDI events that have been sent to the output port and are
+    /// waiting to be emitted as `EventDispatched` updates.
+    ///
+    /// Populated by `drain_midi_queue` (sync, called from the RT tick).
+    /// Drained by the `drain_interval` arm of the `run` loop (async, where
+    /// `emit_all` is available).
+    ///
+    /// Capacity matches `midi_queue` — if the output port is producing
+    /// events faster than the drain interval can emit them, older events
+    /// are dropped with a warning rather than blocking the RT path.
+    dispatched_queue: Arc<ArrayQueue<[u8; 3]>>,
+
     /// The currently open MIDI output connection, if any.
     ///
     /// `None`  — no port selected; `SendMessage` returns an error.
@@ -251,6 +265,7 @@ impl Conductor {
             timeline: Arc::new(std::sync::RwLock::new(Vec::new())),
             midi_queue: Arc::clone(&midi_queue),
             diag_queue: Arc::clone(&diag_queue),
+            dispatched_queue: Arc::new(ArrayQueue::new(1024)),
             midi_connection: None,
             clock: None,
             midi_input: None,
@@ -332,11 +347,14 @@ impl Conductor {
                     }
                 }
                 _ = drain_interval.tick() => {
-                    // Span here makes drain backpressure visible in tokio-console
-                    // as a recurring short-lived child of the conductor task.
-                    let _span = tracing::debug_span!("conductor.drain").entered();
-                    self.drain_midi_queue();
-                    self.drain_diag_queue();
+                    {
+                        // Span here makes drain backpressure visible in tokio-console
+                        // as a recurring short-lived child of the conductor task.
+                        let _span = tracing::debug_span!("conductor.drain").entered();
+                        self.drain_midi_queue();
+                        self.drain_diag_queue();
+                    }
+                    self.drain_dispatched_queue().await;
                     if self.shutdown {
                         break;
                     }
@@ -352,8 +370,6 @@ impl Conductor {
     /// selected or the queue is empty.
     fn drain_midi_queue(&mut self) {
         let Some(conn) = self.midi_connection.as_mut() else {
-            // Drain and discard — don't let the queue fill up with
-            // stale events if no port is selected.
             while self.midi_queue.pop().is_some() {}
             return;
         };
@@ -361,6 +377,13 @@ impl Conductor {
         while let Some(bytes) = self.midi_queue.pop() {
             if let Err(e) = conn.send(&bytes) {
                 warn!(error = %e, "drain_midi_queue: send failed");
+            } else {
+                // Queue for async emission as EventDispatched.
+                // Force-push drops the oldest entry on overflow rather than
+                // blocking — matches ArrayQueue semantics on midi_queue.
+                if self.dispatched_queue.force_push(bytes).is_some() {
+                    warn!("dispatched_queue full — oldest outgoing event dropped");
+                }
             }
         }
     }
@@ -385,6 +408,23 @@ impl Conductor {
                     warn!(frame, "RT: timeline lock missed — buffer period skipped");
                 }
             }
+        }
+    }
+
+    /// Emit queued outgoing MIDI events as `EventDispatched` updates.
+    ///
+    /// Called from the `drain_interval` arm of the `run` loop where
+    /// `emit_all` is available. Pairs with `drain_midi_queue` which
+    /// populates `dispatched_queue` on the sync RT tick path.
+    async fn drain_dispatched_queue(&mut self) {
+        while let Some(bytes) = self.dispatched_queue.pop() {
+            let [status, note, vel] = bytes;
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
+                channel: status & 0x0F,
+                note,
+                vel,
+            }))
+            .await;
         }
     }
 
@@ -567,14 +607,12 @@ impl Conductor {
             }
 
             TransportCommand::MidiInputPort(selector) => {
-                let name = match selector {
-                    None => None,
-                    Some(ref s) => {
-                        // Input port is opened lazily — validate existence at
-                        // open time, not at selection time.
-                        Some(s.clone())
-                    }
-                };
+                // Store the raw selector immediately — validation happens lazily
+                // at open time in start_input. This allows the user to configure
+                // a port before it is connected, matching DAW convention.
+                // Index and substring resolution occurs in start_input via
+                // resolve_and_emit when the port is actually opened.
+                let name = selector;
                 *self.state.active_midi_input_port.write().unwrap() = name.clone();
                 if self.input_mode != InputMode::Off {
                     let mode = self.input_mode;
@@ -614,7 +652,6 @@ impl Conductor {
     /// If an input is already open it is closed first — switching
     /// from Monitor to Listen (or vice versa) is a single command.
     /// The autosave path is updated if `path` is `Some`.
-
     async fn start_input(&mut self, mode: InputMode, path: Option<PathBuf>) {
         self.midi_input = None;
 
@@ -622,21 +659,29 @@ impl Conductor {
             self.pre_roll.set_autosave_path(Some(p));
         }
 
-        // MidiInputHandle::open reports errors via its Result return value.
-        // The status_tx parameter is used only for async errors that occur
-        // after the connection is established (e.g. callback failures).
-        // We provide a disconnected sender — dropped errors are logged by
-        // the callback via `warn!` in input.rs.
         let (status_tx, _status_rx) = mpsc::channel::<MidiUpdate>(1);
 
         let result = match self.state.midi_input_port() {
-            Some(ref name) => MidiInputHandle::open(
-                name,
-                self.input_tx.clone(),
-                Arc::clone(&self.state.playhead),
-                status_tx,
-            )
-            .map(|h| (h, name.clone())),
+            Some(ref selector) => {
+                // Resolve index/substring selector to a concrete port name.
+                // Resolution happens here (at open time) rather than at
+                // selection time so the user can configure a port before it
+                // is connected — the selector is stored raw and validated
+                // lazily when the port is actually opened.
+                match self
+                    .resolve_and_emit(selector, MidiPortDirection::Input)
+                    .await
+                {
+                    None => return, // resolve_and_emit already emitted the error
+                    Some(name) => MidiInputHandle::open(
+                        &name,
+                        self.input_tx.clone(),
+                        Arc::clone(&self.state.playhead),
+                        status_tx,
+                    )
+                    .map(|h| (h, name)),
+                }
+            }
             None => MidiInputHandle::open_first(
                 self.input_tx.clone(),
                 Arc::clone(&self.state.playhead),
@@ -657,7 +702,7 @@ impl Conductor {
                 self.input_mode = mode;
                 self.pre_roll_active = mode == InputMode::Listen;
                 info!(port = %opened_name, ?mode, "MIDI input opened");
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActivePort(Some(
+                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(Some(
                     opened_name,
                 ))))
                 .await;
@@ -689,7 +734,17 @@ impl Conductor {
         }
 
         if let Some(ref mut buf) = self.record_buffer {
-            buf.push(event);
+            buf.push(event.clone());
+        }
+
+        if self.input_mode == InputMode::Monitor {
+            let [status, note, vel] = event.bytes;
+            self.emit_all(EngineUpdate::Midi(MidiUpdate::EventDispatched {
+                channel: status & 0x0F,
+                note,
+                vel,
+            }))
+            .await;
         }
     }
 
@@ -717,6 +772,8 @@ impl Conductor {
         self.pre_roll_active = true;
         self.record_buffer = Some(Vec::new());
         self.record_path = path;
+        self.state.is_recording.store(true, Ordering::Release);
+        self.emit_transport_status().await;
         debug!("record started");
         self.emit_all(EngineUpdate::Midi(MidiUpdate::RecordStarted))
             .await;
@@ -729,7 +786,11 @@ impl Conductor {
     /// - Emits `Error` if no record was in progress.
     async fn stop_record(&mut self, path_override: Option<PathBuf>) {
         let buffer = match self.record_buffer.take() {
-            Some(b) => b,
+            Some(b) => {
+                self.state.is_recording.store(false, Ordering::Release);
+                self.emit_transport_status().await;
+                b
+            }
             None => {
                 warn!("Record(stop) received but no capture in progress");
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::Error(
@@ -1179,6 +1240,20 @@ impl Conductor {
                 }
             },
         }
+    }
+
+    /// Emit a TransportStatus snapshot reflecting current conductor state.
+    ///
+    /// Call this after any change to is_playing, is_recording, or bpm_milli
+    /// so that the live view TUI header stays current.
+    async fn emit_transport_status(&mut self) {
+        let bpm = self.state.bpm_milli.load(Ordering::Relaxed) as f64 / 1000.0;
+        let status = TransportStatus {
+            is_playing: self.state.is_playing.load(Ordering::Relaxed),
+            is_recording: self.state.is_recording.load(Ordering::Relaxed),
+            bpm,
+        };
+        self.emit_all(EngineUpdate::Transport(status)).await;
     }
 
     /// Fan out an `EngineUpdate` to all subscribers and the ZMQ PUB socket.

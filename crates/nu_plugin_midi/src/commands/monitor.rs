@@ -67,4 +67,3 @@ impl SimplePluginCommand for Monitor {
         Ok(Value::string(s, Span::unknown()))
     }
 }
-

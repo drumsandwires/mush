@@ -27,4 +27,3 @@ fn main() -> Result<()> {
     eprintln!("Wrote {} track(s) → {midi_path}", smf.tracks.len());
     Ok(())
 }
-

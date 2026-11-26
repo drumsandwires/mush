@@ -3,15 +3,15 @@ use crate::error::ParseError;
 /// Velocity dynamic markings ordered from softest to loudest.
 const DYNAMICS: &[(&str, u8)] = &[
     ("pppp", 8),
-    ("ppp",  16),
-    ("pp",   32),
-    ("p",    48),
-    ("mp",   64),
-    ("mf",   80),
-    ("pf",   88),
-    ("f",    96),
-    ("ff",   112),
-    ("fff",  120),
+    ("ppp", 16),
+    ("pp", 32),
+    ("p", 48),
+    ("mp", 64),
+    ("mf", 80),
+    ("pf", 88),
+    ("f", 96),
+    ("ff", 112),
+    ("fff", 120),
     ("ffff", 127),
 ];
 
@@ -39,7 +39,7 @@ pub fn velocity_to_str(vel: u8) -> &'static str {
         let dist = vel.abs_diff(*val);
         if dist <= best_dist {
             best_dist = dist;
-            best_sym  = sym;
+            best_sym = sym;
         }
     }
 
@@ -70,8 +70,8 @@ mod tests {
 
     #[test]
     fn format_exact_values() {
-        assert_eq!(velocity_to_str(8),   "pppp");
-        assert_eq!(velocity_to_str(80),  "mf");
+        assert_eq!(velocity_to_str(8), "pppp");
+        assert_eq!(velocity_to_str(80), "mf");
         assert_eq!(velocity_to_str(127), "ffff");
     }
 

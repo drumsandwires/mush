@@ -9,8 +9,12 @@ pub struct PortOut;
 impl SimplePluginCommand for PortOut {
     type Plugin = MidiPlugin;
 
-    fn name(&self) -> &str { "midi port out" }
-    fn description(&self) -> &str { "Set the active MIDI output port by name, index, or substring" }
+    fn name(&self) -> &str {
+        "midi port out"
+    }
+    fn description(&self) -> &str {
+        "Set the active MIDI output port by name, index, or substring"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())

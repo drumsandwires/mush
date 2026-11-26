@@ -60,7 +60,6 @@ impl ZmqClient {
         let msg = self.subscribe.next().await?;
         let msg = msg.ok()?;
 
-        // SUB frame: [topic, payload]
         let frames: Vec<_> = msg.into_iter().collect();
         let payload = frames.get(1)?;
 

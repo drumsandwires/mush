@@ -11,9 +11,9 @@ pub fn list_enumerated_devices(devices: &[MidiPortInfo]) -> Option<String> {
             .iter()
             .map(|p| {
                 let dir = match p.direction {
-                    MidiPortDirection::Input  => "IN  ",
+                    MidiPortDirection::Input => "IN  ",
                     MidiPortDirection::Output => "OUT ",
-                    MidiPortDirection::Thru   => "THRU",
+                    MidiPortDirection::Thru => "THRU",
                 };
                 format!("{dir} {}: {}", p.index, p.name)
             })

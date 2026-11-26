@@ -8,12 +8,15 @@ pub struct Hosts;
 impl SimplePluginCommand for Hosts {
     type Plugin = AudioPlugin;
 
-    fn name(&self) -> &str { "audio hosts" }
-    fn description(&self) -> &str { "List available audio hosts" }
+    fn name(&self) -> &str {
+        "audio hosts"
+    }
+    fn description(&self) -> &str {
+        "List available audio hosts"
+    }
 
     fn signature(&self) -> Signature {
-        Signature::build(self.name())
-            .input_output_type(Type::Nothing, Type::String)
+        Signature::build(self.name()).input_output_type(Type::Nothing, Type::String)
     }
 
     fn run(
@@ -27,7 +30,8 @@ impl SimplePluginCommand for Hosts {
         tracing::debug!("hosts: run");
         let mut client = plugin.client.lock().expect("client lock poisoned");
         let mut handle = plugin.handle.lock().expect("handle lock poisoned");
-        plugin.rt
+        plugin
+            .rt
             .block_on(client.send_command(&TransportCommand::AudioHosts))
             .map_err(|e| LabeledError::new(e.to_string()))?;
         let update = plugin.rt.block_on(handle.recv());

@@ -5,8 +5,7 @@
 //
 // EngineSink trait (this file)   — engine → display
 //                                  "what should be shown to the user?"
-
-use crate::update::EngineUpdate;
+use crate::update::{EngineUpdate, MidiUpdate};
 
 /// Receives EngineUpdates from the EngineMonitor and presents
 /// them to the user.
@@ -62,9 +61,31 @@ impl ReedlineSink {
 #[cfg(feature = "reedline-shell")]
 impl EngineSink for ReedlineSink {
     fn emit(&self, update: EngineUpdate) {
+        // EventDispatched is filtered here — never forwarded to the reedline
+        // printer. Two reasons:
+        //
+        // 1. Volume — at performance tempo, EventDispatched arrives at
+        //    10–100 Hz. The ExternalPrinter channel (capacity 32) fills in
+        //    under 2 seconds and begins dropping with warnings.
+        //
+        // 2. Context — a scrolling REPL line has no useful presentation for
+        //    a raw MIDI event. The live view TUI (mush_core::live_view) owns
+        //    event display via the ZMQ SUB socket and the alternate screen.
+        //
+        // TransportStatus is also filtered — it is consumed by the live view
+        // TUI header and has no useful one-line REPL representation beyond
+        // what the existing ActivePort / Error updates already provide.
+        //
+        // See DESIGN.md §Monitor Architecture for full rationale.
+        match &update {
+            EngineUpdate::Midi(MidiUpdate::EventDispatched { .. }) => return,
+            EngineUpdate::Transport(_) => return,
+            _ => {}
+        }
+
         if let Some(line) = crate::format::format_update(&update) {
             if let Err(e) = self.sender.try_send(line) {
-                tracing::warn!(sink = self.name, error = %e, "dropped update")
+                tracing::warn!(sink = self.name, error = %e, "dropped update");
             }
         }
     }

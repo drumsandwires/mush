@@ -67,4 +67,3 @@ impl SimplePluginCommand for Record {
         Ok(Value::string(s, Span::unknown()))
     }
 }
-

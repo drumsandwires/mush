@@ -74,6 +74,7 @@ pub fn format_update(update: &EngineUpdate) -> Option<String> {
             Some("recording stopped — 0 events captured".into())
         }
         EngineUpdate::Midi(MidiUpdate::Error(e)) => Some(format!("✗ MIDI error: {e}")),
+        EngineUpdate::Transport(_) => None,
     }
 }
 

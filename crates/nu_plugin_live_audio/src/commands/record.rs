@@ -7,8 +7,12 @@ pub struct Record;
 impl SimplePluginCommand for Record {
     type Plugin = AudioPlugin;
 
-    fn name(&self) -> &str { "audio record" }
-    fn description(&self) -> &str { "Start audio recording (not yet implemented)" }
+    fn name(&self) -> &str {
+        "audio record"
+    }
+    fn description(&self) -> &str {
+        "Start audio recording (not yet implemented)"
+    }
 
     fn signature(&self) -> Signature {
         Signature::build(self.name())
