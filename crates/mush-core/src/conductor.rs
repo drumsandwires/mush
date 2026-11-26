@@ -583,8 +583,11 @@ impl Conductor {
 
             // ── Device selection ──────────────────────────────────
             TransportCommand::MidiPortGet => {
-                let output = self.state.active_midi_port.read().unwrap().clone();
-                let input = self.state.active_midi_input_port.read().unwrap().clone();
+                let raw_input = self.state.active_midi_input_port.read().unwrap().clone();
+                let raw_output = self.state.active_midi_port.read().unwrap().clone();
+                let input = raw_input.map(|s| resolve_display_name(&s, MidiPortDirection::Input));
+
+                let output = raw_output;
                 self.emit_all(EngineUpdate::Midi(MidiUpdate::PortAssignments {
                     input,
                     output,
@@ -593,33 +596,62 @@ impl Conductor {
             }
 
             TransportCommand::MidiOutputPort(selector) => {
-                let name = match selector {
-                    None => None,
+                match selector {
+                    // MidiOutputPort None arm
+                    None => {
+                        let input = self.state.active_midi_input_port.read().unwrap().clone();
+                        let output = self.state.active_midi_port.read().unwrap().clone();
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::PortAssignments {
+                            input,
+                            output,
+                        }))
+                        .await;
+                    }
                     Some(ref s) => {
                         let resolved = self.resolve_and_emit(s, MidiPortDirection::Output).await;
                         if resolved.is_none() {
                             return;
                         }
-                        resolved
+                        self.select_midi_port(resolved).await;
                     }
-                };
-                self.select_midi_port(name).await;
+                }
             }
 
             TransportCommand::MidiInputPort(selector) => {
-                // Store the raw selector immediately — validation happens lazily
-                // at open time in start_input. This allows the user to configure
-                // a port before it is connected, matching DAW convention.
-                // Index and substring resolution occurs in start_input via
-                // resolve_and_emit when the port is actually opened.
-                let name = selector;
-                *self.state.active_midi_input_port.write().unwrap() = name.clone();
-                if self.input_mode != InputMode::Off {
-                    let mode = self.input_mode;
-                    self.start_input(mode, None).await;
+                match selector {
+                    None => {
+                        let raw_input = self.state.active_midi_input_port.read().unwrap().clone();
+                        let raw_output = self.state.active_midi_port.read().unwrap().clone();
+                        let input =
+                            raw_input.map(|s| resolve_display_name(&s, MidiPortDirection::Input));
+                        let output = raw_output; // already stored as resolved name
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::PortAssignments {
+                            input,
+                            output,
+                        }))
+                        .await;
+                    }
+                    Some(name) => {
+                        // Resolve eagerly — bail on failure, do not store bad selector.
+                        let display_name =
+                            match self.resolve_and_emit(&name, MidiPortDirection::Input).await {
+                                None => return, // resolve_and_emit already emitted the error
+                                Some(n) => n,
+                            };
+
+                        *self.state.active_midi_input_port.write().unwrap() = Some(name.clone());
+
+                        if self.input_mode != InputMode::Off {
+                            let mode = self.input_mode;
+                            self.start_input(mode, None).await;
+                        }
+
+                        self.emit_all(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(Some(
+                            display_name,
+                        ))))
+                        .await;
+                    }
                 }
-                self.emit_all(EngineUpdate::Midi(MidiUpdate::ActiveInputPort(name)))
-                    .await;
             }
 
             TransportCommand::AudioHost(name) => {
@@ -1355,6 +1387,19 @@ fn resolve_port_name(selector: &str, ports: &[MidiPortInfo]) -> Result<String, S
     }
 }
 
+/// Resolve a raw selector to a display name silently — no error emitted on
+/// failure. Falls back to the raw selector so the user always sees something.
+fn resolve_display_name(selector: &str, direction: MidiPortDirection) -> String {
+    let Ok(ports) = enumerate_devices() else {
+        return selector.to_string();
+    };
+    let filtered: Vec<MidiPortInfo> = ports
+        .into_iter()
+        .filter(|p| p.direction == direction)
+        .collect();
+    resolve_port_name(selector, &filtered).unwrap_or_else(|_| selector.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1746,14 +1791,16 @@ mod tests {
         assert_eq!(conductor.pre_roll.next_autosave_path(), path);
     }
 
-    // 8.3.8 — MidiInputPort updates TransportState
+    // 8.3.8 — MidiInputPort rejects unknown selector, state unchanged
     #[tokio::test]
     async fn midi_input_port_updates_state() {
         let (mut conductor, _q, _audio_tx, _midi_tx) = make_conductor();
+
+        // No real ports available in test environment — selector is rejected.
         conductor
             .handle_command(TransportCommand::MidiInputPort(Some("Test Port".into())))
             .await;
-        assert_eq!(conductor.state.midi_input_port(), Some("Test Port".into()));
+        assert_eq!(conductor.state.midi_input_port(), None);
     }
 
     // 8.3.8 — pre-roll is empty on construction
